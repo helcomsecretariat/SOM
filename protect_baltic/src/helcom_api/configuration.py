@@ -7,7 +7,7 @@ http://maps.helcom.fi/arcgis/rest/services/MADS
 Notes:
 'commercial or migratory fish' shp are not included
 'introduction of non-indigenous species and translocations' commented out
-
+^ uncommented out / commented back in (-Camilo)
 
 Created on 2021.06.04. by Antti-Jussi Kieloaho
 """
@@ -415,11 +415,10 @@ data_layers = [
         comments: 'could be used to scale the impact of measures',
         columns: ['levelOfSpa']
     },
-    # Is following layer necessary?
-    #{
-    #    name: 'introduction of non-indigenous species and translocations',
-    #    layer_id: 'dff023a4-ad42-4a38-ade9-b4fd1194c79d',
-    #    comments: 'rather old',
-    #    columns: ['levelOfSpa']
-    #},
+    {
+       name: 'introduction of non-indigenous species and translocations',
+       layer_id: 'dff023a4-ad42-4a38-ade9-b4fd1194c79d',
+       comments: 'rather old',
+       columns: ['levelOfSpa']
+    },
 ]
