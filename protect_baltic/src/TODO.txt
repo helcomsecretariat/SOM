@@ -1,0 +1,14 @@
+
+- change both configuration.py to json or toml?
+
+- missing files
+    - ask Venla, Luke, Owen, Antti-Jussi (in that order)
+    - data folder
+        - generalInput.xlsx
+        - measureEffInput.xlsx
+        - pressStateInput.xlsx
+        - domains/calculation_domains.geojson
+        - layers folder
+
+
+
