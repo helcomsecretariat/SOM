@@ -1,20 +1,21 @@
 
-from helcom_api.gis_tools import preprocess_files, preprocess_shp
-from helcom_api.configuration import data_layers
+import helcom_api.gis_tools as gis_tools
 
-def make_preprocessing(file_path, retrieve=False):
+def make_preprocessing(config_file, file_dir, retrieve=False):
     """ wrapper function for preprocessing
-    """    
+    """
 
-    layer_paths, layers = preprocess_files(
-        data_layers=data_layers,
-        file_path=file_path,
+    config = gis_tools.read_config(config_file)
+
+    layer_paths, layers = gis_tools.preprocess_files(
+        config=config,
+        file_dir=file_dir,
         retrieve=retrieve
     )
 
-    raster_path, meta_info = preprocess_shp(
+    raster_path, meta_info = gis_tools.preprocess_shp(
         layers=layers,
-        data_layers=data_layers,
+        data_layers=config['data_layers'],
         raster_path=None,
     )
 
@@ -23,10 +24,11 @@ def make_preprocessing(file_path, retrieve=False):
 
 if __name__ == '__main__':
 
-    file_path = '/Users/ajk/Repositories/helcom_blues/data/layers/'
-    retrive = False
+    file_dir = None
+    retrieve = False
 
-    layer_paths = make_preprocessing(file_path=file_path, retrieve=retrive)
-    
+    config_file = 'configuration.toml'
+    layer_paths = make_preprocessing(config_file=config_file, file_dir=file_dir, retrieve=retrieve)
+
 
 # EOF

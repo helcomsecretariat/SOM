@@ -11,6 +11,7 @@ import os
 from io import BytesIO
 import pathlib
 import requests     # get()
+import toml
 
 from collections.abc import MutableMapping
 
@@ -24,7 +25,7 @@ import geopandas as gpd
 import rasterio
 from geocube.api.core import make_geocube
 
-import helcom_api.configuration as config
+# import helcom_api.configuration as config
 
 DataLayers = List[Dict[str, Any]]
 LayerPaths = List[Dict[str, str]]
@@ -70,16 +71,51 @@ class BijectiveMap(MutableMapping):
         return f"{type(self).__name__}({self.mapping})"
 
 
-def rename_files(target_dirpath: str, ignore_pattern: str='^*') -> None:
-    """ Return a dict and rename files. """
+def read_config(config_file: str) -> Dict[str, Any]:
+    """
+    Reads given configuration file and returns content as structured dictionary.
 
+    Arguments:
+        config_file (str): path/to/file
+
+    Returns:
+        data (dict): configuration file content
+    """
+    try:
+        with open(config_file, 'r') as f:
+            data = toml.load(f)
+        # convert data_layers from dict to list
+        data['data_layers'] = {
+            layer: { 
+                data['layer_attributes'][attr]: data['data_layers'][layer][attr]
+                for attr in data['data_layers'][layer]
+            } for layer in data['data_layers']
+        }
+        data['data_layers'] = [data['data_layers'][layer] for layer in data['data_layers']]
+        return data
+    except:
+        print(f'Could not load config file: {config_file}')
+        return None
+
+
+def rename_files(target_dirpath: str, ignore_pattern: str='^*') -> Dict[str, Any]:
+    """
+    Return a dict and rename files. Files are renamed to name of their directory.
+
+    Arguments:
+        target_dirpath (str): directory to search recursively for files to rename
+        ignore_pattern (str): regex pattern to exclude files
+
+    Returns:
+        renamed_paths (dict): dictionary {original_path: renamed_file_name}
+    """
     root_dirpath = pathlib.Path(target_dirpath).expanduser()
     renamed_paths = {}
 
-    for path in root_dirpath.rglob('*'):
+    for path in root_dirpath.rglob('*'):    # go through all files in directory
 
         if not path.is_file() or path.match(ignore_pattern):
-            continue
+            continue    # skip path
 
         # Parse new filename
         dir_path = path.parent
@@ -89,87 +125,86 @@ def rename_files(target_dirpath: str, ignore_pattern: str='^*') -> None:
         file_path = dir_path / file_name
 
         # Rename
+        path.rename(file_path)
         renamed_paths[str(path)] = file_path.name
 
-        path.rename(file_path)
+    return renamed_paths
 
 
-def get_layer_name(layer: Union[Dict[str, Any], str]) -> str:
+def get_layer_name(layer: Union[Dict[str, Any], str], name: str = None) -> str:
     """
     Arguments:
-        layer (dict): data layer item
+        layer (dict | str): data layer item
+        name (str): key to look for in data layer
     
     Returns:
-        (str): data layer name
+        layer_name (str): processed data layer name
     """
+    if isinstance(layer, dict) and name is not None and name in layer:
+        layer_name = layer[name]
+    else:
+        layer_name = layer  # layer is just a string
+    return layer_name.replace(' ', '_').replace('(', '').replace(')', '').lower()
 
-    if isinstance(layer, dict):
-        layer = layer['name']
-    
-    return layer.replace(' ', '_').replace('(', '').replace(')', '').lower()
 
+def get_calculation_domain(calculation_domains: Dict[str, Any], layers: Dict[str, dict], domain_dir: str = None):
+    """
+    Forms calculation domains based on countries, river catchments and sub-basins.
 
-def get_calculation_domain(layers, path_to_domains=None):
-    """ Forms calculation domains based on countries, river catchments and sub-basins.
-
-    Configuration of calculation_domains is in configuration.py
+    Configuration of calculation_domains is in configuration file
     Formed calculation domain as a .shp file is saved to data/domains
 
     Arguments:
+        calculation_domains (dict): calculation domains from config file
         layers (dict): container that have shp-files
+        domain_dir (str): path to calculation domain layer directory, if it exists
 
     Returns:
         path_to_domains (str): path to calculation domain layer
         calculation_domain_gdf (GeoDataFrame): calculation domain 
-
     """
-        
     current_path = os.getcwd()
 
-    if not path_to_domains:
-        path_to_domains = os.path.join(current_path, 'data', 'domains')
-
-    if not os.path.exists(path_to_domains):
-        os.mkdir(path_to_domains)
+    if not domain_dir:
+        domain_dir = os.path.join(current_path, 'data', 'domains')
+    os.makedirs(domain_dir, exist_ok=True)
         
     domain_layers = []
     
-    for domain in config.calculation_domains:
+    for domain in calculation_domains:
         
         if domain == 'north_sea' or domain == 'rest_of_world':
-
             #attrs =  calculation_domains[domain]['attributes']
             #attrs.append('domain')
-
             #d = {'geometry': None, }
-
             #for col in attrs:
             #    d[col] = [domain]
-
             #gdf = gpd.GeoDataFrame(d)
             #domain_layers.append(gdf)
-            
             continue
 
-        borders_name = get_layer_name(config.calculation_domains[domain]['administrative_shp'])
+        # find the borders of the domain
+        borders_name = get_layer_name(calculation_domains[domain]['administrative_shp'])
         borders = layers['shp'][borders_name]
-        borders_attrs = config.calculation_domains[domain]['administrative_attrs']
+        borders_attrs = calculation_domains[domain]['administrative_attrs']
 
-        layer_name = get_layer_name(config.calculation_domains[domain]['geographical_shp'])
+        # geographical boundaries
+        layer_name = get_layer_name(calculation_domains[domain]['geographical_shp'])
         layer = layers['shp'][layer_name]
 
         for item in borders_attrs:
-            # attributes from configuration.py
+            # attributes from configuration file
             # item is a tuple where first element is attribute and second element its value
             borders.loc[borders[item[0]] == item[1], 'domain'] = domain
             areas = borders.loc[borders['domain'] == domain]
-            
+        
+        # merge separate countries
         if 'Country' in areas:
             areas = areas.dissolve(by='Country').reset_index()
             
         domain_layer = gpd.overlay(df1=areas, df2=layer, how='intersection', keep_geom_type=True)
-            
-        attrs = config.calculation_domains[domain]['geographical_attrs']
+
+        attrs = calculation_domains[domain]['geographical_attrs']
         attrs.append('domain')
             
         domain_layer = domain_layer[attrs]
@@ -179,30 +214,27 @@ def get_calculation_domain(layers, path_to_domains=None):
     calculation_domain_gdf = pd.concat(domain_layers, ignore_index=True)
     calculation_domain_gdf['domain_index'] = calculation_domain_gdf.index
 
-    # add rest_of_worl and north_sea into end with empty geometry
+    # add rest_of_world and north_sea into end with empty geometry
 
-    path_to_domains = os.path.join(path_to_domains, 'calculation_domains.shp')
+    path_to_domains = os.path.join(domain_dir, 'calculation_domains.shp')
     calculation_domain_gdf.to_file(path_to_domains)
 
     return path_to_domains, calculation_domain_gdf
 
 
-def _retrieve_from_helcom(layer_id: str, file_path: str, layer_name: str):
+def _retrieve_from_helcom(config: Dict[str, Any], layer_id: str, file_dir: str):
     """
+    Retrieves desired file from helcom servers
     """
+    service_url = config['properties']['service_url']
 
-    if config.service_url:
+    if 'service_url' in config['properties']:
+        service_url = config['properties']['service_url']
         suburl = 'id='
-        suburl_index = config.service_url.index(suburl) + len(suburl)
-        prequest_url = config.service_url[:suburl_index] + layer_id + config.service_url[suburl_index:]
+        suburl_index = service_url.index(suburl) + len(suburl)
+        prequest_url = service_url[:suburl_index] + layer_id + service_url[suburl_index:]
     else:
         raise ValueError("Service URL is not defined in configuration file.")
-
-    # making prerequest to obtain direct download link to layer .zip file
-    service_response = requests.get(prequest_url)
-    service_response.raise_for_status()
-
-    prequest_url = config.service_url[:suburl_index] + layer_id + config.service_url[suburl_index:]
 
     # making prerequest to obtain direct download link to layer .zip file
     service_response = requests.get(prequest_url)
@@ -213,7 +245,7 @@ def _retrieve_from_helcom(layer_id: str, file_path: str, layer_name: str):
     layer_url = json['results'][0]['value']['url']
 
     # creating path/to/layers/ for files if not existing
-    os.makedirs(os.path.join(file_path, layer_name), exist_ok=True)
+    os.makedirs(file_dir, exist_ok=True)
 
     # making request to obtain layer .zip file
     with requests.get(layer_url, allow_redirects=True) as r:
@@ -221,7 +253,7 @@ def _retrieve_from_helcom(layer_id: str, file_path: str, layer_name: str):
 
         # extracting downloaded .zip files to path
         with zipfile.ZipFile(BytesIO(r.content)) as f:
-            f.extractall(os.path.join(file_path, layer_name))
+            f.extractall(file_dir)
 
 
 def preprocess_shp(layers, data_layers, raster_path: Optional[str] = None):
@@ -348,7 +380,7 @@ def preprocess_shp(layers, data_layers, raster_path: Optional[str] = None):
         return raster_path, meta_info
 
 
-def preprocess_files(data_layers: DataLayers, file_path: str, retrieve: bool = False) -> Tuple[LayerPaths, DataLayers]:
+def preprocess_files(config: Dict[str, Any], file_dir: str = None, retrieve: bool = False) -> Tuple[LayerPaths, DataLayers]:
     """ 
     Preprocess map layer files and separates rasters from polygons. 
 
@@ -356,8 +388,9 @@ def preprocess_files(data_layers: DataLayers, file_path: str, retrieve: bool = F
     stores them in the designated location, and returns layer information.
 
     Arguments:
-        data_layers (dict): layer information
-        file_path (str): path/to/layer/files
+        config (dict): configuration file
+        file_dir (str): path/to/layer/files
+        retrieve (bool): fetch datalayers from HELCOM; default False.
 
     Returns:
         layer_paths (dict): paths of layer files
@@ -366,85 +399,82 @@ def preprocess_files(data_layers: DataLayers, file_path: str, retrieve: bool = F
         layers (dict): layers
             'shp': polygon name: GeoDataFrame
             'tif': raster name: dataset
-        retrieve (bool): fetch datalayers from HELCOM; default False.
     """
-
     current_path = os.getcwd()
 
-    if file_path is None:
-        file_path = os.path.join(current_path, 'data', 'layers')
+    if not file_dir:
+        file_dir = os.path.join(current_path, 'data', 'layers')
+    os.makedirs(file_dir, exist_ok=True)
 
-    for layer in data_layers:
-        layer_name = get_layer_name(layer)
+    # load all layers defined in config
+    for layer in config['data_layers']:
+        try:
+            layer_name = get_layer_name(layer, config['layer_attributes']['name'])
 
-        if 'id' in layer and retrieve:
-            layer_id = layer['id'].split(os.path.sep)[-1]
-            _retrieve_from_helcom(layer_id=layer_id, file_path=file_path, layer_name=layer_name)
-        
-        if 'file_name' in layer:
-
-            # first, path is split to get file name 
-            # second, file extension is split to get stem of file name
-            # third, wild card is added into end
-            file_name = layer['file_name'].split(os.path.sep)[-1]
-            file_name = file_name.split('.')[0]
-            file_name = file_name + '.*'
+            # load from helcom api
+            if config['layer_attributes']['layer_id'] in layer and retrieve:
+                layer_id = layer[config['layer_attributes']['layer_id']].split(os.path.sep)[-1]
+                _retrieve_from_helcom(config=config, 
+                                      layer_id=layer_id, 
+                                      file_dir=os.path.join(file_dir, layer_name))
             
-            # location of data layers locally
-            path_to_data = layer['file_name'].rsplit(os.path.sep, 1)[0]
-            path_to_layer = os.path.join(current_path + '/data/layers')
-            
-            layer_name = get_layer_name(layer)
-            
-            path_to_layer = os.path.join(path_to_layer, layer_name)
-            
-            file_list = glob(os.path.join(current_path, path_to_data, file_name))
+            # load locally
+            if config['layer_attributes']['file_name'] in layer:
 
-            if not os.path.exists(path_to_layer):
-                os.mkdir(path_to_layer)
+                file_path = layer[config['layer_attributes']['file_name']]
+                file_name = pathlib.Path(file_path).resolve().stem   # get basename without extension
+                file_name = file_name + '.*'    # add wildcard to capture all files later
+                
+                path_to_data = pathlib.Path(file_path).parent.resolve()     # location of source files
 
-            for f in file_list:
-                f = f.split(os.path.sep)[-1]
-                shutil.copy(src=os.path.join(current_path, path_to_data, f), dst=os.path.join(path_to_layer, f))
+                path_to_layer = os.path.join(file_dir, layer_name)      # layer location
+                
+                file_list = glob(os.path.join(path_to_data, file_name)) # lists all files "file_name.*"
 
-    rename_files(file_path)
+                # create layer directory
+                if not os.path.exists(path_to_layer):
+                    os.makedirs(path_to_layer, exist_ok=True)
 
-    layer_paths = {
-        'shp': {},
-        'tif': {},
-    }
+                # copy data files to layer path
+                for f in file_list:
+                    f = pathlib.Path(f).name
+                    shutil.copy(src=os.path.join(path_to_data, f), dst=os.path.join(path_to_layer, f))
+        except:
+            print(f'Could not load layer: {layer}')
 
-    layers = {
-        'shp': {},
-        'tif': {}
-    }
+    # rename files to layer name instead of layer id (or anything else)
+    rename_files(file_dir)
 
+    # dictionaries for storing layer data and paths
+    layer_paths = { 'shp': {}, 'tif': {} }
+    layers = { 'shp': {}, 'tif': {} }
 
-    for subdir, dirs, files in os.walk(file_path):
+    # walk through all layer files and add to dictionaries
+    for subdir, dirs, files in os.walk(file_dir):
         for file_name in files:
             fp = subdir + os.path.sep + file_name
+            if os.path.isfile(fp):
+                # shape files
+                if fp.endswith('.shp'):
+                    layer_paths['shp'][pathlib.Path(file_name).stem] = fp   # add path
+                    geo_df = gpd.read_file(fp)  # open and read file as GeoDataFrame
+                    layers['shp'][pathlib.Path(file_name).stem] = geo_df    # add GeoDataFrame
+                # tif files
+                elif fp.endswith('.tif'):
+                    layer_paths['tif'][pathlib.Path(file_name).stem] = fp   # add path
+                    raster = rasterio.open(fp)  # open raster file as dataset
+                    layers['tif'][pathlib.Path(file_name).stem] = raster    # add dataset reference
 
-            if fp.endswith('.shp'):
-                layer_paths['shp'][file_name.split('.')[0]] = fp
-                geo_df = gpd.read_file(fp)
-                layers['shp'][file_name.split('.')[0]] = geo_df
-
-            elif fp.endswith('.tif'):
-                layer_paths['tif'][file_name.split('.')[0]] = fp
-                raster = rasterio.open(fp)
-                layers['tif'][file_name.split('.')[0]] = raster
-
-
-    # if both tif and shp are available, tif is prefered
-    # shp-dicts are cleaned
+    # if both tif and shp are available, tif is preferred and shp-dicts are cleaned
     for key in layers['tif']:
         if key in layers['shp']:
             layers['shp'].pop(key)
             layer_paths['shp'].pop(key)
 
-
-    path_to_domains = os.path.join(current_path, 'data', 'domains')
-    path_to_domains, calculation_domain_gdf = get_calculation_domain(layers=layers, path_to_domains=path_to_domains)
+    domain_dir = os.path.join(current_path, 'data', 'domains')
+    path_to_domains, calculation_domain_gdf = get_calculation_domain(calculation_domains=config['calculation_domains'], 
+                                                                     layers=layers, 
+                                                                     domain_dir=domain_dir)
 
     layer_paths['shp'] = path_to_domains
     layers['shp'].update({'calculation_domain': calculation_domain_gdf})
