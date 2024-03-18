@@ -256,128 +256,131 @@ def _retrieve_from_helcom(config: Dict[str, Any], layer_id: str, file_dir: str):
             f.extractall(file_dir)
 
 
-def preprocess_shp(layers, data_layers, raster_path: Optional[str] = None):
-        """ Rasterizes shp files to be used in calculation.
+def preprocess_shp(config: Dict[str, Any], layers: DataLayers, data_layers: Dict[str, Any], raster_path: Optional[str] = None) -> Tuple[str, dict]:
+    """
+    Rasterizes shp files to be used in calculation.
 
-        Step 1. adding buffer if buffer is determined
-        Step 2. aggregation of specified attributes
-        Step 3. rasterization of shp-attributes
+    Step 1. adding buffer if buffer is determined
+    Step 2. aggregation of specified attributes
+    Step 3. rasterization of shp-attributes
 
-        Note:
-        at the moment only one kind of aggregation is possible per shp file
-        
-        Arguments: 
-            raster_path (str): path to raster files 
-        
-        Returns:
+    Note:
+    at the moment only one kind of aggregation is possible per shp file
+    
+    Arguments: 
+        config (dict): configuration file
+        layers (dict): data from layers
+        data_layers (dict): config file data layer information
+        raster_path (str): path to raster files 
+    
+    Returns:
+        raster_path (str): 
+        meta_info (dict): 
+    """
+    # creating metadata about rasterized data layers
+    # saved as a json file
+    meta_info = {}
+
+    for item in data_layers:
+        name = get_layer_name(item)
+        if name in layers['shp']:
+                meta_info[name] = item
             
-        """
+    # if buffer in meta_info, buffer added
+    # if aggregation in meta_info, specified columns aggregated and meta_info updated accordingly
+    for layer, geodf in layers['shp'].items():
 
-        # creating metadata about rasterized data layers
-        # saved as a json file
-        meta_info = {}
+        if layer not in meta_info:
+            meta_info[layer] = {}
 
-        for item in data_layers:
-                name = get_layer_name(item)
-                if name in layers['shp']:
-                        meta_info[name] = item
+        if layer == 'calculation_domain':
+            meta_info[layer]['columns'] = ['domain_index']
+
+        if 'columns' in meta_info[layer]:
+            columns = meta_info[layer]['columns']
+        
+        # Step 1. adding buffer if buffer is determined
+        if 'buffer' in meta_info[layer]:
+
+            add_buffer = lambda x: x.geometry.buffer(meta_info[layer]['buffer'])
+
+            geodf['geometry'] = geodf.apply(add_buffer, axis=1)
+            layers['shp'][layer] = geodf
+
+        # Step 2. aggregation of specified attributes  
+        if 'aggregation' in meta_info[layer]:
                 
-        # if buffer in meta_info, buffer added
-        # if aggregation in meta_info, specified columns aggregated and meta_info updated accordingly
-        for layer, geodf in layers['shp'].items():
+            method = meta_info[layer]['aggregation']
 
-                if layer not in meta_info:
-                    meta_info[layer] = {}
+            if method == 'sum':
+                amount_sum = geodf[columns].sum(axis=1)
+                geodf['sum'] = amount_sum
+            
+            elif method == 'avg':
+                amount_avg = geodf[columns].mean(axis=1)
+                geodf['avg'] = amount_avg
+            
+            # replacing specified columns by result of aggregation step by
+            # discarding the rest!
+            columns = [method]
 
-                if layer == 'calculation_domain':
-                    meta_info[layer]['columns'] = ['domain_index']
+        # Step 3. rasterization of shp-attributes
 
-                if 'columns' in meta_info[layer]:
-                    columns = meta_info[layer]['columns']
+        # if attribute is categorical, it is transformed to numeric
+        # categories are picked from data as categories are not included in data_layers.py
+        # categorical enums are added to meta_info that is dumped to JSON file
+
+        categorical_enums = {}
+        if columns:
+            for col in columns:
+                if (geodf[col].dtypes.name == 'category' or geodf[col].dtypes.name == 'object'):
+                    categories = geodf[col].drop_duplicates().values.tolist()
+                    categorical_enums[col] = categories
+
+        if not columns:
+            geodf['binary'] = list(len(geodf) * [1])
+            columns.append('binary')
+
+        out_grid = make_geocube(
+            vector_data=geodf,
+            resolution=config['resolution'],
+            measurements=columns,
+            categorical_enums=categorical_enums,
+            fill=np.NaN,
+            geom=config['model_domain']
+        )
+
+        if not raster_path:
+            cwd = os.getcwd()
+            raster_path = os.path.join(cwd, 'rasterized/')
+            os.makedirs(raster_path, exist_ok=True)
+
+        raster_file_paths = {}
+        for col in columns:
                 
-                # Step 1. adding buffer if buffer is determined
-                if 'buffer' in meta_info[layer]:
+            raster_file_name = layer + '_' + col + '.tif'
+            raster_file_path = os.path.join(raster_path, raster_file_name)
 
-                        add_buffer = lambda x: x.geometry.buffer(meta_info[layer]['buffer'])
+            out_grid[col].rio.to_raster(
+                raster_path=raster_file_path,
+                driver='GTiff',
+            )
 
-                        geodf['geometry'] = geodf.apply(add_buffer, axis=1)
-                        layers['shp'][layer] = geodf
+            raster_file_paths[raster_file_name] = raster_file_path
 
-                # Step 2. aggregation of specified attributes  
-                if 'aggregation' in meta_info[layer]:
-                        
-                        method = meta_info[layer]['aggregation']
+            layers['tif'][raster_file_name] = rasterio.open(raster_file_path)
 
-                        if method == 'sum':
-                                amount_sum = geodf[columns].sum(axis=1)
-                                geodf['sum'] = amount_sum
-                        
-                        elif method == 'avg':
-                                amount_avg = geodf[columns].mean(axis=1)
-                                geodf['avg'] = amount_avg
-                        
-                        # replacing specified columns by result of aggregation step by
-                        # discarding the rest!
-                        columns = [method]
+        # update meta_info
+        meta_info[layer]['paths_to_rasters'] = raster_file_paths
+        if categorical_enums:
+            meta_info[layer]['categorical_enums'] = categorical_enums
+        
+        meta_info[layer]['columns'] = columns
 
-                # Step 3. rasterization of shp-attributes
+    with open(raster_path + '/preprocessed_data_layers.json', 'w') as f:
+        json.dump(meta_info, f)
 
-                # if attribute is categorical, it is transformed to numeric
-                # categories are picked from data as categories are not included in data_layers.py
-                # categorical enums are added to meta_info that is dumped to JSON file
-
-                categorical_enums = {}
-                if columns:
-
-                    for col in columns:
-                        if (geodf[col].dtypes.name == 'category' or geodf[col].dtypes.name == 'object'):
-                            categories = geodf[col].drop_duplicates().values.tolist()
-                            categorical_enums[col] = categories
-
-                if not columns:
-                        geodf['binary'] = list(len(geodf) * [1])
-                        columns.append('binary')
-
-                out_grid = make_geocube(
-                        vector_data=geodf,
-                        resolution=config.resolution,
-                        measurements=columns,
-                        categorical_enums=categorical_enums,
-                        fill=np.NaN,
-                        geom=config.model_domain
-                )
-
-                if not raster_path:
-                        cwd = os.getcwd()
-                        raster_path = os.path.join(cwd, 'rasterized/')
-                        os.makedirs(raster_path, exist_ok=True)
-
-                raster_file_paths = {}
-                for col in columns:
-                        
-                        raster_file_name = layer + '_' + col + '.tif'
-                        raster_file_path = os.path.join(raster_path, raster_file_name)
-
-                        out_grid[col].rio.to_raster(
-                                raster_path=raster_file_path,
-                                driver='GTiff',     
-                        )
-
-                        raster_file_paths[raster_file_name] = raster_file_path
-
-                        layers['tif'][raster_file_name] = rasterio.open(raster_file_path)    
-
-                # update meta_info
-                meta_info[layer]['paths_to_rasters'] = raster_file_paths
-                if categorical_enums:
-                        meta_info[layer]['categorical_enums'] = categorical_enums
-                
-                meta_info[layer]['columns'] = columns
-
-        with open(raster_path + '/preprocessed_data_layers.json', 'w') as f:
-                json.dump(meta_info, f)
-
-        return raster_path, meta_info
+    return raster_path, meta_info
 
 
 def preprocess_files(config: Dict[str, Any], file_dir: str = None, retrieve: bool = False) -> Tuple[LayerPaths, DataLayers]:
