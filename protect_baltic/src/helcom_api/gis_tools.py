@@ -423,18 +423,6 @@ def preprocess_files(config: Dict[str, Any], file_dir: str = None) -> Tuple[Laye
                 continue    # the path already exists with files inside
             else:
                 os.makedirs(path_to_layer, exist_ok=True)   # create path if it doesn't exist
-
-            # load from helcom api
-            if config['layer_attributes']['layer_id'] in layer:
-
-                layer_id = layer[config['layer_attributes']['layer_id']].split(os.path.sep)[-1]
-                try:
-                    retrieve_from_helcom(config=config, 
-                                      layer_id=layer_id, 
-                                      file_dir=os.path.join(file_dir, layer_name))
-                except ValueError as e:
-                    print(f'{e}')
-                print(f'Successfully loaded.')
             
             # load locally
             if config['layer_attributes']['file_name'] in layer:
@@ -453,6 +441,19 @@ def preprocess_files(config: Dict[str, Any], file_dir: str = None) -> Tuple[Laye
                     f = pathlib.Path(f).name
                     shutil.copy(src=os.path.join(path_to_data, f), dst=os.path.join(path_to_layer, f))
                 print(f'Successfully loaded.')
+
+            # load from helcom api
+            elif config['layer_attributes']['layer_id'] in layer:
+
+                layer_id = layer[config['layer_attributes']['layer_id']].split(os.path.sep)[-1]
+                try:
+                    retrieve_from_helcom(config=config, 
+                                      layer_id=layer_id, 
+                                      file_dir=os.path.join(file_dir, layer_name))
+                except ValueError as e:
+                    print(f'{e}')
+                print(f'Successfully loaded.')
+        
         except Exception as e:
             print(f'Could not load layer:\n{e}')
     print(f'-----\nLayers loaded.\n----------')
