@@ -33,7 +33,8 @@ RenamedPaths = Dict[str, str]
 
 
 class BijectiveMap(MutableMapping):
-    """ Two-way hashmap for map lists to layers and wise verse
+    """
+    Two-way hashmap for map lists to layers and wise verse
     """
 
     def __init__(self, data=()):
@@ -222,7 +223,7 @@ def get_calculation_domain(calculation_domains: Dict[str, Any], layers: Dict[str
     return path_to_domains, calculation_domain_gdf
 
 
-def _retrieve_from_helcom(config: Dict[str, Any], layer_id: str, file_dir: str):
+def retrieve_from_helcom(config: Dict[str, Any], layer_id: str, file_dir: str):
     """
     Retrieves desired file from helcom servers
     """
@@ -383,7 +384,7 @@ def preprocess_shp(config: Dict[str, Any], layers: DataLayers, data_layers: Dict
     return raster_path, meta_info
 
 
-def preprocess_files(config: Dict[str, Any], file_dir: str = None, retrieve: bool = False) -> Tuple[LayerPaths, DataLayers]:
+def preprocess_files(config: Dict[str, Any], file_dir: str = None) -> Tuple[LayerPaths, DataLayers]:
     """ 
     Preprocess map layer files and separates rasters from polygons. 
 
@@ -393,7 +394,6 @@ def preprocess_files(config: Dict[str, Any], file_dir: str = None, retrieve: boo
     Arguments:
         config (dict): configuration file
         file_dir (str): path/to/layer/files
-        retrieve (bool): fetch datalayers from HELCOM; default False.
 
     Returns:
         layer_paths (dict): paths of layer files
@@ -410,40 +410,52 @@ def preprocess_files(config: Dict[str, Any], file_dir: str = None, retrieve: boo
     os.makedirs(file_dir, exist_ok=True)
 
     # load all layers defined in config
+    print(f'----------\nLoading layers...')
     for layer in config['data_layers']:
+        print('-----')
         try:
             layer_name = get_layer_name(layer, config['layer_attributes']['name'])
 
+            print(f'layer_name: {layer_name}')
+            # check if layer already exists
+            path_to_layer = os.path.join(file_dir, layer_name)  # layer location
+            if os.path.exists(path_to_layer) and len(os.listdir(path_to_layer)) > 0:
+                continue    # the path already exists with files inside
+            else:
+                os.makedirs(path_to_layer, exist_ok=True)   # create path if it doesn't exist
+
             # load from helcom api
-            if config['layer_attributes']['layer_id'] in layer and retrieve:
+            if config['layer_attributes']['layer_id'] in layer:
+
                 layer_id = layer[config['layer_attributes']['layer_id']].split(os.path.sep)[-1]
-                _retrieve_from_helcom(config=config, 
+                try:
+                    retrieve_from_helcom(config=config, 
                                       layer_id=layer_id, 
                                       file_dir=os.path.join(file_dir, layer_name))
+                except ValueError as e:
+                    print(f'{e}')
+                print(f'Successfully loaded.')
             
             # load locally
             if config['layer_attributes']['file_name'] in layer:
 
                 file_path = layer[config['layer_attributes']['file_name']]
+                if not os.path.exists(file_path):
+                    print(f'File not found: {file_path}')
+                    continue    # file was not found, skip layer
                 file_name = pathlib.Path(file_path).resolve().stem   # get basename without extension
                 file_name = file_name + '.*'    # add wildcard to capture all files later
-                
                 path_to_data = pathlib.Path(file_path).parent.resolve()     # location of source files
-
-                path_to_layer = os.path.join(file_dir, layer_name)      # layer location
-                
                 file_list = glob(os.path.join(path_to_data, file_name)) # lists all files "file_name.*"
-
-                # create layer directory
-                if not os.path.exists(path_to_layer):
-                    os.makedirs(path_to_layer, exist_ok=True)
 
                 # copy data files to layer path
                 for f in file_list:
                     f = pathlib.Path(f).name
                     shutil.copy(src=os.path.join(path_to_data, f), dst=os.path.join(path_to_layer, f))
-        except:
-            print(f'Could not load layer: {layer}')
+                print(f'Successfully loaded.')
+        except Exception as e:
+            print(f'Could not load layer:\n{e}')
+    print(f'-----\nLayers loaded.\n----------')
 
     # rename files to layer name instead of layer id (or anything else)
     rename_files(file_dir)

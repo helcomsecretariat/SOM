@@ -9,8 +9,7 @@ def make_preprocessing(config_file, file_dir, retrieve=False):
 
     layer_paths, layers = gis_tools.preprocess_files(
         config=config,
-        file_dir=file_dir,
-        retrieve=retrieve
+        file_dir=file_dir
     )
 
     raster_path, meta_info = gis_tools.preprocess_shp(
@@ -26,10 +25,9 @@ def make_preprocessing(config_file, file_dir, retrieve=False):
 if __name__ == '__main__':
 
     file_dir = None
-    retrieve = False
 
     config_file = 'protect_baltic/src/helcom_api/configuration.toml'
-    layer_paths = make_preprocessing(config_file=config_file, file_dir=file_dir, retrieve=retrieve)
+    layer_paths = make_preprocessing(config_file=config_file, file_dir=file_dir)
 
 
 # EOF

@@ -93,15 +93,15 @@
     layer_id = "f0e7837c-8df2-4924-a675-dc221c2341b8"
     columns = []
 
-    # [data_layers.1]
-    # name = "sub-basins"
-    # layer_id = "d4b6296c-fd19-462c-94d2-4c81b9313d77"
-    # columns = ['HELCOM_ID']
+    [data_layers.1]
+    name = "sub-basins"
+    layer_id = "d4b6296c-fd19-462c-94d2-4c81b9313d77"
+    columns = ['HELCOM_ID']
 
-    # [data_layers.2]
-    # name = "administrative boundaries"
-    # file_name = "data/EEZ/EEZ_TW_Land_borders.shp"
-    # columns = []
+    [data_layers.2]
+    name = "administrative boundaries"
+    file_name = "data/EEZ/EEZ_TW_Land_borders.shp"
+    columns = []
 
     # [data_layers.3]
     # name = "specific load nitrogen"
