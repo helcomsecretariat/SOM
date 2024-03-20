@@ -148,7 +148,7 @@ def get_layer_name(layer: Union[Dict[str, Any], str], name: str = None) -> str:
     return layer_name.replace(' ', '_').replace('(', '').replace(')', '').lower()
 
 
-def get_calculation_domain(calculation_domains: Dict[str, Any], layers: Dict[str, dict], domain_dir: str = None):
+def get_calculation_domain(calculation_domains: Dict[str, Any], layers: Dict[str, dict], domain_dir: str):
     """
     Forms calculation domains based on countries, river catchments and sub-basins.
 
@@ -158,21 +158,18 @@ def get_calculation_domain(calculation_domains: Dict[str, Any], layers: Dict[str
     Arguments:
         calculation_domains (dict): calculation domains from config file
         layers (dict): container that have shp-files
-        domain_dir (str): path to calculation domain layer directory, if it exists
+        domain_dir (str): path to calculation domain layer directory
 
     Returns:
         path_to_domains (str): path to calculation domain layer
         calculation_domain_gdf (GeoDataFrame): calculation domain 
-    """
-    current_path = os.getcwd()
-
-    if not domain_dir:
-        domain_dir = os.path.join(current_path, 'data', 'domains')
-    os.makedirs(domain_dir, exist_ok=True)
-        
+    """    
     domain_layers = []
     
+    print(f'----------\nCalculating domains...')
     for domain in calculation_domains:
+
+        print(f'domain: {domain}')
         
         if domain == 'north_sea' or domain == 'rest_of_world':
             #attrs =  calculation_domains[domain]['attributes']
@@ -186,40 +183,60 @@ def get_calculation_domain(calculation_domains: Dict[str, Any], layers: Dict[str
 
         # find the borders of the domain
         borders_name = get_layer_name(calculation_domains[domain]['administrative_shp'])
-        borders = layers['shp'][borders_name]
+        borders = layers['shp'][borders_name]   # access domain layer from layer dict
         borders_attrs = calculation_domains[domain]['administrative_attrs']
+
+        # go through attributes defined in configuration file
+        # item is a tuple where first element is attribute and second element its value
+        for item in borders_attrs:
+            # select column 'domain'
+            # select the rows with item value as value in item column
+            # set those rows to have domain name as value in 'domain' column
+            # if 'domain' column does not exist, it is created at this point
+            borders.loc[borders[item[0]] == item[1], 'domain'] = domain
+        
+        # select the rows changed above, i.e. where value in 'domain' column is domain name
+        areas = borders.loc[borders['domain'] == domain]
+
+        # if there are various entries per country, merge them to get one entry per country
+        if 'Country' in areas:
+            areas = areas.dissolve(by='Country').reset_index()
 
         # geographical boundaries
         layer_name = get_layer_name(calculation_domains[domain]['geographical_shp'])
         layer = layers['shp'][layer_name]
 
-        for item in borders_attrs:
-            # attributes from configuration file
-            # item is a tuple where first element is attribute and second element its value
-            borders.loc[borders[item[0]] == item[1], 'domain'] = domain
-            areas = borders.loc[borders['domain'] == domain]
+        # make sure coordinate system is the same
+        if layer.crs != areas.crs:
+            layer = layer.to_crs(areas.crs)
         
-        # merge separate countries
-        if 'Country' in areas:
-            areas = areas.dissolve(by='Country').reset_index()
-            
+        # create intersection of administrative attributes and geographical attributes
         domain_layer = gpd.overlay(df1=areas, df2=layer, how='intersection', keep_geom_type=True)
 
+        # these are the attributes to be used in the domain layer
         attrs = calculation_domains[domain]['geographical_attrs']
-        attrs.append('domain')
-            
+        attrs.append('domain')  # add 'domain' to attributes
+        
+        # select given attribute columns from domain layer (created if not existing)
+        # add them to list of domain layers
         domain_layer = domain_layer[attrs]
         domain_layers.append(domain_layer)
+    
+    print(f'Domains calculated.\n----------')
         
     # Combine separate marine and terrestrial calculation domains into one geodataframe (gdf)
+    print('Combining domains to GeoDataFrame...')
     calculation_domain_gdf = pd.concat(domain_layers, ignore_index=True)
     calculation_domain_gdf['domain_index'] = calculation_domain_gdf.index
 
     # add rest_of_world and north_sea into end with empty geometry
 
-    path_to_domains = os.path.join(domain_dir, 'calculation_domains.shp')
+    print('Saving domain...')
+    # path_to_domains = os.path.join(domain_dir, 'calculation_domains.shp')
+    path_to_domains = os.path.join(domain_dir, 'calculation_domains.gpkg')
     calculation_domain_gdf.to_file(path_to_domains)
 
+    print('----------')
     return path_to_domains, calculation_domain_gdf
 
 
@@ -452,7 +469,7 @@ def preprocess_files(config: Dict[str, Any], file_dir: str = None) -> Tuple[Laye
                                       file_dir=os.path.join(file_dir, layer_name))
                 except ValueError as e:
                     print(f'{e}')
-                print(f'Successfully loaded.')
+                print(f'Successfully downloaded.')
         
         except Exception as e:
             print(f'Could not load layer:\n{e}')
@@ -487,7 +504,9 @@ def preprocess_files(config: Dict[str, Any], file_dir: str = None) -> Tuple[Laye
             layers['shp'].pop(key)
             layer_paths['shp'].pop(key)
 
+    # calculation domains
     domain_dir = os.path.join(current_path, 'data', 'domains')
+    os.makedirs(domain_dir, exist_ok=True)  # create domain directory if it does not exist
     path_to_domains, calculation_domain_gdf = get_calculation_domain(calculation_domains=config['calculation_domains'], 
                                                                      layers=layers, 
                                                                      domain_dir=domain_dir)

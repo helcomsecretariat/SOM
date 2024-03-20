@@ -41,12 +41,14 @@
 [calculation_domains]
 # overlay intersection
 
+    # marine areas
     [calculation_domains.marine]
         administrative_shp = 'administrative boundaries'
         administrative_attrs = [['Sea_area', 'EEZ'], ['Sea_area', 'TW']]
         geographical_shp = 'sub-basins'
         geographical_attrs = ['Country', 'HELCOM_ID', 'geometry']
 
+    # land areas
     [calculation_domains.terrestrial]
         administrative_shp = 'administrative boundaries'
         administrative_attrs = [['Sea_area', 'Land']]
@@ -86,7 +88,8 @@
 
 ####################################
 [data_layers]
-# layer indexes not relevant or used, as long as unique per layer
+# layer indexes / identifiers not relevant or used, as long as unique per layer
+# if both file_name and layer_id are given, file is first attempted to load locally
 
     [data_layers.0]
     name = "catchments (JRC-CCM2)"
@@ -100,14 +103,15 @@
 
     [data_layers.2]
     name = "administrative boundaries"
-    file_name = "data/EEZ/EEZ_TW_Land_borders.shp"
+    # file_name = "data/EEZ/EEZ_TW_Land_borders.shp"
+    file_name = "C:/Users/camilo/Documents/SOM/GIS/res/EEZ/EEZ_TW_Land_borders.shp"
     columns = []
 
-    # [data_layers.3]
-    # name = "specific load nitrogen"
-    # layer_id = "20a44adc-8057-4fdb-9ce3-663095b4b967"
-    # comments = "larger catchment units, small catchments are cut off"
-    # columns = []
+    [data_layers.3]
+    name = "specific load nitrogen"
+    layer_id = "20a44adc-8057-4fdb-9ce3-663095b4b967"
+    comments = "larger catchment units, small catchments are cut off"
+    columns = []
 
     # [data_layers.4]
     # name = "harbour porpoise distribution"

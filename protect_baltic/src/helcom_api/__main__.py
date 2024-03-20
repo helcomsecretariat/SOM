@@ -12,6 +12,8 @@ def make_preprocessing(config_file, file_dir, retrieve=False):
         file_dir=file_dir
     )
 
+    return
+
     raster_path, meta_info = gis_tools.preprocess_shp(
         config=config,
         layers=layers,
