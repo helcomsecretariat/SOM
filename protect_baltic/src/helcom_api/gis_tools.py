@@ -166,7 +166,7 @@ def get_calculation_domain(calculation_domains: Dict[str, Any], layers: Dict[str
     """    
     domain_layers = []
     
-    print(f'----------\nCalculating domains...')
+    print(f'----------\nProcessing domains...')
     for domain in calculation_domains:
 
         print(f'domain: {domain}')
@@ -222,7 +222,7 @@ def get_calculation_domain(calculation_domains: Dict[str, Any], layers: Dict[str
         domain_layer = domain_layer[attrs]
         domain_layers.append(domain_layer)
     
-    print(f'Domains calculated.\n----------')
+    print(f'Domains processed.\n----------')
         
     # Combine separate marine and terrestrial calculation domains into one geodataframe (gdf)
     print('Combining domains to GeoDataFrame...')
@@ -274,7 +274,7 @@ def retrieve_from_helcom(config: Dict[str, Any], layer_id: str, file_dir: str):
             f.extractall(file_dir)
 
 
-def preprocess_shp(config: Dict[str, Any], layers: DataLayers, data_layers: Dict[str, Any], raster_path: Optional[str] = None) -> Tuple[str, dict]:
+def preprocess_shp(config: Dict[str, Any], layers: DataLayers, raster_path: Optional[str] = None) -> Tuple[str, dict]:
     """
     Rasterizes shp files to be used in calculation.
 
@@ -288,7 +288,6 @@ def preprocess_shp(config: Dict[str, Any], layers: DataLayers, data_layers: Dict
     Arguments: 
         config (dict): configuration file
         layers (dict): data from layers
-        data_layers (dict): config file data layer information
         raster_path (str): path to raster files 
     
     Returns:
@@ -299,11 +298,11 @@ def preprocess_shp(config: Dict[str, Any], layers: DataLayers, data_layers: Dict
     # saved as a json file
     meta_info = {}
 
-    for item in data_layers:
-        name = get_layer_name(item)
+    for item in config['data_layers']:
+        name = get_layer_name(item, config['layer_attributes']['name'])
         if name in layers['shp']:
                 meta_info[name] = item
-            
+    
     # if buffer in meta_info, buffer added
     # if aggregation in meta_info, specified columns aggregated and meta_info updated accordingly
     for layer, geodf in layers['shp'].items():
@@ -361,11 +360,11 @@ def preprocess_shp(config: Dict[str, Any], layers: DataLayers, data_layers: Dict
 
         out_grid = make_geocube(
             vector_data=geodf,
-            resolution=config['resolution'],
+            resolution=config['properties']['resolution'],
             measurements=columns,
             categorical_enums=categorical_enums,
             fill=np.NaN,
-            geom=config['model_domain']
+            geom=config['model_domains']['default']
         )
 
         if not raster_path:
@@ -473,9 +472,10 @@ def preprocess_files(config: Dict[str, Any], file_dir: str = None) -> Tuple[Laye
         
         except Exception as e:
             print(f'Could not load layer:\n{e}')
-    print(f'-----\nLayers loaded.\n----------')
+    print(f'-----\nLayers loaded.')
 
     # rename files to layer name instead of layer id (or anything else)
+    print(f'----------\nRenaming files...')
     rename_files(file_dir)
 
     # dictionaries for storing layer data and paths
@@ -483,6 +483,7 @@ def preprocess_files(config: Dict[str, Any], file_dir: str = None) -> Tuple[Laye
     layers = { 'shp': {}, 'tif': {} }
 
     # walk through all layer files and add to dictionaries
+    print(f'----------\nOpening layers...')
     for subdir, dirs, files in os.walk(file_dir):
         for file_name in files:
             fp = subdir + os.path.sep + file_name
@@ -490,8 +491,8 @@ def preprocess_files(config: Dict[str, Any], file_dir: str = None) -> Tuple[Laye
                 # shape files
                 if fp.endswith('.shp'):
                     layer_paths['shp'][pathlib.Path(file_name).stem] = fp   # add path
-                    geo_df = gpd.read_file(fp)  # open and read file as GeoDataFrame
-                    layers['shp'][pathlib.Path(file_name).stem] = geo_df    # add GeoDataFrame
+                    layer_gdf = gpd.read_file(fp)  # open and read file as GeoDataFrame
+                    layers['shp'][pathlib.Path(file_name).stem] = layer_gdf    # add GeoDataFrame
                 # tif files
                 elif fp.endswith('.tif'):
                     layer_paths['tif'][pathlib.Path(file_name).stem] = fp   # add path
@@ -505,13 +506,19 @@ def preprocess_files(config: Dict[str, Any], file_dir: str = None) -> Tuple[Laye
             layer_paths['shp'].pop(key)
 
     # calculation domains
+    print(f'----------\nCalculating domains...')
     domain_dir = os.path.join(current_path, 'data', 'domains')
     os.makedirs(domain_dir, exist_ok=True)  # create domain directory if it does not exist
-    path_to_domains, calculation_domain_gdf = get_calculation_domain(calculation_domains=config['calculation_domains'], 
-                                                                     layers=layers, 
-                                                                     domain_dir=domain_dir)
+    if os.path.exists(os.path.join(domain_dir, 'calculation_domains.gpkg')):
+        path_to_domains = os.path.join(domain_dir, 'calculation_domains.gpkg')
+        calculation_domain_gdf = gpd.read_file(path_to_domains)
+    else:
+        path_to_domains, calculation_domain_gdf = get_calculation_domain(calculation_domains=config['calculation_domains'], 
+                                                                        layers=layers, 
+                                                                        domain_dir=domain_dir)
 
     layer_paths['shp'] = path_to_domains
     layers['shp'].update({'calculation_domain': calculation_domain_gdf})
+    print(f'Domains calculated.')
 
     return layer_paths, layers

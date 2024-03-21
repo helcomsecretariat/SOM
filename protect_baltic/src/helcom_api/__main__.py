@@ -1,7 +1,7 @@
 
 import helcom_api.gis_tools as gis_tools
 
-def make_preprocessing(config_file, file_dir, retrieve=False):
+def make_preprocessing(config_file, file_dir):
     """ wrapper function for preprocessing
     """
 
@@ -12,13 +12,10 @@ def make_preprocessing(config_file, file_dir, retrieve=False):
         file_dir=file_dir
     )
 
-    return
-
     raster_path, meta_info = gis_tools.preprocess_shp(
         config=config,
         layers=layers,
-        data_layers=config['data_layers'],
-        raster_path=None,
+        raster_path=None
     )
 
     return layer_paths, raster_path, meta_info
