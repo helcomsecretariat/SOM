@@ -294,6 +294,11 @@ def preprocess_shp(config: Dict[str, Any], layers: DataLayers, raster_path: Opti
         raster_path (str): 
         meta_info (dict): 
     """
+    if not raster_path:
+        current_path = os.getcwd()
+        raster_path = os.path.join(current_path, 'data', 'rasterized/')
+        os.makedirs(raster_path, exist_ok=True)
+    
     # creating metadata about rasterized data layers
     # saved as a json file
     meta_info = {}
@@ -301,7 +306,7 @@ def preprocess_shp(config: Dict[str, Any], layers: DataLayers, raster_path: Opti
     for item in config['data_layers']:
         name = get_layer_name(item, config['layer_attributes']['name'])
         if name in layers['shp']:
-                meta_info[name] = item
+            meta_info[name] = item
     
     # if buffer in meta_info, buffer added
     # if aggregation in meta_info, specified columns aggregated and meta_info updated accordingly
@@ -320,7 +325,6 @@ def preprocess_shp(config: Dict[str, Any], layers: DataLayers, raster_path: Opti
         if 'buffer' in meta_info[layer]:
 
             add_buffer = lambda x: x.geometry.buffer(meta_info[layer]['buffer'])
-
             geodf['geometry'] = geodf.apply(add_buffer, axis=1)
             layers['shp'][layer] = geodf
 
@@ -366,11 +370,6 @@ def preprocess_shp(config: Dict[str, Any], layers: DataLayers, raster_path: Opti
             fill=np.NaN,
             geom=config['model_domains']['default']
         )
-
-        if not raster_path:
-            cwd = os.getcwd()
-            raster_path = os.path.join(cwd, 'rasterized/')
-            os.makedirs(raster_path, exist_ok=True)
 
         raster_file_paths = {}
         for col in columns:
@@ -420,7 +419,6 @@ def preprocess_files(config: Dict[str, Any], file_dir: str = None) -> Tuple[Laye
             'tif': raster name: dataset
     """
     current_path = os.getcwd()
-
     if not file_dir:
         file_dir = os.path.join(current_path, 'data', 'layers')
     os.makedirs(file_dir, exist_ok=True)
@@ -513,12 +511,13 @@ def preprocess_files(config: Dict[str, Any], file_dir: str = None) -> Tuple[Laye
         path_to_domains = os.path.join(domain_dir, 'calculation_domains.gpkg')
         calculation_domain_gdf = gpd.read_file(path_to_domains)
     else:
+        # create calculation domain layer
         path_to_domains, calculation_domain_gdf = get_calculation_domain(calculation_domains=config['calculation_domains'], 
                                                                         layers=layers, 
                                                                         domain_dir=domain_dir)
 
     layer_paths['shp'] = path_to_domains
-    layers['shp'].update({'calculation_domain': calculation_domain_gdf})
+    layers['shp'].update({'calculation_domain': calculation_domain_gdf})    # add newly created layer to layer list
     print(f'Domains calculated.')
 
     return layer_paths, layers
