@@ -1,7 +1,6 @@
 """
-Created 25102022
-Antti-Jussi Kieloaho
-Natural Resources Institute Finland
+Created 25102022 by Antti-Jussi Kieloaho (LUKE)
+Modified 03/2024 by Camilo Hernández (HELCOM)
 """
 
 from copy import deepcopy
@@ -9,7 +8,7 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 
-from configuration import input_files, measure_survey_sheets
+import toml
 
 from som_tools import read_survey_data, preprocess_survey_data, process_survey_data, read_core_object_descriptions
 from som_tools import read_domain_input, read_case_input, read_linkage_descriptions, read_postprocess_data
@@ -32,10 +31,16 @@ def process_input_data():
         survey_df (DataFrame): contains the survey data of expert panels
         object_data (dict): contains following data: 'measure', 'activity', 'pressure', 'state', 'domain', and 'postprocessing'
     """
+    config_path = 'configuration.toml'
+    with open(config_path, 'r') as f:
+        config = toml.loads(f)
+    
+    # convert sheet name string keys to integers in config
+    config['measure_survey_sheets'] = {int(key): config['measure_survey_sheets'][key] for key in config['measure_survey_sheets']}
 
     # step 1a. read survey data from excel file
-    file_name = input_files['measure_effect_input']
-    mteq, measure_survey_data = read_survey_data(file_name=file_name, sheet_names=measure_survey_sheets)
+    file_name = config['input_files']['measure_effect_input']
+    mteq, measure_survey_data = read_survey_data(file_name=file_name, sheet_names=config['measure_survey_sheets'])
 
     # step 1b. preprocess survey data
     survey_df = preprocess_survey_data(mteq=mteq, measure_survey_data=measure_survey_data)
@@ -44,23 +49,23 @@ def process_input_data():
     survey_df = process_survey_data(survey_df=survey_df)
 
     # step 2. read core object descriptions
-    file_name = input_files['general_input']
+    file_name = config['input_files']['general_input']
     object_data = read_core_object_descriptions(file_name=file_name)
 
     # step 3. read calculation domain descriptions
-    file_name = input_files['general_input']
+    file_name = config['input_files']['general_input']
     domain_data = read_domain_input(file_name=file_name)
 
     # step 4. read case input 
-    file_name = input_files['general_input']
+    file_name = config['input_files']['general_input']
     case_data = read_case_input(file_name=file_name)
 
     # step 5. read linkage descriptions
-    file_name = input_files['general_input']
+    file_name = config['input_files']['general_input']
     linkage_data = read_linkage_descriptions(file_name=file_name)
 
     # step 6. read postprocessing data
-    file_name = input_files['general_input']
+    file_name = config['input_files']['general_input']
     postprocess_data = read_postprocess_data(file_name=file_name)
 
     object_data.update({

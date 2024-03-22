@@ -3,7 +3,8 @@ import numpy as np
 import pandas as pd
 
 def read_survey_data(file_name, sheet_names):
-    """ Measure survey data: Part 1
+    """
+    Measure survey data: Part 1
 
     input_files = {
         'general_input': 'data/generalInput.xlsx',
@@ -21,9 +22,7 @@ def read_survey_data(file_name, sheet_names):
         6: 'MT_surv_Noise',
         7: 'MT_surv_Mammals'
     }
-
     """
-    
     # measure effect input Excel file
 
     mteq = pd.read_excel(io=file_name, sheet_name=sheet_names[0])

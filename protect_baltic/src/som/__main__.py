@@ -1,4 +1,4 @@
-from som_app import process_data
+from som.som_app import process_data
 
 def run():
     process_data()
