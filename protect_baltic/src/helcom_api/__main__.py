@@ -1,4 +1,5 @@
 
+import os
 import helcom_api.gis_tools as gis_tools
 
 def make_preprocessing(config_file, file_dir):
@@ -25,7 +26,7 @@ if __name__ == '__main__':
 
     file_dir = None
 
-    config_file = 'protect_baltic/src/helcom_api/configuration.toml'
+    config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'configuration.toml')
     layer_paths = make_preprocessing(config_file=config_file, file_dir=file_dir)
 
 

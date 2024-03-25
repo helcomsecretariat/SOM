@@ -33,8 +33,8 @@ def process_input_data():
         object_data (dict): contains following data: 'measure', 'activity', 'pressure', 'state', 'domain', and 'postprocessing'
     """
     # read configuration file
-    config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'configuration.toml')
-    with open(config_path, 'r') as f:
+    config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'configuration.toml')
+    with open(config_file, 'r') as f:
         config = toml.load(f)
     
     # convert sheet name string keys to integers in config
