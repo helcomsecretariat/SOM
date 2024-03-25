@@ -5,18 +5,19 @@ Modified 03/2024 by Camilo Hernández (HELCOM)
 
 from copy import deepcopy
 
+import os
 import numpy as np
 import pandas as pd
-
 import toml
 
-from som_tools import read_survey_data, preprocess_survey_data, process_survey_data, read_core_object_descriptions
-from som_tools import read_domain_input, read_case_input, read_linkage_descriptions, read_postprocess_data
-from som_classes import Measure, Activity, Pressure, ActivityPressure, State, CountryBasin, Case
+from som.som_tools import read_survey_data, preprocess_survey_data, process_survey_data, read_core_object_descriptions
+from som.som_tools import read_domain_input, read_case_input, read_linkage_descriptions, read_postprocess_data
+from som.som_classes import Measure, Activity, Pressure, ActivityPressure, State, CountryBasin, Case
 
 
 def process_input_data():
-    """ Reads in data and processes it in usable form.
+    """
+    Reads in data and processes it in usable form.
     
     step 1a. read survey data from excel file
     step 1b. preprocess survey data
@@ -31,9 +32,10 @@ def process_input_data():
         survey_df (DataFrame): contains the survey data of expert panels
         object_data (dict): contains following data: 'measure', 'activity', 'pressure', 'state', 'domain', and 'postprocessing'
     """
-    config_path = 'configuration.toml'
+    # read configuration file
+    config_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'configuration.toml')
     with open(config_path, 'r') as f:
-        config = toml.loads(f)
+        config = toml.load(f)
     
     # convert sheet name string keys to integers in config
     config['measure_survey_sheets'] = {int(key): config['measure_survey_sheets'][key] for key in config['measure_survey_sheets']}
@@ -79,7 +81,8 @@ def process_input_data():
 
 
 def build_core_object_model(survey_df, object_data):
-    """ Builds and initializes core object model.
+    """
+    Builds and initializes core object model.
 
     Arguments:
         survey_df (DataFrame): processed survey results
@@ -211,7 +214,8 @@ def build_core_object_model(survey_df, object_data):
 
 
 def build_second_object_layer(measure_df, object_data):
-    """ CountryBasins have their own set of Core objects. Core objects are trimmed to Cases
+    """
+    CountryBasins have their own set of Core objects. Core objects are trimmed to Cases
 
     - go through each row (raw case) in ActMeas sheet
     -> each case have basin-country combination
@@ -337,7 +341,8 @@ def build_second_object_layer(measure_df, object_data):
 
 
 def postprocess_object_layers(countrybasin_df, object_data):
-    """ Post-process core objects based on geographical position (country-basin objects)
+    """
+    Post-process core objects based on geographical position (country-basin objects)
 
     Arguments:
         countrybasin_df (DataFrame): contains country-basin instances

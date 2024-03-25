@@ -9,7 +9,8 @@ import numpy as np
 import numpy.typing as npt
 
 class Activity:
-    """ Describes human activity in Baltic Sea
+    """
+    Describes human activity in Baltic Sea
     
     Properties:
         name (str): name of human activity
@@ -57,7 +58,8 @@ class Activity:
 
 
 class Pressure:
-    """ Pressures describes effects of human activities and protective measures on Baltic Sea.
+    """
+    Pressures describes effects of human activities and protective measures on Baltic Sea.
 
     Properties:
         name (str): name of pressure
@@ -125,7 +127,8 @@ class Pressure:
 
 
 class State: 
-    """ State
+    """
+    State
     """
 
     def __init__(self, name: str, id: int):
@@ -144,7 +147,8 @@ class State:
 
 
 class ActivityPressure:
-    """ Activity-Pressure pair
+    """
+    Activity-Pressure pair
 
     Properties:
         name (str): description of activity-pressure pair
@@ -231,8 +235,10 @@ class ActivityPressure:
 
 StateList = list[Type[State]]
 
+
 class Measure:
-    """ Measures are protection actions having effect on Activity-Pressure pairs.
+    """
+    Measures are protection actions having effect on Activity-Pressure pairs.
 
     Properties:
         name (str): description of measure
@@ -352,8 +358,10 @@ class Measure:
         else:
             return self.id == self.id
 
+
 class Case:
-    """ Case keeps book on the most effective measure (with activity-pressure pair) in each CountryBasin.
+    """
+    Case keeps book on the most effective measure (with activity-pressure pair) in each CountryBasin.
 
     Properties:
         id (int): identification number of case
@@ -394,7 +402,8 @@ class Case:
 
 
 class CountryBasin:
-    """ Describes areas in Baltic Sea region
+    """
+    Describes areas in Baltic Sea region
     
     Properties:
         name (str): name of Baltic Sea region (country-basin pair)

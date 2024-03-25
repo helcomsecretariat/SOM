@@ -24,7 +24,6 @@ def read_survey_data(file_name, sheet_names):
     }
     """
     # measure effect input Excel file
-
     mteq = pd.read_excel(io=file_name, sheet_name=sheet_names[0])
 
     # preprocess values
@@ -43,7 +42,8 @@ def read_survey_data(file_name, sheet_names):
 
 
 def preprocess_survey_data(mteq, measure_survey_data):
-    """ Measure survey data: Part 2
+    """
+    Measure survey data: Part 2
     """
 
     cols = ['survey_id', 'title', 'block', 'measure', 'activity', 'pressure', 'state']
@@ -116,7 +116,8 @@ def preprocess_survey_data(mteq, measure_survey_data):
 
 
 def process_survey_data(survey_df):
-    """ Measure survey data: part 3
+    """
+    Measure survey data: part 3
 
     1. Scaling factor (\epsilon)
 
@@ -198,7 +199,8 @@ def process_survey_data(survey_df):
 
 
 def read_core_object_descriptions(file_name):
-    """ Reads in model object descriptions from general input files
+    """
+    Reads in model object descriptions from general input files
 
     - Core object descriptions
     - Model domain descriptions
@@ -246,8 +248,10 @@ def read_core_object_descriptions(file_name):
 
     return object_data
 
+
 def read_domain_input(file_name):
-    """ Reads in calculation domain descriptions
+    """
+    Reads in calculation domain descriptions
 
     Arguments:
         file_name (str): source excel file name containing 
@@ -282,8 +286,10 @@ def read_domain_input(file_name):
 
     return domain
 
+
 def read_case_input(file_name, sheet_name='ActMeas'):
-    """ Reading in and processing data for cases.
+    """
+    Reading in and processing data for cases.
     
     Each row represents one case. 
     
@@ -330,7 +336,8 @@ def read_case_input(file_name, sheet_name='ActMeas'):
 
 
 def read_linkage_descriptions(file_name, sheet_name='MT_to_A_to_S'):
-    """ Reads description of links between Measures, Activities, Pressures, and States.
+    """
+    Reads description of links between Measures, Activities, Pressures, and States.
 
      Arguments:
         file_name (str): name of source excel file name containing 'ActMeas' sheet
@@ -355,8 +362,10 @@ def read_linkage_descriptions(file_name, sheet_name='MT_to_A_to_S'):
 
     return linkages
 
+
 def read_postprocess_data(file_name, sheet_name='ActPres'):
-    """ Reads input data of activities to pressures in Baltic Sea basins. 
+    """
+    Reads input data of activities to pressures in Baltic Sea basins. 
     """
     act_to_press = pd.read_excel(file_name, sheet_name=sheet_name)
 
