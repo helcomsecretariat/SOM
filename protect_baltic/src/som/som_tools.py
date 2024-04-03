@@ -116,7 +116,7 @@ def preprocess_survey_data(mteq, measure_survey_data):
 
 
 def process_survey_data(survey_df):
-    """
+    r'''
     Measure survey data: part 3
 
     1. Scaling factor (\epsilon)
@@ -137,7 +137,7 @@ def process_survey_data(survey_df):
         'pressure' and 'state' id:s are not multiplied!
 
     5. scaling factor ('title' with value 'max effectivness') is removed
-    """
+    '''
 
     block_ids = survey_df.loc[:,'block'].unique()
 
@@ -212,7 +212,7 @@ def read_core_object_descriptions(file_name):
             'CountBas', 'Country list' and 'Basin list' sheets
 
     Returns:
-
+        object_data (dict):
     """
     general_input = pd.read_excel(io=file_name, sheet_name=None)
 
@@ -258,25 +258,30 @@ def read_domain_input(file_name):
             'CountBas', 'Country list' and 'Basin list' sheets
     
     Returns:
+        domain (dict): {
+            countries_by_basins (DataFrame): area fractions of basins (column) per country (row)
+            countries (DataFrame): country ids
+            basins (DataFrame): basin ids
+        }
     """
-    
+
+    # country-basin links
     sheet_name = 'CountBas'
-
     countries_by_basins = pd.read_excel(io=file_name, sheet_name=sheet_name)
-    index = countries_by_basins[countries_by_basins['country'] == 'All countries'].index
-    countries_by_basins.drop(index=index, inplace=True)
+    index = countries_by_basins[countries_by_basins['country'] == 'All countries'].index # find index of 'All countries' row
+    countries_by_basins.drop(index=index, inplace=True) # drop 'All countries' row (since it should be only 1:s in it)
 
+    # countries
     sheet_name = 'Country list'
-
     countries = pd.read_excel(io=file_name, sheet_name=sheet_name, index_col='ID')
-    index = countries[(countries.index == 0) | (countries.index == 10)].index
-    countries.drop(index=index, inplace=True)
+    index = countries[(countries.index == 0) | (countries.index == 10)].index   # find indexes of 'All countries' and 'Global (non-Baltic)' rows
+    countries.drop(index=index, inplace=True)   # drop selected rows
 
+    # basins
     sheet_name = 'Basin list'
-
     basins = pd.read_excel(io=file_name, sheet_name=sheet_name, index_col='ID')
-    index = basins[basins.index == 0].index
-    basins.drop(index=index, inplace=True)
+    index = basins[basins.index == 0].index # find index of 'All basins' row
+    basins.drop(index=index, inplace=True)  # drop 'All basins' row
 
     domain = {
         'countries_by_basins': countries_by_basins,
