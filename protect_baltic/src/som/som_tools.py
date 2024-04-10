@@ -2,26 +2,17 @@
 import numpy as np
 import pandas as pd
 
-def read_survey_data(file_name, sheet_names):
+def read_survey_data(file_name, sheet_names) -> tuple[pd.DataFrame, dict[int, pd.DataFrame]]:
     """
     Measure survey data: Part 1
 
-    input_files = {
-        'general_input': 'data/generalInput.xlsx',
-        'measure_effect_input': 'data/measureEffInput.xlsx',
-        'pressure_state_input': 'data/pressStateInput.xlsx'
-    }
-
-    measure_survey_sheets = {
-        0: 'MTEQ',
-        1: 'MT_surv_Benthic',
-        2: 'MT_surv_Birds',
-        3: 'MT_surv_Fish',
-        4: 'MT_surv_HZ',
-        5: 'MT_surv_NIS',
-        6: 'MT_surv_Noise',
-        7: 'MT_surv_Mammals'
-    }
+    Arguments:
+        file_name (str): path of survey excel file
+        sheet_names (dict): dict of survey sheet ids in file_name
+    
+    Return:
+        mteq (DataFrame): survey data information
+        measure_survey_data (dict): survey data
     """
     # measure effect input Excel file
     mteq = pd.read_excel(io=file_name, sheet_name=sheet_names[0])
@@ -41,69 +32,76 @@ def read_survey_data(file_name, sheet_names):
     return mteq, measure_survey_data
 
 
-def preprocess_survey_data(mteq, measure_survey_data):
+def preprocess_survey_data(mteq, measure_survey_data) -> pd.DataFrame:
     """
     Measure survey data: Part 2
+
+    This method parses the survey sheets from webropol
+
+    Arguments:
+        mteq (DataFrame): survey data information
+        measure_survey_data (dict): survey data
+    
+    Return:
+        survey_df (DataFrame): survey data information
+            survey_id: unique id for each questionnaire / survey
+            title: type of value ('expected value' / 'variance' / 'max effectivness')
+            block: id for each set of questions within each survey, unique across all surveys
+            measure: measure id of the question
+            activity: activity id of the question
+            pressure: pressure id of the question
+            state: state id (if defined) of the question ([nan] if no state)
+            1...n (=expert ids): answer value for each expert (NaN if no answer)
     """
 
     cols = ['survey_id', 'title', 'block', 'measure', 'activity', 'pressure', 'state']
-    survey_df = pd.DataFrame(columns=cols)
+    survey_df = pd.DataFrame(columns=cols)  # create new DataFrame
 
-    block_number = 0
+    block_number = 0    # represents the survey block
 
+    # for every survey sheet
     for survey_id in measure_survey_data:
         
-        survey_info = mteq[mteq.Survey_ID == survey_id]
+        survey_info = mteq[mteq['Survey ID'] == survey_id]  # select the rows linked to current survey
 
-        end = 0
+        end = 0     # represents last column index of the question set
         for row, amt in enumerate(survey_info['AMT']):
             
-            questions = ['Q{}'.format(x+1) for x in range(amt)]
-
-            title_names_exp = ['expected value' for x in range(amt)]
-            title_names_var = ['variance' for x in range(amt)]
+            end = end + (2 * amt + 1)     # end column for data
+            start = end - (2 * amt)     # start column for data
             
-            titles = [-999 for x in range(2*amt)]
-            titles[::2] = title_names_exp
-            titles[1::2] = title_names_var
+            titles = ['expected value', 'variance'] * amt
             titles.append('max effectivness')
 
-            measure_ids = survey_info[questions].iloc[row, :].values
+            measures = measure_survey_data[survey_id].iloc[0, start:end].tolist() # select current question column names as measure ids
+            measures.append(np.nan) # append NaN for max effectivness (ME)
 
-            measures = [-999 for x in range(2*amt)]
-            measures[::2] = measure_ids
-            measures[1::2] = measure_ids
-            measures.append(np.nan)
-
-            activity_id = survey_info['Activity'].iloc[row]
-
-            activities = [activity_id] * 2*amt
+            activity_id = survey_info['Activity'].iloc[row] # select current row Activity
+            activities = [activity_id] * amt * 2
             activities.append(np.nan)
 
-            pressure_id = survey_info['Pressure'].iloc[row]
-
-            pressures = [pressure_id] * 2*amt
+            pressure_id = survey_info['Pressure'].iloc[row] # select current row Pressure
+            pressures = [pressure_id] * amt * 2
             pressures.append(np.nan)
 
-            direct_ids = survey_info['Direct_to_state'].iloc[row]
-
+            direct_ids = survey_info['Direct_to_state'].iloc[row]   # select current row state
             if isinstance(direct_ids, str):
-                directs = [x.split(';')[:-1] if not isinstance(x, float) else [x] for x in direct_ids]
+                directs = [[int(x) for x in direct_ids.split(';') if x != '']] * amt * 2
+            elif isinstance(direct_ids, list):
+                directs = [[int(x) for x in direct_ids if x != '']] * amt * 2
+            elif isinstance(direct_ids, float) or isinstance(direct_ids, int):
+                directs = [[direct_ids if not np.isnan(direct_ids) else np.nan]] * amt * 2
             else:
-                directs = [direct_ids] * 2*amt
-            
+                directs = [direct_ids] * amt * 2
             directs.append(np.nan)
             
-            end = end + (2*amt + 1)
-            start = end - (2*amt)
-            
-            data = measure_survey_data[survey_id].loc[:, start:end]
+            data = measure_survey_data[survey_id].loc[1:, start:end]    # select current question answers
+            data = data.transpose() # transpose so that experts are columns and measures are rows
 
-            data = data.transpose()
-
-            data['survey_id'] = [survey_id] * len(data)
+            # add survey info to each entry in the data 
+            data['survey_id'] = [survey_id] * len(data) # new column with survey_id for every row
             data['title'] = titles
-            data['block'] = [block_number] * len(data)
+            data['block'] = [block_number] * len(data)  # new column with block_number for every row
             data['measure'] = measures
             data['activity'] = activities
             data['pressure'] = pressures
@@ -119,61 +117,109 @@ def process_survey_data(survey_df):
     r'''
     Measure survey data: part 3
 
-    1. Scaling factor (\epsilon)
+    1. Adjust expert answers by scaling factor (epsilon)
 
-        $\epsilon = \frac{\max_i \mu_i}{\gamma}$, 
-        where $\max_i \mu_i$ is maximum expected value and $\gamma$ is maximum effectivness.
+            epsilon = max_i * mu_i / gamma
 
-    2. Grand mean
+        where
+            max_i * mu_i = maximum expected value
+            gamma = maximum effectivness
 
-    3. Grand variance
+    2. Calculate mean
 
-        Assumed that variances are correlated
-        $\mathrm{Var}(\sum_{i=1}^{n}X_i) = \sum_{i=1}^{n}\mathrm{Var}(X_i) + 2 \sum_{1 \leq i < j \leq n} \mathrm{Cov}(X_i,X_j)$
+    3. Calculate variance
 
-    4. new id for 'measure' and 'activity' by multiplying id by 10000
+        assumed that variances are correlated
+
+            Var(sum(X_i)) = sum(Var(X_i)) + 2 * (sum(Cov(X_x, X_y)))
+
+        where
+            i goes from 1 ... n
+            x, y go as 1 <= x < y <= n
+
+    4. New id for 'measure' and 'activity' by multiplying id by 10000
 
         This is done as we need to track specific measure-activity-pressure and measure-state combinations
         'pressure' and 'state' id:s are not multiplied!
 
-    5. scaling factor ('title' with value 'max effectivness') is removed
+    5. Scaling factor ('title' with value 'max effectivness') is removed
+
+    Arguments:
+        survey_df (DataFrame): survey data information
+            survey_id: unique id for each questionnaire / survey
+            title: type of value ('expected value' / 'variance' / 'max effectivness')
+            block: id for each set of questions within each survey, unique across all surveys
+            measure: measure id of the question
+            activity: activity id of the question
+            pressure: pressure id of the question
+            state: state id (if defined) of the question ([nan] if no state)
+            1...n (=expert ids): answer value for each expert (NaN if no answer)
+    Returns:
+        survey_df (DataFrame): processed survey data information
     '''
+    id_multiplier = 10000
 
-    block_ids = survey_df.loc[:,'block'].unique()
-
-    for b_id in block_ids:
-        block = survey_df.loc[survey_df['block'] == b_id, :]
-
-        for col in block:
-            if isinstance(col, int):
-
+    # Step 1: adjust answers by scaling factor
+    
+    block_ids = survey_df.loc[:,'block'].unique()   # find unique block ids
+    for b_id in block_ids:  # for each block
+        block = survey_df.loc[survey_df['block'] == b_id, :]    # select all rows with current block id
+        for col in block:   # for each column
+            if isinstance(col, int):    # if it is an expert answer
+                # select the expected values from the column
                 expected_value = block.loc[block['title']=='expected value', col]
-
-                if expected_value.isnull().all():
-                    continue
-
+                # skip if no questions were answered
+                if expected_value.isnull().all(): continue
+                # find the highest value of the answers
                 max_expected_value = expected_value.max()
+                # find the max effectivness estimated by the expert
+                max_effectivness = block.loc[block['title']=='max effectivness', col].values[0]
+                # calculate scaling factor
+                if np.isnan(max_effectivness):
+                    # set all values to null if no max effectivness
+                    survey_df.loc[survey_df['block'] == b_id, col] = np.nan
+                elif max_effectivness == 0 or max_expected_value == 0:
+                    # scale all expected values to 0 if max effectivness is zero or all expected values are zero
+                    survey_df.loc[(survey_df['block'] == b_id) & (survey_df['title'] == 'expected value'), col] = 0
+                else:
+                    # get the scaling factor
+                    scaling_factor = np.divide(max_expected_value, max_effectivness)
+                    # divide the expected values by the new scaling factor
+                    survey_df.loc[(survey_df['block'] == b_id) & (survey_df['title'] == 'expected value'), col] = np.divide(expected_value, scaling_factor)
 
-                max_effectivness = block.loc[block['title']=='max effectivness', col].values
+    # Step 2: calculate mean
 
-                scaling_factor = np.divide(max_expected_value, max_effectivness)
-
-                survey_df.loc[(survey_df['block'] == b_id) & (survey_df['title'] == 'expected value'), col] = np.divide(expected_value, scaling_factor)
-
-
+    # select column names corresponding to expert ids (any number between 1 and 100)
     expert_ids = survey_df.filter(regex='^(100|[1-9]?[0-9])$').columns
 
+    # create a new 'aggregated' column for expected value rows and set their value as the mean of the expert answers per question
     survey_df.loc[survey_df['title'] == 'expected value', 'aggregated'] = survey_df.loc[survey_df['title'] == 'expected value', expert_ids].mean(axis=1)
 
-    comp_1 = survey_df.loc[survey_df['title'] == 'variance', expert_ids].sum(axis=1)
-    comp_2 = survey_df.loc[survey_df['title'] == 'variance', expert_ids]
+    # Step 3: calculate aggregated variance
 
-    for i in range(len(comp_2)):
-        comp_3 = comp_2.iloc[i, :].dropna()
-        survey_df.loc[survey_df['title'] == 'variance', 'aggregated'] = comp_1 + 2 * np.cov(comp_3).sum()
+    # find variance values
+    variances = survey_df.loc[survey_df['title'] == 'variance', expert_ids]
+    # sum variances
+    variance_sum = variances.sum(axis=1)
+    # for each row (question)
+    for i in range(len(variances)):
+        print(f'i = {i}')
+        # select row values that are not NaN
+        a = variances.iloc[i, :].dropna()
+        print(f'a = {type(a)}')
+        covariances = np.cov(a).sum()
+        print(covariances)
+        # access 'aggregated' column 'variance' rows and set their values to calculated variance
+        survey_df.loc[survey_df['title'] == 'variance', 'aggregated'] = variance_sum + 2 * covariances
+    # chatgpt solution 1
+    survey_df.loc[survey_df['title'] == 'variance', 'aggregated'] = 0
+    for i in range(len(variances.columns)):
+        survey_df.loc[survey_df['title'] == 'variance', 'aggregated'] += variances[i] + 2 * covariances.iloc[i, i+1:].sum()
 
-    survey_df['measure'] = survey_df['measure'] * 10000
-    survey_df['activity'] = survey_df['activity'] * 10000
+    # Step 4: Update measure and activity ids
+
+    survey_df['measure'] = survey_df['measure'] * id_multiplier
+    survey_df['activity'] = survey_df['activity'] * id_multiplier
 
     measure_ids = survey_df['measure'].unique()
     measure_ids = measure_ids[~pd.isnull(measure_ids)]
@@ -192,8 +238,9 @@ def process_survey_data(survey_df):
                 survey_df.loc[index, 'measure'] = new_id
                 survey_df.loc[index+1, 'measure'] = new_id
 
-    # remove scaling factor from survey data
-    survey_df = survey_df.loc[survey_df['title'] != 'max effectivness']
+    # Step 5: Scaling factor removed
+
+    survey_df = survey_df.loc[survey_df['title'] != 'max effectivness']     # remove scaling factor from survey data
 
     return survey_df
 
