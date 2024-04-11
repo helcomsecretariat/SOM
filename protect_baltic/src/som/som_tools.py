@@ -166,26 +166,35 @@ def process_survey_data(survey_df):
         block = survey_df.loc[survey_df['block'] == b_id, :]    # select all rows with current block id
         for col in block:   # for each column
             if isinstance(col, int):    # if it is an expert answer
-                # select the expected values from the column
+                # from the column, select the expected values and variances
                 expected_value = block.loc[block['title']=='expected value', col]
+                variance = block.loc[block['title']=='variance', col]
                 # skip if no questions were answered
-                if expected_value.isnull().all(): continue
+                if expected_value.isnull().all():
+                    block.loc[block['title']=='variance', col] = np.nan     # also set all variances to null
+                    continue
+                if variance.isnull().all():
+                    block.loc[block['title']=='expected value', col] = np.nan     # also set all expected values to null
+                    continue
                 # find the highest value of the answers
                 max_expected_value = expected_value.max()
                 # find the max effectivness estimated by the expert
                 max_effectivness = block.loc[block['title']=='max effectivness', col].values[0]
                 # calculate scaling factor
                 if np.isnan(max_effectivness):
-                    # set all values to null if no max effectivness
+                    # set all values to null if no max effectivness (in column, for current block)
                     survey_df.loc[survey_df['block'] == b_id, col] = np.nan
                 elif max_effectivness == 0 or max_expected_value == 0:
                     # scale all expected values to 0 if max effectivness is zero or all expected values are zero
                     survey_df.loc[(survey_df['block'] == b_id) & (survey_df['title'] == 'expected value'), col] = 0
+                    # set variance to 100 because effectivness being zero is certain
+                    survey_df.loc[(survey_df['block'] == b_id) & (survey_df['title'] == 'variance'), col] = 100
                 else:
                     # get the scaling factor
                     scaling_factor = np.divide(max_expected_value, max_effectivness)
-                    # divide the expected values by the new scaling factor
+                    # divide the expected values by the new scaling factor, same for variances
                     survey_df.loc[(survey_df['block'] == b_id) & (survey_df['title'] == 'expected value'), col] = np.divide(expected_value, scaling_factor)
+                    survey_df.loc[(survey_df['block'] == b_id) & (survey_df['title'] == 'variance'), col] = np.divide(variance, scaling_factor)
 
     # Step 2: calculate mean
 
@@ -195,7 +204,67 @@ def process_survey_data(survey_df):
     # create a new 'aggregated' column for expected value rows and set their value as the mean of the expert answers per question
     survey_df.loc[survey_df['title'] == 'expected value', 'aggregated'] = survey_df.loc[survey_df['title'] == 'expected value', expert_ids].mean(axis=1)
 
+    # Step 3: calculate effectivness range boundaries
+
+    # create new rows for 'effectivness lower' and 'effectivness upper' bounds after variance rows
+    new_rows = []
+    for i, row in survey_df.iterrows():
+        new_rows.append(row)
+        if row['title'] == 'variance':
+            # create lower bound
+            min_row = survey_df.loc[i].copy()
+            min_row['title'] = 'effectivness lower'
+            min_row[expert_ids] = np.nan
+            new_rows.append(min_row)
+            # create upper bound
+            max_row = survey_df.loc[i].copy()
+            max_row['title'] = 'effectivness upper'
+            max_row[expert_ids] = np.nan
+            new_rows.append(max_row)
+    survey_df = pd.DataFrame(new_rows, columns=survey_df.columns)
+    survey_df.reset_index(drop=True, inplace=True)
+    # set values for 'effectivness lower' and 'effectivness upper' bounds rows
+    # calculated as follows:
+    #   lower boundary:
+    #       if expected_value + variance / 2 > 100:
+    #           boundary = 100 - variance
+    #       else:
+    #           if expected_value - variance / 2 < 0:
+    #               boundary = 0
+    #           else:
+    #               boundary = expected_value - variance / 2
+    #   upper boundary:
+    #       if expected_value - variance / 2 < 0:
+    #           boundary = variance
+    #       else:
+    #           if expected_value + variance / 2 > 100:
+    #               boundary = 100
+    #           else:
+    #               boundary = expected_value + variance / 2
+    for i, row in survey_df.iterrows():
+        if row['title'] == 'effectivness lower':
+            expected_value = survey_df.iloc[i-2][expert_ids]
+            variance = survey_df.iloc[i-1][expert_ids]
+            reach_upper_limit = expected_value + variance / 2 > 100
+            row_values = survey_df.loc[i, expert_ids]
+            row_values[reach_upper_limit] = 100 - variance
+            row_values[~reach_upper_limit] = expected_value - variance / 2
+            row_values[row_values < 0] = 0
+            survey_df.loc[i, expert_ids] = row_values
+        if row['title'] == 'effectivness upper':
+            expected_value = survey_df.iloc[i-3][expert_ids]
+            variance = survey_df.iloc[i-2][expert_ids]
+            reach_lower_limit = expected_value - variance / 2 < 0
+            row_values = survey_df.loc[i, expert_ids]
+            row_values[reach_lower_limit] = variance
+            row_values[~reach_lower_limit] = expected_value + variance / 2
+            row_values[row_values > 100] = 100
+            survey_df.loc[i, expert_ids] = row_values
+
     # Step 3: calculate aggregated variance
+    
+    print(survey_df)
+    exit()
 
     # find variance values
     variances = survey_df.loc[survey_df['title'] == 'variance', expert_ids]
