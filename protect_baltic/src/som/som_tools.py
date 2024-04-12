@@ -65,23 +65,27 @@ def preprocess_survey_data(mteq, measure_survey_data) -> pd.DataFrame:
         survey_info = mteq[mteq['Survey ID'] == survey_id]  # select the rows linked to current survey
 
         end = 0     # represents last column index of the question set
-        for row, amt in enumerate(survey_info['AMT']):
+        for row, amt in enumerate(survey_info['AMT']):  # for each set of questions (row in MTEQ)
             
             end = end + (2 * amt + 1)     # end column for data
             start = end - (2 * amt)     # start column for data
             
             titles = ['expected value', 'variance'] * amt
             titles.append('max effectivness')
+            titles.append('expert weights')
 
             measures = measure_survey_data[survey_id].iloc[0, start:end].tolist() # select current question column names as measure ids
             measures.append(np.nan) # append NaN for max effectivness (ME)
+            measures.append(np.nan )   # append NaN for expert weights
 
             activity_id = survey_info['Activity'].iloc[row] # select current row Activity
             activities = [activity_id] * amt * 2
             activities.append(np.nan)
+            activities.append(np.nan)
 
             pressure_id = survey_info['Pressure'].iloc[row] # select current row Pressure
             pressures = [pressure_id] * amt * 2
+            pressures.append(np.nan)
             pressures.append(np.nan)
 
             direct_ids = survey_info['Direct_to_state'].iloc[row]   # select current row state
@@ -94,8 +98,16 @@ def preprocess_survey_data(mteq, measure_survey_data) -> pd.DataFrame:
             else:
                 directs = [direct_ids] * amt * 2
             directs.append(np.nan)
+            directs.append(np.nan)
+
+            expert_cols = [True if 'exp' in col.lower() else False for col in survey_info.columns]  # find all expert columns
+            expert_weights = survey_info.loc[:, expert_cols].iloc[row]  # select expert weight values
+            expert_weights.fillna(1, inplace=True)  # replace NaN values in weights with ones
             
             data = measure_survey_data[survey_id].loc[1:, start:end]    # select current question answers
+            data[end+1] = expert_weights  # create column for expert weights
+            for expert, weight in enumerate(expert_weights, 1): # for each row (expert) in weights
+                data.loc[expert, end+1] = weight    # set the weight as the value
             data = data.transpose() # transpose so that experts are columns and measures are rows
 
             # add survey info to each entry in the data 
