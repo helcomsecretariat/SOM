@@ -294,23 +294,22 @@ def process_survey_data(survey_df):
 
     # Step 4: Update measure and activity ids
 
+    # multiply every measure and activity id with the multiplier
     survey_df['measure'] = survey_df['measure'] * id_multiplier
     survey_df['activity'] = survey_df['activity'] * id_multiplier
 
-    measure_ids = survey_df['measure'].unique()
-    measure_ids = measure_ids[~pd.isnull(measure_ids)]
+    measure_ids = survey_df['measure'].unique() # identify unique measure ids
+    measure_ids = measure_ids[~pd.isnull(measure_ids)]  # remove null value ids
 
-    for m_id in measure_ids:
-        measures = survey_df.loc[(survey_df['measure'] == m_id) & (survey_df['title'] == 'expected value')]
-        indeces = measures.index.values
+    for m_id in measure_ids:    # for every measure
+        measures = survey_df.loc[(survey_df['measure'] == m_id) & (survey_df['title'] == 'expected value')]   # select expected value rows for current measure
+        indeces = measures.index.values # select indices
         
-        if len(measures) > 1:
-        
-            for num, id in enumerate(measures['measure']):
-                new_id = id + (num + 1)
-
-                index = indeces[num]
-
+        if len(measures) > 1:   # if there are more than one row for each measure
+            for num, id in enumerate(measures['measure']):  # for each measure
+                new_id = id + (num + 1)  # the new id is the old one + the current counter + 1
+                index = indeces[num]    # select the index of the current measure row
+                # set new measure id for both expected value and variance rows
                 survey_df.loc[index, 'measure'] = new_id
                 survey_df.loc[index+1, 'measure'] = new_id
 
