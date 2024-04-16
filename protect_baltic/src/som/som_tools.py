@@ -45,7 +45,7 @@ def preprocess_survey_data(mteq, measure_survey_data) -> pd.DataFrame:
     Return:
         survey_df (DataFrame): survey data information
             survey_id: unique id for each questionnaire / survey
-            title: type of value ('expected value' / 'variance' / 'max effectivness')
+            title: type of value ('expected value' / 'variance' / 'max effectivness' / 'expert weights')
             block: id for each set of questions within each survey, unique across all surveys
             measure: measure id of the question
             activity: activity id of the question
@@ -129,25 +129,11 @@ def process_survey_data(survey_df):
     r'''
     Measure survey data: part 3
 
-    1. Adjust expert answers by scaling factor (epsilon)
+    1. Adjust expert answers by scaling factor
 
-            epsilon = max_i * mu_i / gamma
+    2. Calculate effectivness range boundaries
 
-        where
-            max_i * mu_i = maximum expected value
-            gamma = maximum effectivness
-
-    2. Calculate mean
-
-    3. Calculate variance
-
-        assumed that variances are correlated
-
-            Var(sum(X_i)) = sum(Var(X_i)) + 2 * (sum(Cov(X_x, X_y)))
-
-        where
-            i goes from 1 ... n
-            x, y go as 1 <= x < y <= n
+    3. Calculate mean for expected values and variance
 
     4. New id for 'measure' and 'activity' by multiplying id by 10000
 
@@ -159,7 +145,7 @@ def process_survey_data(survey_df):
     Arguments:
         survey_df (DataFrame): survey data information
             survey_id: unique id for each questionnaire / survey
-            title: type of value ('expected value' / 'variance' / 'max effectivness')
+            title: type of value ('expected value' / 'variance' / 'max effectivness' / 'expert weights')
             block: id for each set of questions within each survey, unique across all surveys
             measure: measure id of the question
             activity: activity id of the question
@@ -170,6 +156,9 @@ def process_survey_data(survey_df):
         survey_df (DataFrame): processed survey data information
     '''
     id_multiplier = 10000
+
+    # select column names corresponding to expert ids (any number between 1 and 100)
+    expert_ids = survey_df.filter(regex='^(100|[1-9]?[0-9])$').columns
 
     # Step 1: adjust answers by scaling factor
     
@@ -208,15 +197,7 @@ def process_survey_data(survey_df):
                     survey_df.loc[(survey_df['block'] == b_id) & (survey_df['title'] == 'expected value'), col] = np.divide(expected_value, scaling_factor)
                     survey_df.loc[(survey_df['block'] == b_id) & (survey_df['title'] == 'variance'), col] = np.divide(variance, scaling_factor)
 
-    # Step 2: calculate mean
-
-    # select column names corresponding to expert ids (any number between 1 and 100)
-    expert_ids = survey_df.filter(regex='^(100|[1-9]?[0-9])$').columns
-
-    # create a new 'aggregated' column for expected value rows and set their value as the mean of the expert answers per question
-    survey_df.loc[survey_df['title'] == 'expected value', 'aggregated'] = survey_df.loc[survey_df['title'] == 'expected value', expert_ids].mean(axis=1)
-
-    # Step 3: calculate effectivness range boundaries
+    # Step 2: calculate effectivness range boundaries
 
     # create new rows for 'effectivness lower' and 'effectivness upper' bounds after variance rows
     new_rows = []
@@ -273,29 +254,43 @@ def process_survey_data(survey_df):
             row_values[row_values > 100] = 100
             survey_df.loc[i, expert_ids] = row_values
 
-    # Step 3: calculate aggregated variance
-    
-    print(survey_df)
-    exit()
+    # Step 3: calculate aggregated mean and variance
 
-    # find variance values
-    variances = survey_df.loc[survey_df['title'] == 'variance', expert_ids]
-    # sum variances
-    variance_sum = variances.sum(axis=1)
-    # for each row (question)
-    for i in range(len(variances)):
-        print(f'i = {i}')
-        # select row values that are not NaN
-        a = variances.iloc[i, :].dropna()
-        print(f'a = {type(a)}')
-        covariances = np.cov(a).sum()
-        print(covariances)
-        # access 'aggregated' column 'variance' rows and set their values to calculated variance
-        survey_df.loc[survey_df['title'] == 'variance', 'aggregated'] = variance_sum + 2 * covariances
-    # chatgpt solution 1
-    survey_df.loc[survey_df['title'] == 'variance', 'aggregated'] = 0
-    for i in range(len(variances.columns)):
-        survey_df.loc[survey_df['title'] == 'variance', 'aggregated'] += variances[i] + 2 * covariances.iloc[i, i+1:].sum()
+    # create a new 'aggregated' column for expected value rows and set their value as the mean of the expert answers per question
+    # expert answers are weighted by amount of participating experts per answer
+    expected_values = survey_df.loc[survey_df['title'] == 'expected value', np.insert(expert_ids, 0, 'block')]  # select expected value rows
+    variances = survey_df.loc[survey_df['title'] == 'variance', np.insert(expert_ids, 0, 'block')]  # select variance rows
+    expert_weights = survey_df.loc[survey_df['title'] == 'expert weights', np.insert(expert_ids, 0, 'block')]   # select expert weight rows
+    for b_id in block_ids:  # for each block
+
+        expert_weights_block = expert_weights.loc[expert_weights['block'] == b_id, expert_ids]  # weights, should only be one row for each block
+        
+        # expected values
+
+        # select expected values of block
+        expected_values_block = expected_values.loc[expected_values['block'] == b_id, expert_ids]
+        # select values that are not nan, bool matrix
+        expected_values_non_nan = ~np.isnan(expected_values_block)
+        # multiply those values with weights, True = 1 and False = 0
+        expected_values_non_nan_weights = expected_values_non_nan * expert_weights_block.reset_index(drop=True).values
+        # sum weights to get number of participating experts
+        expected_values_non_nan_weights_sum = expected_values_non_nan_weights.sum(axis=1)
+        # multiply values by weights and sum
+        expected_values_sum = (expected_values_block * expert_weights_block.values).sum(axis=1)
+        # divide sum by amount of experts to get mean
+        expected_values_aggregated = expected_values_sum / expected_values_non_nan_weights_sum
+        # add aggregated values to dataframe
+        survey_df.loc[(survey_df['block'] == b_id) & (survey_df['title'] == 'expected value'), 'aggregated'] = expected_values_aggregated
+
+        # variance, same way as above
+        
+        variances_block = variances.loc[variances['block'] == b_id, expert_ids]
+        variances_non_nan = ~np.isnan(variances_block)
+        variances_non_nan_weights = variances_non_nan * expert_weights_block.reset_index(drop=True).values
+        variances_non_nan_weights_sum = variances_non_nan_weights.sum(axis=1)
+        variances_sum = (variances_block * expert_weights_block.values).sum(axis=1)
+        variances_aggregated = variances_sum / variances_non_nan_weights_sum
+        survey_df.loc[(survey_df['block'] == b_id) & (survey_df['title'] == 'variance'), 'aggregated'] = variances_aggregated
 
     # Step 4: Update measure and activity ids
 
@@ -322,6 +317,8 @@ def process_survey_data(survey_df):
     # Step 5: Scaling factor removed
 
     survey_df = survey_df.loc[survey_df['title'] != 'max effectivness']     # remove scaling factor from survey data
+    survey_df = survey_df.loc[survey_df['title'] != 'effectivness lower']     # remove lower effectivness boundary for now
+    survey_df = survey_df.loc[survey_df['title'] != 'effectivness upper']     # remove upper effectivness boundary for now
 
     return survey_df
 
