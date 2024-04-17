@@ -7,14 +7,14 @@ Model developed at HELCOM to assess what kind of improvements in environmental s
 #### ACTION
 
 [Project description](https://helcom.fi/helcom-at-work/projects/action/)  
-[Code](https://github.com/blobbeliblob/SOM/tree/PROTECT-BALTIC/helcom_action)
+[Code](https://github.com/blobbeliblob/SOM/tree/main/helcom_action)
 
 #### BLUES
 
 [Project description](https://helcom.fi/helcom-at-work/projects/blues/)  
-[Code](https://github.com/blobbeliblob/SOM/tree/PROTECT-BALTIC/helcom_blues)
+[Code](https://github.com/blobbeliblob/SOM/tree/main/helcom_blues)
 
 #### PROTECT BALTIC (ongoing)
 
 [Project description](https://helcom.fi/helcom-at-work/projects/protect-baltic/)  
-[Code](https://github.com/blobbeliblob/SOM/tree/PROTECT-BALTIC/protect_baltic)
+[Code](https://github.com/blobbeliblob/SOM/tree/main/protect_baltic)
