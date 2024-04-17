@@ -447,24 +447,26 @@ def read_case_input(file_name: str) -> pd.DataFrame:
     cases['C_ID'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in cases['C_ID']]
     cases = cases.explode('C_ID')
 
+    # In_State_components is in input data just for book keeping
+    cases['In_State_components'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in cases['In_State_components']]
+    # cases = cases.explode('In_State_components')
+    # cases['In_State_components'].astype('int')
+
     # change types of split values from str to int
     cases = cases.astype({
         'In_Activities': 'int',
         'In_Pressure': 'int',
         'B_ID': 'int',
         'C_ID': 'int'
-        })
+    })
 
     # create new column 'countrybasin_id' to link basins and countries, and create the unique ids
     cases['countrybasin_id'] = cases['B_ID'] * 1000 + cases['C_ID']
 
-    # In_State_components is in input data just for book keeping
-    cases['In_State_components'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in cases['In_State_components']]
-
     return cases
 
 
-def read_linkage_descriptions(file_name, sheet_name='MT_to_A_to_S'):
+def read_linkage_descriptions(file_name: str):
     """
     Reads description of links between Measures, Activities, Pressures, and States.
 
@@ -475,37 +477,56 @@ def read_linkage_descriptions(file_name, sheet_name='MT_to_A_to_S'):
     Returns:
         linkages (DataFrame): dataframe containing mappings between measures to actitivities to pressures to states
     """
-    
+    sheet_name = 'MT_to_A_to_S'
     linkages = pd.read_excel(io=file_name, sheet_name=sheet_name)
+    
+    # separate measures grouped together in sheet on the same row with ';' into separate rows
     linkages['MT'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in linkages['MT']]
+    linkages = linkages.explode('MT')
+    linkages['MT'].notna().astype('int')    # convert non-nan values to int
 
+    # separate activities grouped together in sheet on the same row with ';' into separate rows
     linkages['Activities'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in linkages['Activities']]
     linkages = linkages.explode('Activities')
-    linkages['Activities'].notna().astype('int')
+    linkages['Activities'].notna().astype('int')    # convert non-nan values to int
 
+    # separate pressures grouped together in sheet on the same row with ';' into separate rows
     linkages['Pressure'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in linkages['Pressure']]
     linkages = linkages.explode('Pressure')
-    linkages['Pressure'].notna().astype('int')
+    linkages['Pressure'].notna().astype('int')  # convert non-nan values to int
 
+    # separate states grouped together in sheet on the same row with ';' into separate rows
     linkages['State (if needed)'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in linkages['State (if needed)']]
+    linkages = linkages.explode('State (if needed)')
+    linkages['State (if needed)'].notna().astype('int') # convert non-nan values to int
 
     return linkages
 
 
-def read_postprocess_data(file_name, sheet_name='ActPres'):
+def read_postprocess_data(file_name: str) -> pd.DataFrame:
     """
     Reads input data of activities to pressures in Baltic Sea basins. 
+
+    Arguments:
+        file_name (str): name of source excel file name containing 'ActPres' sheet
+
+    Returns:
+        act_to_press (DataFrame): dataframe containing mappings between activities and pressures
     """
+    sheet_name = 'ActPres'
     act_to_press = pd.read_excel(file_name, sheet_name=sheet_name)
 
+    # read all most likely, min and max column values into lists in new columns
     act_to_press['expected'] = act_to_press.filter(regex='Ml[1-6]').values.tolist()
     act_to_press['minimun'] = act_to_press.filter(regex='Min[1-6]').values.tolist()
     act_to_press['maximum'] = act_to_press.filter(regex='Max[1-6]').values.tolist()
 
+    # remove all most likely, min and max columns
     act_to_press.drop(act_to_press.filter(regex='Ml[1-6]').columns, axis=1, inplace=True)
     act_to_press.drop(act_to_press.filter(regex='Min[1-6]').columns, axis=1, inplace=True)
     act_to_press.drop(act_to_press.filter(regex='Max[1-6]').columns, axis=1, inplace=True)
 
+    # separate basins grouped together in sheet on the same row with ';' into separate rows
     act_to_press['Basins'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in act_to_press['Basins']]
     act_to_press = act_to_press.explode('Basins')
 
