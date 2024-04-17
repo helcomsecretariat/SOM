@@ -188,14 +188,11 @@ def process_survey_data(survey_df):
                 elif max_effectivness == 0 or max_expected_value == 0:
                     # scale all expected values to 0 if max effectivness is zero or all expected values are zero
                     survey_df.loc[(survey_df['block'] == b_id) & (survey_df['title'] == 'expected value'), col] = 0
-                    # set variance to 100 because effectivness being zero is certain
-                    survey_df.loc[(survey_df['block'] == b_id) & (survey_df['title'] == 'variance'), col] = 100
                 else:
                     # get the scaling factor
                     scaling_factor = np.divide(max_expected_value, max_effectivness)
-                    # divide the expected values by the new scaling factor, same for variances
+                    # divide the expected values by the new scaling factor
                     survey_df.loc[(survey_df['block'] == b_id) & (survey_df['title'] == 'expected value'), col] = np.divide(expected_value, scaling_factor)
-                    survey_df.loc[(survey_df['block'] == b_id) & (survey_df['title'] == 'variance'), col] = np.divide(variance, scaling_factor)
 
     # Step 2: calculate effectivness range boundaries
 
@@ -238,7 +235,7 @@ def process_survey_data(survey_df):
         if row['title'] == 'effectivness lower':
             expected_value = survey_df.iloc[i-2][expert_ids]
             variance = survey_df.iloc[i-1][expert_ids]
-            reach_upper_limit = expected_value + variance / 2 > 100
+            reach_upper_limit = expected_value + variance / 2 > 100 # boolean array
             row_values = survey_df.loc[i, expert_ids]
             row_values[reach_upper_limit] = 100 - variance
             row_values[~reach_upper_limit] = expected_value - variance / 2
@@ -247,7 +244,7 @@ def process_survey_data(survey_df):
         if row['title'] == 'effectivness upper':
             expected_value = survey_df.iloc[i-3][expert_ids]
             variance = survey_df.iloc[i-2][expert_ids]
-            reach_lower_limit = expected_value - variance / 2 < 0
+            reach_lower_limit = expected_value - variance / 2 < 0   # boolean array
             row_values = survey_df.loc[i, expert_ids]
             row_values[reach_lower_limit] = variance
             row_values[~reach_lower_limit] = expected_value + variance / 2
@@ -303,12 +300,12 @@ def process_survey_data(survey_df):
 
     for m_id in measure_ids:    # for every measure
         measures = survey_df.loc[(survey_df['measure'] == m_id) & (survey_df['title'] == 'expected value')]   # select expected value rows for current measure
-        indeces = measures.index.values # select indices
+        indices = measures.index.values # select indices
         
         if len(measures) > 1:   # if there are more than one row for each measure
             for num, id in enumerate(measures['measure']):  # for each measure
                 new_id = id + (num + 1)  # the new id is the old one + the current counter + 1
-                index = indeces[num]    # select the index of the current measure row
+                index = indices[num]    # select the index of the current measure row
                 # set new measure id for both expected value and variance rows
                 survey_df.loc[index, 'measure'] = new_id
                 survey_df.loc[index+1, 'measure'] = new_id
@@ -322,7 +319,7 @@ def process_survey_data(survey_df):
     return survey_df
 
 
-def read_core_object_descriptions(file_name):
+def read_core_object_descriptions(file_name: str) -> dict[str, dict]:
     """
     Reads in model object descriptions from general input files
 
@@ -333,18 +330,17 @@ def read_core_object_descriptions(file_name):
 
     Arguments:
         file_name (str): source excel file name containing 
-            'CountBas', 'Country list' and 'Basin list' sheets
+            'Measure type list', 'Activity list', 'Pressure list', 'State list' in sheets
 
     Returns:
-        object_data (dict):
+        object_data (dict): dictionary containing measure, activity, pressure and state ids and descriptions in separate sub-dictionaries
     """
-    general_input = pd.read_excel(io=file_name, sheet_name=None)
+    general_input = pd.read_excel(io=file_name, sheet_name=None)    # read excel file into DataFrame
 
     def create_dict(sheet_name, id_col_name, obj_col_name):
         df = general_input[sheet_name]
         obj_dict = {}
         [obj_dict.update({id: name}) if isinstance(name, str) else obj_dict.update({id: None}) for id, name in zip(df[id_col_name], df[obj_col_name])]
-
         return obj_dict
 
     # Create dict for measures
@@ -373,13 +369,15 @@ def read_core_object_descriptions(file_name):
     return object_data
 
 
-def read_domain_input(file_name):
+def read_domain_input(file_name: str, countries_exclude: list[str], basins_exclude: list[str]) -> dict[str, pd.DataFrame]:
     """
     Reads in calculation domain descriptions
 
     Arguments:
         file_name (str): source excel file name containing 
             'CountBas', 'Country list' and 'Basin list' sheets
+        countries_exclude (list): list of countries to exclude
+        basins_exclude (list): list of basins to exclude
     
     Returns:
         domain (dict): {
@@ -388,24 +386,21 @@ def read_domain_input(file_name):
             basins (DataFrame): basin ids
         }
     """
+    # countries
+    sheet_name = 'Country list'
+    countries = pd.read_excel(io=file_name, sheet_name=sheet_name, index_col='ID')  # note that column 'ID' is changed to dataframe index
+    countries = countries[~np.isin(countries.values, countries_exclude)]    # remove rows to be excluded
+
+    # basins
+    sheet_name = 'Basin list'
+    basins = pd.read_excel(io=file_name, sheet_name=sheet_name, index_col='ID') # note that column 'ID' is changed to dataframe index
+    basins = basins[~np.isin(basins.values, basins_exclude)]    # remove rows to be excluded
 
     # country-basin links
     sheet_name = 'CountBas'
     countries_by_basins = pd.read_excel(io=file_name, sheet_name=sheet_name)
-    index = countries_by_basins[countries_by_basins['country'] == 'All countries'].index # find index of 'All countries' row
-    countries_by_basins.drop(index=index, inplace=True) # drop 'All countries' row (since it should be only 1:s in it)
-
-    # countries
-    sheet_name = 'Country list'
-    countries = pd.read_excel(io=file_name, sheet_name=sheet_name, index_col='ID')
-    index = countries[(countries.index == 0) | (countries.index == 10)].index   # find indexes of 'All countries' and 'Global (non-Baltic)' rows
-    countries.drop(index=index, inplace=True)   # drop selected rows
-
-    # basins
-    sheet_name = 'Basin list'
-    basins = pd.read_excel(io=file_name, sheet_name=sheet_name, index_col='ID')
-    index = basins[basins.index == 0].index # find index of 'All basins' row
-    basins.drop(index=index, inplace=True)  # drop 'All basins' row
+    countries_by_basins = countries_by_basins[np.isin(countries_by_basins['ID'], countries.index)]  # remove excluded countries
+    countries_by_basins = countries_by_basins.drop(columns=[x for x in countries_by_basins.columns if x not in basins.index])   # remove excluded basins (+ ID column)
 
     domain = {
         'countries_by_basins': countries_by_basins,

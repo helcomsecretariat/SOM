@@ -56,7 +56,9 @@ def process_input_data():
 
     # step 3. read calculation domain descriptions
     file_name = config['input_files']['general_input']
-    domain_data = read_domain_input(file_name=file_name)
+    domain_data = read_domain_input(file_name=file_name, 
+                                    countries_exclude=config['domain_settings']['countries_exclude'], 
+                                    basins_exclude=config['domain_settings']['basins_exclude'])
 
     # step 4. read case input 
     file_name = config['input_files']['general_input']
