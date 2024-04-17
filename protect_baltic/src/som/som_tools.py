@@ -2,7 +2,7 @@
 import numpy as np
 import pandas as pd
 
-def read_survey_data(file_name, sheet_names) -> tuple[pd.DataFrame, dict[int, pd.DataFrame]]:
+def read_survey_data(file_name: str, sheet_names: dict[int, str]) -> tuple[pd.DataFrame, dict[int, pd.DataFrame]]:
     """
     Measure survey data: Part 1
 
@@ -32,7 +32,7 @@ def read_survey_data(file_name, sheet_names) -> tuple[pd.DataFrame, dict[int, pd
     return mteq, measure_survey_data
 
 
-def preprocess_survey_data(mteq, measure_survey_data) -> pd.DataFrame:
+def preprocess_survey_data(mteq: pd.DataFrame, measure_survey_data: dict[int, pd.DataFrame]) -> pd.DataFrame:
     """
     Measure survey data: Part 2
 
@@ -125,7 +125,7 @@ def preprocess_survey_data(mteq, measure_survey_data) -> pd.DataFrame:
     return survey_df
 
 
-def process_survey_data(survey_df):
+def process_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
     r'''
     Measure survey data: part 3
 
@@ -411,7 +411,7 @@ def read_domain_input(file_name: str, countries_exclude: list[str], basins_exclu
     return domain
 
 
-def read_case_input(file_name, sheet_name='ActMeas'):
+def read_case_input(file_name: str) -> pd.DataFrame:
     """
     Reading in and processing data for cases.
     
@@ -427,8 +427,11 @@ def read_case_input(file_name, sheet_name='ActMeas'):
     Arguments:
         file_name (str): name of source excel file name containing 'ActMeas' sheet
         sheet_name (str): name of sheet in source excel ('ActMeas')
-    """
 
+    Returns:
+        cases (DataFrame): case data
+    """
+    sheet_name = 'ActMeas'
     cases = pd.read_excel(io=file_name, sheet_name=sheet_name)
     
     
