@@ -413,11 +413,9 @@ def read_domain_input(file_name: str, countries_exclude: list[str], basins_exclu
 
 def read_case_input(file_name: str) -> pd.DataFrame:
     """
-    Reading in and processing data for cases.
+    Reading in and processing data for cases. Each row represents one case. 
     
-    Each row represents one case. 
-    
-    In columns of 'ActMeas' sheet ('in_Activities', 'in_Pressure' and 'In_State_components') 0 == 'all relevant'.
+    In columns of 'ActMeas' sheet ('in_Activities', 'in_Pressure' and 'In_State_components') the value 0 == 'all relevant'.
     Relevant activities, pressures and state can be found in measure-wise from 'MT_to_A_to_S' sheets (linkages)
     
     - multiply MT_ID id by 10000 to get right measure_id
@@ -426,7 +424,6 @@ def read_case_input(file_name: str) -> pd.DataFrame:
 
     Arguments:
         file_name (str): name of source excel file name containing 'ActMeas' sheet
-        sheet_name (str): name of sheet in source excel ('ActMeas')
 
     Returns:
         cases (DataFrame): case data
@@ -434,19 +431,23 @@ def read_case_input(file_name: str) -> pd.DataFrame:
     sheet_name = 'ActMeas'
     cases = pd.read_excel(io=file_name, sheet_name=sheet_name)
     
-    
+    # separate activities grouped together in sheet on the same row with ';' into separate rows
     cases['In_Activities'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in cases['In_Activities']]
     cases = cases.explode('In_Activities')
 
+    # separate pressures grouped together in sheet on the same row with ';' into separate rows
     cases['In_Pressure'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in cases['In_Pressure']]
     cases = cases.explode('In_Pressure')
 
+    # separate basins grouped together in sheet on the same row with ';' into separate rows
     cases['B_ID'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in cases['B_ID']]
     cases = cases.explode('B_ID')
 
+    # separate countries grouped together in sheet on the same row with ';' into separate rows
     cases['C_ID'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in cases['C_ID']]
     cases = cases.explode('C_ID')
 
+    # change types of split values from str to int
     cases = cases.astype({
         'In_Activities': 'int',
         'In_Pressure': 'int',
@@ -454,6 +455,7 @@ def read_case_input(file_name: str) -> pd.DataFrame:
         'C_ID': 'int'
         })
 
+    # create new column 'countrybasin_id' to link basins and countries, and create the unique ids
     cases['countrybasin_id'] = cases['B_ID'] * 1000 + cases['C_ID']
 
     # In_State_components is in input data just for book keeping
