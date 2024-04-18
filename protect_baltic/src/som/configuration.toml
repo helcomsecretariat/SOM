@@ -23,4 +23,4 @@
 # countries to exclude from domain
 [domain_settings]
     countries_exclude = ['All countries', 'Global (non-Baltic)']
-    basins_exclude = []
+    basins_exclude = ['All basins']

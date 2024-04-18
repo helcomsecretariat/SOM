@@ -15,7 +15,7 @@ from som.som_tools import read_domain_input, read_case_input, read_linkage_descr
 from som.som_classes import Measure, Activity, Pressure, ActivityPressure, State, CountryBasin, Case
 
 
-def process_input_data():
+def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Reads in data and processes it in usable form.
     
@@ -246,13 +246,12 @@ def build_second_object_layer(measure_df, object_data):
         country_id = countries[countries['COUNTRY'] == country].index[0]
     
         for basin in basins['Basin']:
+            basin_id = basins[basins['Basin'] == basin].index[0]
        
-            basin_fraction = countries_by_basins.loc[(countries_by_basins['country'] == country), basin].values[0]
- 
+            basin_fraction = countries_by_basins.loc[(countries_by_basins.index == country_id), basin_id].values[0]
+
             if basin_fraction <= 0:
                 continue
-
-            basin_id = basins[basins['Basin'] == basin].index[0]
 
             countrybasin_id = basin_id * 1000 + country_id
             countrybasin_name = f"{country} ({country_id}) and {basin} ({basin_id})"
