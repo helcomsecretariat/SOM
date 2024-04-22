@@ -1,3 +1,12 @@
+"""
+Copyright (c) 2024 Baltic Marine Environment Protection Commission
+Copyright (c) 2022 Antti-Jussi Kieloaho (Natural Resources Institute Finland)
+
+LICENSE available under 
+local: 'SOM/protect_baltic/LICENSE'
+url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
+"""
+
 # main package script
 
 import som.som_app as som_app
