@@ -253,6 +253,22 @@ def process_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
 
     # Step 3: calculate aggregated mean and variance
 
+    # create individual PERT distributions for each expert
+    # draw equal and large number of values from each expert distribution (=picks)
+    # amount of picks should be scaled by participating expert weights
+    # pool picks together
+    # apply a discrete probability distribution to picks
+    # from these distributions
+
+    # PERT distribution
+    def pert_dist(ml, min, max):
+        # weight, controls probability of edge values (higher -> more emphasis on most likely, lower -> extreme values more probable)
+        # 4 is standard used in unmodified PERT distributions
+        gamma = 4
+        # calculate expected value
+        mu = ((min + gamma) * (ml + max)) / (gamma + 2)
+        return mu
+
     # create a new 'aggregated' column for expected value rows and set their value as the mean of the expert answers per question
     # expert answers are weighted by amount of participating experts per answer
     expected_values = survey_df.loc[survey_df['title'] == 'expected value', np.insert(expert_ids, 0, 'block')]  # select expected value rows
