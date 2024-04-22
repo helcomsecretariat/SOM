@@ -8,6 +8,7 @@ from typing import Type, Union
 import numpy as np
 import numpy.typing as npt
 
+
 class Activity:
     """
     Describes human activity in Baltic Sea

@@ -82,100 +82,103 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     return survey_df, object_data
 
 
-def build_core_object_model(survey_df, object_data):
+def build_core_object_model(survey_df, object_data) -> pd.DataFrame:
     """
     Builds and initializes core object model.
 
     Arguments:
         survey_df (DataFrame): processed survey results
-        object_data (dict): dictionary that contains following data: measure, activity, pressure, and state 
+        object_data (dict): dictionary that contains following data: measure, activity, pressure, and state
+
+    Returns:
+        measure_df (DataFrame): 
     """
-
+    print(survey_df)
+    # select measures, activities, pressures and states
     measures = survey_df['measure'].loc[(survey_df['title'] == 'expected value')]
-    expecteds = survey_df['aggregated'].loc[(survey_df['title'] == 'expected value')]
-    uncertainties = survey_df['aggregated'].loc[(survey_df['title'] == 'variance')]
-
     activities = survey_df['activity'].loc[(survey_df['title'] == 'expected value')]
     pressures = survey_df['pressure'].loc[(survey_df['title'] == 'expected value')]
     states = survey_df['state'].loc[(survey_df['title'] == 'expected value')]
+    # select aggregated expected values and variances
+    expecteds = survey_df['aggregated'].loc[(survey_df['title'] == 'expected value')]
+    uncertainties = survey_df['aggregated'].loc[(survey_df['title'] == 'variance')]
 
+    # find unique ids
     activity_ids = activities.unique()
     pressure_ids = pressures.unique()
 
     activity_instances = {}
     pressure_instances = {}
 
-    for id in activity_ids:
+    for id in activity_ids: # for each activity
 
         if id == 0:
-            continue
+            continue    # skip 0 index activities
 
-        name = object_data['activity'][id/10000]
-        a = Activity(id=id, name=name)
-        activity_instances.update({id: a})
+        name = object_data['activity'][id/10000]    # activity name, divide by multiplier to get actual id
+        a = Activity(id=id, name=name)  # create Activity object
+        activity_instances.update({id: a})  # add activity to dictionary
 
-    for id in pressure_ids:
+    for id in pressure_ids: # for each pressure
 
         if id == 0:
-            continue
+            continue    # skip 0 index pressures
         
-        name = object_data['pressure'][id]
-        p = Pressure(id=id, name=name)
-        pressure_instances.update({id: p})
+        name = object_data['pressure'][id]  # pressure name
+        p = Pressure(id=id, name=name)  # create Pressure object
+        pressure_instances.update({id: p})  # add pressure to dictionary
 
+    measure_instances = {}
+    activitypressure_instances = {}
 
-        measure_instances = {}
-        activitypressure_instances = {}
-
-    for num in measures.index:
+    for num in measures.index:  # for every measure row (not unique)
 
         # instantiate Measure
-        measure_id = measures.loc[num]
-        measure_name = object_data['measure'][int(measure_id/10000)]
-        
-        m = Measure(id=measure_id, name=measure_name)
-        measure_instances.update({measure_id: m})
+        measure_id = measures.loc[num]  # find all occurences of that measure
+        measure_name = object_data['measure'][int(measure_id/10000)]    # measure name
+        m = Measure(id=measure_id, name=measure_name)   # create Measure object
+        measure_instances.update({measure_id: m})   # add measure to dictionary
 
         # instantiate only State
         # Activity and Pressure have been instantiated above
         activity_id = activities.loc[num]
         pressure_id = pressures.loc[num]
 
-        if int(activity_id) == 0 or pressure_id == 0:
-            state_id = states.loc[num]
+        if int(activity_id) == 0 or pressure_id == 0:   # if the measure affects all activities or pressures
+            state_id = states.loc[num]  # select state id list from 
             
-            if isinstance(state_id, list):
-                s_instances = []
+            s_instances = []
+            if isinstance(state_id, list):  # if the state_id is a list
 
                 for id in state_id:
-                    if id == '': continue  # input files have inconsistances
+                    if id == '' or id == np.nan:
+                        continue  # input files have inconsistencies
 
-                    state_name = object_data['state'][int(id)]
-                    s = State(id=id, name=state_name)
-                    s_instances.append(s)
+                    state_name = object_data['state'][int(id)]  # state name
+                    s = State(id=id, name=state_name)   # create State object
+                    s_instances.append(s)   # add state to list
             
-            m.states = s_instances
+            m.states = s_instances  # set the state link for the measure
 
-        else:
-            a = activity_instances[activity_id]
-            p = pressure_instances[pressure_id]
-            activitypressure_id = activity_id + pressure_id
+        else:   # measure affect specific activities or pressures
+            a = activity_instances[activity_id] # linked activity
+            p = pressure_instances[pressure_id] # linked pressure
+            activitypressure_id = activity_id + pressure_id # combined id of activity and pressure
 
-            if activitypressure_id not in activity_instances:
-                ap = ActivityPressure(activity=a, pressure=p)
-                activitypressure_instances.update({activitypressure_id: ap})
-            
+            if activitypressure_id not in activity_instances:   # if the id is not already added
+                ap = ActivityPressure(activity=a, pressure=p)   # create ActivityPressure object
+                activitypressure_instances.update({activitypressure_id: ap}) # add link to dictionary
             else:
-                ap = activitypressure_instances[activitypressure_id]
+                ap = activitypressure_instances[activitypressure_id]    # access the link
 
-            m.activity_pressure = ap
+            m.activity_pressure = ap    # add the link to the measure object
 
         # assign expected value and its uncertainty 
         expected = expecteds.loc[num] / 100.0
         uncertainty = uncertainties.loc[num+1] / 100.0
 
-        m.expected = expected
-        m.uncertainty = uncertainty
+        m.expected = expected   # set expected value of the measure
+        m.uncertainty = uncertainty # set uncertainty of the measure
 
     # Rearrange initialized core objects in DataFrame
     # and make linkages between core objects
@@ -183,7 +186,7 @@ def build_core_object_model(survey_df, object_data):
         'instance': measure_instances.values()
     })
  
-    # ID:s are calculated so that they are can be tracked
+    # ID:s are calculated so that they can be tracked
     measure_df['measure id'] = [int(x.id / 10000) * 10000 for x in measure_df['instance']]
     measure_df['activity-pressure id'] = [x.activity_pressure.id if x.activity_pressure != None else np.nan for x in measure_df['instance']]
     measure_df['activity id'] = [int(x.activity_pressure.id / 10000) * 10000 if x.activity_pressure != None else np.nan for x in measure_df['instance']]
