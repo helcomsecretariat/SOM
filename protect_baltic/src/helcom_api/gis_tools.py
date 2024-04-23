@@ -1,8 +1,12 @@
 """
-Created 20210914 by Antti-Jussi Kieloaho (Luke)
-Modified 03/2024 by Camilo Hernández (HELCOM)
+Copyright (c) 2024 Baltic Marine Environment Protection Commission
+Copyright (c) 2022 Antti-Jussi Kieloaho (Natural Resources Institute Finland)
 
-Module contains tools to handle input data consumed by SOM-app
+LICENSE available under 
+local: 'SOM/protect_baltic/LICENSE'
+url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
+
+This module contains tools to handle input data consumed by the SOM application
 """
 
 from typing import Any, Optional, List, Dict, Tuple, Union

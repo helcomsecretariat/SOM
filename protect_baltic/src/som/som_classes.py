@@ -1,12 +1,16 @@
 """
-Created 24102022
-Antti-Jussi Kieloaho
-Natural Resources Institute Finland
+Copyright (c) 2024 Baltic Marine Environment Protection Commission
+Copyright (c) 2022 Antti-Jussi Kieloaho (Natural Resources Institute Finland)
+
+LICENSE available under 
+local: 'SOM/protect_baltic/LICENSE'
+url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
 """
 
 from typing import Type, Union
 import numpy as np
 import numpy.typing as npt
+
 
 class Activity:
     """

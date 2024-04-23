@@ -1,6 +1,6 @@
 # Configuration file
 
-# Excel input files
+# excel input files
 [input_files]
     general_input = 'C:/Users/camilo/Documents/SOM/data/generalInput.xlsx'
     measure_effect_input = 'C:/Users/camilo/Documents/SOM/data/measureEffInput.xlsx'
@@ -18,3 +18,9 @@
     5 = 'MT_surv_NIS'
     6 = 'MT_surv_Noise'
     7 = 'MT_surv_Mammals'
+
+
+# countries to exclude from domain
+[domain_settings]
+    countries_exclude = ['All countries', 'Global (non-Baltic)']
+    basins_exclude = ['All basins']

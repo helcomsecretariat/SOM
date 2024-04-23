@@ -9,11 +9,11 @@ package-dir = {"" = "src"}
 
 
 [project]
-name = "helcom_protect_baltic"
+name = "helcom_protect_baltic_som"
 version = "0.0.1"
-description = "A Helcom Protect Baltic Application"
+description = "A HELCOM Protect Baltic Application"
 readme = "README.md"
-authors = [{ name="Antti-Jussi Kieloaho", email="antti-jussi.kieloaho@luke.fi" }]
+authors = [{ name="Antti-Jussi Kieloaho", email="antti-jussi.kieloaho@luke.fi" }, { name="Camilo Hernández", email="camilo.hernandez@helcom.fi" }]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
