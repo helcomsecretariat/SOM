@@ -16,6 +16,7 @@ import toml
 
 from som.som_tools import read_survey_data, preprocess_survey_data, process_survey_data, read_core_object_descriptions
 from som.som_tools import read_domain_input, read_case_input, read_linkage_descriptions, read_postprocess_data
+from som.som_tools import get_expert_ids, get_prob_dist
 from som.som_classes import Measure, Activity, Pressure, ActivityPressure, State, CountryBasin, Case
 
 
@@ -97,7 +98,6 @@ def build_core_object_model(survey_df, object_data) -> pd.DataFrame:
     Returns:
         measure_df (DataFrame): 
     """
-    print(survey_df)
     # select measures, activities, pressures and states
     measures = survey_df['measure'].loc[(survey_df['title'] == 'expected value')]
     activities = survey_df['activity'].loc[(survey_df['title'] == 'expected value')]
@@ -106,6 +106,14 @@ def build_core_object_model(survey_df, object_data) -> pd.DataFrame:
     # select aggregated expected values and variances
     expecteds = survey_df['aggregated'].loc[(survey_df['title'] == 'expected value')]
     uncertainties = survey_df['aggregated'].loc[(survey_df['title'] == 'variance')]
+    # select individual expert expected values, variances and boundaries
+    expert_ids = get_expert_ids(survey_df)
+    expert_expecteds = survey_df[expert_ids].loc[(survey_df['title'] == 'expected value')]
+    expert_uncertainties = survey_df[expert_ids].loc[(survey_df['title'] == 'variance')]
+    expert_lower_boundaries = survey_df[expert_ids].loc[(survey_df['title'] == 'effectivness lower')]
+    expert_upper_boundaries = survey_df[expert_ids].loc[(survey_df['title'] == 'effectivness upper')]
+    expert_weights = survey_df.loc[survey_df['title'] == 'expert weights', np.insert(expert_ids, 0, 'block')]
+    measures_blocks = survey_df.loc[(survey_df['title'] == 'expected value'), ['measure', 'block']]
 
     # find unique ids
     activity_ids = activities.unique()
@@ -180,6 +188,14 @@ def build_core_object_model(survey_df, object_data) -> pd.DataFrame:
         # assign expected value and its uncertainty 
         expected = expecteds.loc[num] / 100.0
         uncertainty = uncertainties.loc[num+1] / 100.0
+
+        # get expert survey probability distribution
+        block_id = measures_blocks.loc[num, 'block']
+        weights = expert_weights.loc[expert_weights['block'] == block_id, expert_ids]
+        prob_dist = get_prob_dist(expecteds=expert_expecteds.loc[num], 
+                                  lower_boundaries=expert_lower_boundaries.loc[num+2], 
+                                  upper_boundaries=expert_upper_boundaries.loc[num+3], 
+                                  weights=weights)
 
         m.expected = expected   # set expected value of the measure
         m.uncertainty = uncertainty # set uncertainty of the measure

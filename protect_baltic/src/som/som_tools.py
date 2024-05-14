@@ -133,6 +133,13 @@ def preprocess_survey_data(mteq: pd.DataFrame, measure_survey_data: dict[int, pd
     return survey_df
 
 
+def get_expert_ids(df: pd.DataFrame) -> list:
+    '''
+    Returns list of expert id column names from dataframe using regex
+    '''
+    return df.filter(regex='^(100|[1-9]?[0-9])$').columns
+
+
 def process_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
     r'''
     Measure survey data: part 3
@@ -166,7 +173,7 @@ def process_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
     id_multiplier = 10000
 
     # select column names corresponding to expert ids (any number between 1 and 100)
-    expert_ids = survey_df.filter(regex='^(100|[1-9]?[0-9])$').columns
+    expert_ids = get_expert_ids(survey_df)
 
     # Step 1: adjust answers by scaling factor
     
@@ -268,15 +275,6 @@ def process_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
     # apply a discrete probability distribution to picks
     # from these distributions
 
-    # PERT distribution
-    def pert_dist(ml, min, max):
-        # weight, controls probability of edge values (higher -> more emphasis on most likely, lower -> extreme values more probable)
-        # 4 is standard used in unmodified PERT distributions
-        gamma = 4
-        # calculate expected value
-        mu = ((min + gamma) * (ml + max)) / (gamma + 2)
-        return mu
-
     # create a new 'aggregated' column for expected value rows and set their value as the mean of the expert answers per question
     # expert answers are weighted by amount of participating experts per answer
     expected_values = survey_df.loc[survey_df['title'] == 'expected value', np.insert(expert_ids, 0, 'block')]  # select expected value rows
@@ -337,8 +335,8 @@ def process_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
     # Step 5: Scaling factor removed
 
     survey_df = survey_df.loc[survey_df['title'] != 'max effectivness']     # remove scaling factor from survey data
-    survey_df = survey_df.loc[survey_df['title'] != 'effectivness lower']     # remove lower effectivness boundary for now
-    survey_df = survey_df.loc[survey_df['title'] != 'effectivness upper']     # remove upper effectivness boundary for now
+    # survey_df = survey_df.loc[survey_df['title'] != 'effectivness lower']     # remove lower effectivness boundary for now
+    # survey_df = survey_df.loc[survey_df['title'] != 'effectivness upper']     # remove upper effectivness boundary for now
 
     return survey_df
 
@@ -555,6 +553,62 @@ def read_postprocess_data(file_name: str) -> pd.DataFrame:
     act_to_press = act_to_press.explode('Basins')
 
     return act_to_press
+
+
+def pert_dist(peak, low, high, size) -> np.ndarray:
+    '''
+    Returns a set of random picks from a PERT distribution.
+    '''
+    # weight, controls probability of edge values (higher -> more emphasis on most likely, lower -> extreme values more probable)
+    # 4 is standard used in unmodified PERT distributions
+    gamma = 4
+    # calculate expected value
+    # mu = ((low + gamma) * (peak + high)) / (gamma + 2)
+    r = high - low
+    alpha = 1 + gamma * (peak - low) / r
+    beta = 1 + gamma * (high - peak) / r
+    return low + np.random.default_rng().beta(alpha, beta, size=int(size)) * r
+
+
+def get_prob_dist(expecteds: pd.DataFrame, 
+                  lower_boundaries: pd.DataFrame, 
+                  upper_boundaries: pd.DataFrame, 
+                  weights: pd.DataFrame) -> np.ndarray:
+    '''
+    Returns a cumulative probability distribution.
+    '''
+    # select values that are not nan, bool matrix
+    non_nan = ~np.isnan(expecteds) & ~np.isnan(lower_boundaries) & ~np.isnan(upper_boundaries)
+    # multiply those values with weights, True = 1 and False = 0
+    weights_non_nan = (non_nan.values * weights.values).flatten()
+
+    # create a PERT distribution for each expert
+    # from each distribution, draw a large number of picks
+    # pool the picks together
+    number_of_picks = 200
+    picks = []
+    for i in range(len(expecteds)):
+        peak = expecteds.values[i]
+        low = lower_boundaries.values[i]
+        high = upper_boundaries.values[i]
+        w = weights_non_nan[i]
+        if None in [peak, low, high, w]:
+            continue    # skip if any value is None
+        dist = pert_dist(peak, low, high, w * number_of_picks)
+        picks += dist.tolist()
+    
+    # fit picks to discrete distribution
+    # the distribution has 100 elements
+    # every element at index i represents the probability of a value below i percent
+    picks = np.array(picks)
+    disc_dist = np.zeros(shape=100)
+    for i in range(disc_dist.size):
+        disc_dist[i] = np.sum(picks < i) / picks.size
+    
+    print(disc_dist)
+    exit()
+
+    return disc_dist
 
 
 #EOF
