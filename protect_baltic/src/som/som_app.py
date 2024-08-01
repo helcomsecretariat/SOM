@@ -14,8 +14,8 @@ import numpy as np
 import pandas as pd
 import toml
 
-from som.som_tools import read_survey_data, preprocess_survey_data, process_survey_data, read_core_object_descriptions
-from som.som_tools import read_domain_input, read_case_input, read_linkage_descriptions, read_postprocess_data
+from som.som_tools import read_survey_data, preprocess_measure_survey_data, process_measure_survey_data, preprocess_pressure_survey_data, process_pressure_survey_data
+from som.som_tools import read_core_object_descriptions, read_domain_input, read_case_input, read_linkage_descriptions, read_postprocess_data
 from som.som_tools import get_expert_ids, get_prob_dist
 from som.som_classes import Measure, Activity, Pressure, ActivityPressure, State, CountryBasin, Case
 
@@ -23,18 +23,9 @@ from som.som_classes import Measure, Activity, Pressure, ActivityPressure, State
 def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Reads in data and processes it in usable form.
-    
-    step 1a. read survey data from excel file
-    step 1b. preprocess survey data
-    step 1c. process survey data
-    step 2. read core object descriptions
-    step 3. read calculation domain descriptions
-    step 4. read case input
-    step 5. read linkage descriptions
-    step 6. read postprocessing data
 
     Returns:
-        survey_df (DataFrame): contains the survey data of expert panels
+        measure_survey_df (DataFrame): contains the survey data of expert panels
         object_data (dict): contains following data: 'measure', 'activity', 'pressure', 'state', 'domain', and 'postprocessing'
     """
     # read configuration file
@@ -44,36 +35,59 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     
     # convert sheet name string keys to integers in config
     config['measure_survey_sheets'] = {int(key): config['measure_survey_sheets'][key] for key in config['measure_survey_sheets']}
+    config['pressure_survey_sheets'] = {int(key): config['pressure_survey_sheets'][key] for key in config['pressure_survey_sheets']}
 
-    # step 1a. read survey data from excel file
+    #
+    # measure survey data
+    #
+
+    # read survey data from excel file
     file_name = config['input_files']['measure_effect_input']
-    mteq, measure_survey_data = read_survey_data(file_name=file_name, sheet_names=config['measure_survey_sheets'])
+    mteq, measure_survey_data = read_survey_data(file_name, config['measure_survey_sheets'])
 
-    # step 1b. preprocess survey data
-    survey_df = preprocess_survey_data(mteq=mteq, measure_survey_data=measure_survey_data)
+    # preprocess survey data
+    measure_survey_df = preprocess_measure_survey_data(mteq, measure_survey_data)
 
-    # step 1c. process survey data 
-    survey_df = process_survey_data(survey_df=survey_df)
+    # process survey data 
+    measure_survey_df = process_measure_survey_data(measure_survey_df)
 
-    # step 2. read core object descriptions
+    #
+    # pressure survey data
+    #
+
+    # read survey data from excel file
+    file_name = config['input_files']['pressure_state_input']
+    psq, pressure_survey_data = read_survey_data(file_name, config['pressure_survey_sheets'])
+
+    # preprocess survey data
+    pressure_survey_df = preprocess_pressure_survey_data(psq, pressure_survey_data)
+
+    # process survey data 
+    pressure_survey_df = process_pressure_survey_data(pressure_survey_df)
+
+    #
+    # measure / pressure / activity / state links
+    #
+
+    # read core object descriptions
     file_name = config['input_files']['general_input']
     object_data = read_core_object_descriptions(file_name=file_name)
 
-    # step 3. read calculation domain descriptions
+    # read calculation domain descriptions
     file_name = config['input_files']['general_input']
     domain_data = read_domain_input(file_name=file_name, 
                                     countries_exclude=config['domain_settings']['countries_exclude'], 
                                     basins_exclude=config['domain_settings']['basins_exclude'])
 
-    # step 4. read case input 
+    # read case input 
     file_name = config['input_files']['general_input']
     case_data = read_case_input(file_name=file_name)
 
-    # step 5. read linkage descriptions
+    # read linkage descriptions
     file_name = config['input_files']['general_input']
     linkage_data = read_linkage_descriptions(file_name=file_name)
 
-    # step 6. read postprocessing data
+    # read postprocessing data
     file_name = config['input_files']['general_input']
     postprocess_data = read_postprocess_data(file_name=file_name)
 
@@ -84,7 +98,7 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
         'postprocessing': postprocess_data,
         })
 
-    return survey_df, object_data
+    return measure_survey_df, object_data
 
 
 def build_core_object_model(survey_df, object_data) -> pd.DataFrame:

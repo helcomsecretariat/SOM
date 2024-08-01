@@ -19,28 +19,24 @@ def read_survey_data(file_name: str, sheet_names: dict[int, str]) -> tuple[pd.Da
         sheet_names (dict): dict of survey sheet ids in file_name
     
     Return:
-        mteq (DataFrame): survey data information
-        measure_survey_data (dict): survey data
+        info (DataFrame): survey data information
+        survey_data (dict): survey data
     """
-    # measure effect input Excel file
-    mteq = pd.read_excel(io=file_name, sheet_name=sheet_names[0])
-
-    # preprocess values
-    mteq['Direct_to_state'] = [x.split(';') if type(x) == str else x for x in mteq['Direct_to_state']]
+    # read information sheet from input Excel file
+    info = pd.read_excel(io=file_name, sheet_name=sheet_names[0])
 
     measure_survey_data = {}
-
     for id, sheet in enumerate(sheet_names.values()):
-
+        # skip if information sheet
         if id == 0:
             continue
-
+        # read data sheet from input Excel file, set header to None to include top row in data
         measure_survey_data[id] = pd.read_excel(io=file_name, sheet_name=sheet, header=None)
 
-    return mteq, measure_survey_data
+    return info, measure_survey_data
 
 
-def preprocess_survey_data(mteq: pd.DataFrame, measure_survey_data: dict[int, pd.DataFrame]) -> pd.DataFrame:
+def preprocess_measure_survey_data(mteq: pd.DataFrame, measure_survey_data: dict[int, pd.DataFrame]) -> pd.DataFrame:
     """
     Measure survey data: Part 2
 
@@ -61,7 +57,10 @@ def preprocess_survey_data(mteq: pd.DataFrame, measure_survey_data: dict[int, pd
             state: state id (if defined) of the question ([nan] if no state)
             1...n (=expert ids): answer value for each expert (NaN if no answer)
     """
+    # preprocess values
+    mteq['Direct_to_state'] = [x.split(';') if type(x) == str else x for x in mteq['Direct_to_state']]
 
+    # create new dataframe
     cols = ['survey_id', 'title', 'block', 'measure', 'activity', 'pressure', 'state']
     survey_df = pd.DataFrame(columns=cols)  # create new DataFrame
 
@@ -140,7 +139,7 @@ def get_expert_ids(df: pd.DataFrame) -> list:
     return df.filter(regex='^(100|[1-9]?[0-9])$').columns
 
 
-def process_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
+def process_measure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
     r'''
     Measure survey data: part 3
 
@@ -339,6 +338,177 @@ def process_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
     # survey_df = survey_df.loc[survey_df['title'] != 'effectivness upper']     # remove upper effectivness boundary for now
 
     return survey_df
+
+
+def preprocess_pressure_survey_data(psq: pd.DataFrame, pressure_survey_data: dict[int, pd.DataFrame]) -> pd.DataFrame:
+    """
+    Measure survey data: Part 2
+
+    This method parses the survey sheets
+
+    Arguments:
+        psq (DataFrame): survey data information
+        pressure_survey_data (dict): survey data
+    
+    Return:
+        survey_df (DataFrame): survey data information
+            survey_id: unique id for each questionnaire / survey
+            question_id: unique id for each question across questionnaires
+            State: state id
+            Basins: basin id
+            GES known: 0 or 1, is the GES threshold known
+            Weight: amount of experts participating in answer
+            Expert: expert id
+            PX: pressure id of pressure X
+            SX: significance of pressure X
+            MIN, MAX, ML: minimum, maximum, most likely pressure reduction required to reach GES, 10, 25 and 50 % improvement
+    """
+    # preprocess values
+    psq['Basins'] = [x.split(';') if type(x) == str else x for x in psq['Basins']]
+    psq['Countries'] = [x.split(';') if type(x) == str else x for x in psq['Countries']]
+
+    # add question id column
+    psq['question_id'] = list(range(len(psq)))
+
+    # create new dataframe
+    survey_df = pd.DataFrame(columns=['survey_id', 'question_id', 'State', 'Basins', 'Countries', 'GES known', 'Weight'])
+    
+    # survey columns from which to take data
+    cols = ['Expert']
+    cols += [x + str(i+1) for x in ['P', 'S'] for i in range(6)]    # up to 6 different pressures related to state, and their significance
+    cols += [x + y for x in ['MIN', 'MAX', 'ML'] for y in ['PR', '10', '25', '50']]     # required pressure reduction to reach GES (if known) or X % improvement in state
+
+    start = 0    # keep track of where to access data in psq
+
+    # for every survey sheet
+    for survey_id in pressure_survey_data:
+
+        # set first row as header
+        pressure_survey_data[survey_id].columns = pressure_survey_data[survey_id].iloc[0].values
+        pressure_survey_data[survey_id].drop(index=0, axis=0, inplace=True)
+
+        # identify amount of experts in survey
+        expert_ids = pressure_survey_data[survey_id]['Expert'].unique()
+        # identify amount of questions in survey
+        questions = np.sum(pressure_survey_data[survey_id]['Expert'] == expert_ids[0])
+
+        # use number of questions to get state, basins and GES known
+        question_id = psq['question_id'].iloc[start:start+questions].reset_index(drop=True)
+        state = psq['State'].iloc[start:start+questions].reset_index(drop=True)
+        basins = psq['Basins'].iloc[start:start+questions].reset_index(drop=True)
+        countries = psq['Countries'].iloc[start:start+questions].reset_index(drop=True)
+        ges_known = psq['GES known'].iloc[start:start+questions].reset_index(drop=True)
+
+        # find all expert weight columns and values
+        expert_cols = [True if 'exp' in col.lower() else False for col in psq.columns]
+        expert_weights = psq.loc[start:start+questions, expert_cols].reset_index(drop=True)
+        expert_weights = expert_weights.fillna(1)
+
+        survey_answers = 0
+        for expert in expert_ids:
+
+            # select expert answers
+            data = pressure_survey_data[survey_id][cols].loc[pressure_survey_data[survey_id][cols]['Expert'] == expert].reset_index(drop=True)
+
+            # verify that the amount of answers is correct
+            if len(data) != questions: raise Exception('Not same amount of answers for each expert in survey sheet!')
+
+            survey_answers += len(data)
+            
+            # set survey id, state, basins and GES known for data
+            data['survey_id'] = survey_id
+            data['question_id'] = question_id
+            data['State'] = state
+            data['Basins'] = basins
+            data['Countries'] = countries
+            data['GES known'] = ges_known
+
+            # set expert weights
+            data['Weight'] = expert_weights['Exp' + str(int(expert))]
+
+            # add data to final dataframe
+            survey_df = pd.concat([survey_df, data], ignore_index=True, sort=False)
+        
+        # verify that the correct number of answers was saved
+        if survey_answers != len(expert_ids) * questions: raise Exception('Incorrect amount of answers found for survey!')
+
+        # increase counter
+        start += questions
+
+    return survey_df
+
+
+def process_pressure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Measure survey data: part 3
+    """
+    print(survey_df)
+    # create new dataframe for merged rows
+    cols = ['survey_id', 'question_id', 'State', 'Basins', 'Countries', 'GES known']
+    new_df = pd.DataFrame(columns=cols+['Pressures', 'Averages', 'Uncertainties']+[x + y for x in ['MIN', 'MAX', 'ML'] for y in ['PR', '10', '25', '50']])
+    # remove empty elements from Basins and Countries, and convert ids to integers
+    survey_df['Basins'] = survey_df['Basins'].apply(lambda x: [int(basin) for basin in x if basin != ''])
+    survey_df['Countries'] = survey_df['Countries'].apply(lambda x: [int(country) for country in x if country != ''])
+    # identify all unique questions
+    questions = survey_df['question_id'].unique()
+    # process each state
+    for question in questions:
+        # select current question rows
+        data = survey_df.loc[survey_df['question_id'] == question].reset_index(drop=True)
+        #
+        # pressure contributions and uncertainties
+        #
+        # select pressures and significances, and find non nan values
+        pressures = data[['P'+str(x+1) for x in range(6)]].to_numpy().astype(float)
+        significances = data[['S'+str(x+1) for x in range(6)]].to_numpy().astype(float)
+        mask = ~np.isnan(pressures)
+        # go through each expert answer and calculate weights
+        weights = {}
+        for i, e in enumerate(pressures):
+            s_tot = np.sum(significances[i][mask[i]])
+            for p, s in zip(pressures[i][mask[i]], significances[i][mask[i]]):
+                if int(p) not in weights:
+                    weights[int(p)] = []
+                weights[int(p)].append(s / s_tot)
+        # using weights, calculate uncertainties
+        average = {p: np.mean(weights[p]) for p in weights}
+        stddev = {p: np.std(weights[p]) for p in weights}
+        # scale contributions and uncertainties so contributions sum up to 100 %
+        factor = np.sum([average[p] for p in average])
+        average = {p: average[p] / factor for p in average}
+        stddev = {p: stddev[p] / factor for p in stddev}
+        # convert to lists
+        pressures = list(average.keys())
+        average = [average[p] for p in pressures]
+        stddev = [stddev[p] for p in pressures]
+        # create a new dictionary for pressure reductions
+        reductions = {}
+        for r in ['PR', '10', '25', '50']:
+            # calculate reductions
+            for prob in ['MIN', 'MAX', 'ML']:
+                red = data[prob+r].to_numpy().astype(float)
+                if np.sum(~np.isnan(red)) == 0:
+                    # if all values are nan, set reduction as nan
+                    reductions[prob+r] = np.nan
+                else:
+                    reductions[prob+r] = np.nanmean(red)
+        # create a new dataframe row and merge with new dataframe
+        data = survey_df[cols].loc[survey_df['question_id'] == question].reset_index(drop=True).iloc[0]
+        data = pd.DataFrame([data])
+        # initialize new columns
+        for c in ['Pressures', 'Averages', 'Uncertainties']+[x + y for x in ['MIN', 'MAX', 'ML'] for y in ['PR', '10', '25', '50']]:
+            data[c] = np.nan
+        for c in ['Pressures', 'Averages', 'Uncertainties']:
+            data[c] = data[c].astype(object)
+        # change data type to allow for lists
+        data.at[0, 'Pressures'] = pressures
+        data.at[0, 'Averages'] = average
+        data.at[0, 'Uncertainties'] = stddev
+        for r in ['PR', '10', '25', '50']:
+            for prob in ['MIN', 'MAX', 'ML']:
+                data.at[0, prob+r] = reductions[prob+r]
+        new_df = pd.concat([new_df, data], ignore_index=True, sort=False)
+    return new_df
 
 
 def read_core_object_descriptions(file_name: str) -> dict[str, dict]:
@@ -604,9 +774,6 @@ def get_prob_dist(expecteds: pd.DataFrame,
     disc_dist = np.zeros(shape=100)
     for i in range(disc_dist.size):
         disc_dist[i] = np.sum(picks < i) / picks.size
-    
-    print(disc_dist)
-    exit()
 
     return disc_dist
 

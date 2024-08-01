@@ -19,6 +19,16 @@
     6 = 'MT_surv_Noise'
     7 = 'MT_surv_Mammals'
 
+[pressure_survey_sheets]
+    0 = 'PSQ'
+    1 = 'PS_surv_Benthic'
+    2 = 'PS_surv_Birds'
+    3 = 'PS_surv_Fish_Migratory'
+    4 = 'PS_surv_Fish_Coastal'
+    5 = 'PS_surv_Fish_Commercial'
+    6 = 'PS_surv_HZ'
+    7 = 'PS_surv_Mammals'
+
 
 # countries to exclude from domain
 [domain_settings]
