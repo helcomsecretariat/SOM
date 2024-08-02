@@ -442,7 +442,6 @@ def process_pressure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
     """
     Measure survey data: part 3
     """
-    print(survey_df)
     # create new dataframe for merged rows
     cols = ['survey_id', 'question_id', 'State', 'Basins', 'Countries', 'GES known']
     new_df = pd.DataFrame(columns=cols+['Pressures', 'Averages', 'Uncertainties']+[x + y for x in ['MIN', 'MAX', 'ML'] for y in ['PR', '10', '25', '50']])
@@ -462,6 +461,9 @@ def process_pressure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
         pressures = data[['P'+str(x+1) for x in range(6)]].to_numpy().astype(float)
         significances = data[['S'+str(x+1) for x in range(6)]].to_numpy().astype(float)
         mask = ~np.isnan(pressures)
+        # weigh significancs by amount of participating experts
+        w = data[['Weight']].to_numpy().astype(float)
+        significances = significances * w
         # go through each expert answer and calculate weights
         weights = {}
         for i, e in enumerate(pressures):
