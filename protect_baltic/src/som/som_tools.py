@@ -9,6 +9,7 @@ url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
 
 import numpy as np
 import pandas as pd
+import warnings     # for suppressing deprecated warnings
 
 def read_survey_data(file_name: str, sheet_names: dict[int, str]) -> tuple[pd.DataFrame, dict[int, pd.DataFrame]]:
     """
@@ -126,7 +127,8 @@ def preprocess_measure_survey_data(mteq: pd.DataFrame, measure_survey_data: dict
             data['pressure'] = pressures
             data['state'] = directs
 
-            survey_df = pd.concat([survey_df, data], ignore_index=True, sort=False)
+            with warnings.catch_warnings(action='ignore'):
+                survey_df = pd.concat([survey_df, data], ignore_index=True, sort=False)
             block_number = block_number + 1
 
     return survey_df
@@ -427,7 +429,8 @@ def preprocess_pressure_survey_data(psq: pd.DataFrame, pressure_survey_data: dic
             data['Weight'] = expert_weights['Exp' + str(int(expert))]
 
             # add data to final dataframe
-            survey_df = pd.concat([survey_df, data], ignore_index=True, sort=False)
+            with warnings.catch_warnings(action='ignore'):
+                survey_df = pd.concat([survey_df, data], ignore_index=True, sort=False)
         
         # verify that the correct number of answers was saved
         if survey_answers != len(expert_ids) * questions: raise Exception('Incorrect amount of answers found for survey!')
@@ -509,7 +512,8 @@ def process_pressure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
         for r in ['PR', '10', '25', '50']:
             for prob in ['MIN', 'MAX', 'ML']:
                 data.at[0, prob+r] = reductions[prob+r]
-        new_df = pd.concat([new_df, data], ignore_index=True, sort=False)
+        with warnings.catch_warnings(action='ignore'):
+            new_df = pd.concat([new_df, data], ignore_index=True, sort=False)
     return new_df
 
 
@@ -736,6 +740,8 @@ def pert_dist(peak, low, high, size) -> np.ndarray:
     gamma = 4
     # calculate expected value
     # mu = ((low + gamma) * (peak + high)) / (gamma + 2)
+    if low == high and low == peak:
+        return np.full(int(size), peak)
     r = high - low
     alpha = 1 + gamma * (peak - low) / r
     beta = 1 + gamma * (high - peak) / r
@@ -764,7 +770,7 @@ def get_prob_dist(expecteds: pd.DataFrame,
         low = lower_boundaries.values[i]
         high = upper_boundaries.values[i]
         w = weights_non_nan[i]
-        if None in [peak, low, high, w]:
+        if None in [peak, low, high, w] or np.sum(np.isnan(np.array([peak, low, high, w]))) > 0:
             continue    # skip if any value is None
         dist = pert_dist(peak, low, high, w * number_of_picks)
         picks += dist.tolist()
