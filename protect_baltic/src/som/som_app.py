@@ -204,12 +204,13 @@ def build_core_object_model(survey_df, object_data) -> pd.DataFrame:
         uncertainty = uncertainties.loc[num+1] / 100.0
 
         # get expert survey probability distribution
+        # all arguments to method are one row, expert columns
         block_id = measures_blocks.loc[num, 'block']
         weights = expert_weights.loc[expert_weights['block'] == block_id, expert_ids]
-        prob_dist = get_prob_dist(expecteds=expert_expecteds.loc[num], 
-                                  lower_boundaries=expert_lower_boundaries.loc[num+2], 
-                                  upper_boundaries=expert_upper_boundaries.loc[num+3], 
-                                  weights=weights)
+        prob_dist = get_prob_dist(expecteds=expert_expecteds.loc[num].to_numpy().astype(float), 
+                                  lower_boundaries=expert_lower_boundaries.loc[num+2].to_numpy().astype(float), 
+                                  upper_boundaries=expert_upper_boundaries.loc[num+3].to_numpy().astype(float), 
+                                  weights=weights.to_numpy().astype(float).flatten())
 
         m.expected = expected   # set expected value of the measure
         m.uncertainty = uncertainty # set uncertainty of the measure

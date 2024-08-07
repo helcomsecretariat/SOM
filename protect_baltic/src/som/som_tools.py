@@ -10,6 +10,7 @@ url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
 import numpy as np
 import pandas as pd
 import warnings     # for suppressing deprecated warnings
+import traceback
 
 def read_survey_data(file_name: str, sheet_names: dict[int, str]) -> tuple[pd.DataFrame, dict[int, pd.DataFrame]]:
     """
@@ -447,7 +448,7 @@ def process_pressure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
     """
     # create new dataframe for merged rows
     cols = ['survey_id', 'question_id', 'State', 'Basins', 'Countries', 'GES known']
-    new_df = pd.DataFrame(columns=cols+['Pressures', 'Averages', 'Uncertainties']+[x + y for x in ['MIN', 'MAX', 'ML'] for y in ['PR', '10', '25', '50']])
+    new_df = pd.DataFrame(columns=cols+['Pressures', 'Averages', 'Uncertainties']+['PR', '10', '25', '50'])
     # remove empty elements from Basins and Countries, and convert ids to integers
     survey_df['Basins'] = survey_df['Basins'].apply(lambda x: [int(basin) for basin in x if basin != ''])
     survey_df['Countries'] = survey_df['Countries'].apply(lambda x: [int(country) for country in x if country != ''])
@@ -486,34 +487,58 @@ def process_pressure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
         pressures = list(average.keys())
         average = [average[p] for p in pressures]
         stddev = [stddev[p] for p in pressures]
-        # create a new dictionary for pressure reductions
+        #
+        # pressure reductions
+        #
+        # # create a new dictionary for pressure reductions
+        # reductions = {}
+        # for r in ['PR', '10', '25', '50']:
+        #     # calculate reductions
+        #     for prob in ['MIN', 'MAX', 'ML']:
+        #         red = data[prob+r].to_numpy().astype(float)
+        #         if np.sum(~np.isnan(red)) == 0:
+        #             # if all values are nan, set reduction as nan
+        #             reductions[prob+r] = np.nan
+        #         else:
+        #             reductions[prob+r] = np.nanmean(red)
+        #
+        # probability distributions for pressure reductions
+        #
         reductions = {}
         for r in ['PR', '10', '25', '50']:
-            # calculate reductions
-            for prob in ['MIN', 'MAX', 'ML']:
-                red = data[prob+r].to_numpy().astype(float)
-                if np.sum(~np.isnan(red)) == 0:
-                    # if all values are nan, set reduction as nan
-                    reductions[prob+r] = np.nan
-                else:
-                    reductions[prob+r] = np.nanmean(red)
+            print('question_id =', question, '\tr =', r)
+            # get min, max and ml data
+            r_min = data['MIN'+r].to_numpy().astype(float)
+            r_max = data['MAX'+r].to_numpy().astype(float)
+            r_ml = data['ML'+r].to_numpy().astype(float)
+            # get weighted cumulative probability distribution
+            try:
+                dist = get_prob_dist(r_ml, r_min, r_max, w.flatten())
+                reductions[r] = dist
+            except:
+                print('\nCrashed on question_id:', question, 'and r:', r)
+                print(traceback.format_exc())
+                exit()
+        #
+        # merge processed data with dataframe
+        #
         # create a new dataframe row and merge with new dataframe
         data = survey_df[cols].loc[survey_df['question_id'] == question].reset_index(drop=True).iloc[0]
         data = pd.DataFrame([data])
         # initialize new columns
-        for c in ['Pressures', 'Averages', 'Uncertainties']+[x + y for x in ['MIN', 'MAX', 'ML'] for y in ['PR', '10', '25', '50']]:
+        for c in ['Pressures', 'Averages', 'Uncertainties']+['PR', '10', '25', '50']:
             data[c] = np.nan
-        for c in ['Pressures', 'Averages', 'Uncertainties']:
             data[c] = data[c].astype(object)
         # change data type to allow for lists
         data.at[0, 'Pressures'] = pressures
         data.at[0, 'Averages'] = average
         data.at[0, 'Uncertainties'] = stddev
         for r in ['PR', '10', '25', '50']:
-            for prob in ['MIN', 'MAX', 'ML']:
-                data.at[0, prob+r] = reductions[prob+r]
+            data.at[0, r] = reductions[r]
         with warnings.catch_warnings(action='ignore'):
             new_df = pd.concat([new_df, data], ignore_index=True, sort=False)
+    print(new_df)
+    exit()
     return new_df
 
 
@@ -748,17 +773,23 @@ def pert_dist(peak, low, high, size) -> np.ndarray:
     return low + np.random.default_rng().beta(alpha, beta, size=int(size)) * r
 
 
-def get_prob_dist(expecteds: pd.DataFrame, 
-                  lower_boundaries: pd.DataFrame, 
-                  upper_boundaries: pd.DataFrame, 
-                  weights: pd.DataFrame) -> np.ndarray:
+def get_prob_dist(expecteds: np.ndarray, 
+                  lower_boundaries: np.ndarray, 
+                  upper_boundaries: np.ndarray, 
+                  weights: np.ndarray) -> np.ndarray:
     '''
-    Returns a cumulative probability distribution.
+    Returns a cumulative probability distribution. All arguments should be 1D arrays.
     '''
+    # verify that all arrays have the same size
+    assert expecteds.size == lower_boundaries.size == upper_boundaries.size == weights.size
+    # verify that all lower boundaries are lower than the upper boundaries
+    assert np.sum(lower_boundaries > upper_boundaries) == 0
+    # verify that most likely values are between lower and upper boundaries
+    assert np.sum(expecteds < lower_boundaries & expecteds > upper_boundaries) == 0
     # select values that are not nan, bool matrix
     non_nan = ~np.isnan(expecteds) & ~np.isnan(lower_boundaries) & ~np.isnan(upper_boundaries)
     # multiply those values with weights, True = 1 and False = 0
-    weights_non_nan = (non_nan.values * weights.values).flatten()
+    weights_non_nan = (non_nan * weights)
 
     # create a PERT distribution for each expert
     # from each distribution, draw a large number of picks
@@ -766,12 +797,12 @@ def get_prob_dist(expecteds: pd.DataFrame,
     number_of_picks = 200
     picks = []
     for i in range(len(expecteds)):
-        peak = expecteds.values[i]
-        low = lower_boundaries.values[i]
-        high = upper_boundaries.values[i]
+        peak = expecteds[i]
+        low = lower_boundaries[i]
+        high = upper_boundaries[i]
         w = weights_non_nan[i]
-        if None in [peak, low, high, w] or np.sum(np.isnan(np.array([peak, low, high, w]))) > 0:
-            continue    # skip if any value is None
+        if ~non_nan[i]: # note the tilde ~ to check for nan value
+            continue    # skip if any value is nan
         dist = pert_dist(peak, low, high, w * number_of_picks)
         picks += dist.tolist()
     
