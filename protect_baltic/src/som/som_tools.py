@@ -488,20 +488,6 @@ def process_pressure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
         average = [average[p] for p in pressures]
         stddev = [stddev[p] for p in pressures]
         #
-        # pressure reductions
-        #
-        # # create a new dictionary for pressure reductions
-        # reductions = {}
-        # for r in ['PR', '10', '25', '50']:
-        #     # calculate reductions
-        #     for prob in ['MIN', 'MAX', 'ML']:
-        #         red = data[prob+r].to_numpy().astype(float)
-        #         if np.sum(~np.isnan(red)) == 0:
-        #             # if all values are nan, set reduction as nan
-        #             reductions[prob+r] = np.nan
-        #         else:
-        #             reductions[prob+r] = np.nanmean(red)
-        #
         # probability distributions for pressure reductions
         #
         reductions = {}
@@ -782,10 +768,24 @@ def get_prob_dist(expecteds: np.ndarray,
     '''
     # verify that all arrays have the same size
     assert expecteds.size == lower_boundaries.size == upper_boundaries.size == weights.size
-    # verify that all lower boundaries are lower than the upper boundaries
-    assert np.sum(lower_boundaries > upper_boundaries) == 0
-    # verify that most likely values are between lower and upper boundaries
-    assert np.sum(expecteds < lower_boundaries & expecteds > upper_boundaries) == 0
+
+    #
+    # TODO: remove uncomment in future to not accept faulty data
+    # for now, sort arrays to have values in correct order
+    #
+    # # verify that all lower boundaries are lower than the upper boundaries
+    # assert np.sum(lower_boundaries > upper_boundaries) == 0
+    # # verify that most likely values are between lower and upper boundaries
+    # assert np.sum((expecteds < lower_boundaries) & (expecteds > upper_boundaries)) == 0
+    arr = np.full((len(expecteds), 3), np.nan)
+    arr[:, 0] = lower_boundaries
+    arr[:, 1] = expecteds
+    arr[:, 2] = upper_boundaries
+    arr = np.array([np.sort(row) for row in arr])
+    lower_boundaries = arr[:, 0]
+    expecteds = arr[:, 1]
+    upper_boundaries = arr[:, 2]
+    
     # select values that are not nan, bool matrix
     non_nan = ~np.isnan(expecteds) & ~np.isnan(lower_boundaries) & ~np.isnan(upper_boundaries)
     # multiply those values with weights, True = 1 and False = 0
@@ -805,6 +805,10 @@ def get_prob_dist(expecteds: np.ndarray,
             continue    # skip if any value is nan
         dist = pert_dist(peak, low, high, w * number_of_picks)
         picks += dist.tolist()
+    
+    # return nan if no distributions (= no expert answers)
+    if len(picks) == 0:
+        return np.nan
     
     # fit picks to discrete distribution
     # the distribution has 100 elements
