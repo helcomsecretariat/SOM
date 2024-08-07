@@ -492,19 +492,13 @@ def process_pressure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
         #
         reductions = {}
         for r in ['PR', '10', '25', '50']:
-            print('question_id =', question, '\tr =', r)
             # get min, max and ml data
             r_min = data['MIN'+r].to_numpy().astype(float)
             r_max = data['MAX'+r].to_numpy().astype(float)
             r_ml = data['ML'+r].to_numpy().astype(float)
             # get weighted cumulative probability distribution
-            try:
-                dist = get_prob_dist(r_ml, r_min, r_max, w.flatten())
-                reductions[r] = dist
-            except:
-                print('\nCrashed on question_id:', question, 'and r:', r)
-                print(traceback.format_exc())
-                exit()
+            dist = get_prob_dist(r_ml, r_min, r_max, w.flatten())
+            reductions[r] = dist
         #
         # merge processed data with dataframe
         #
@@ -523,8 +517,6 @@ def process_pressure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
             data.at[0, r] = reductions[r]
         with warnings.catch_warnings(action='ignore'):
             new_df = pd.concat([new_df, data], ignore_index=True, sort=False)
-    print(new_df)
-    exit()
     return new_df
 
 
