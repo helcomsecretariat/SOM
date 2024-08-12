@@ -70,16 +70,19 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     #
 
     # read core object descriptions
+    # i.e. ids for measures, activities, pressures and states
     file_name = config['input_files']['general_input']
     object_data = read_core_object_descriptions(file_name=file_name)
 
     # read calculation domain descriptions
+    # i.e. ids for countries, basins and percentage of basin area by each country
     file_name = config['input_files']['general_input']
     domain_data = read_domain_input(file_name=file_name, 
                                     countries_exclude=config['domain_settings']['countries_exclude'], 
                                     basins_exclude=config['domain_settings']['basins_exclude'])
 
-    # read case input 
+    # read case input
+    # links between measures, activities, pressures, basins and countries
     file_name = config['input_files']['general_input']
     case_data = read_case_input(file_name=file_name)
 

@@ -524,11 +524,6 @@ def read_core_object_descriptions(file_name: str) -> dict[str, dict]:
     """
     Reads in model object descriptions from general input files
 
-    - Core object descriptions
-    - Model domain descriptions
-    - Case descriptions
-    - Linkage descriptions
-
     Arguments:
         file_name (str): source excel file name containing 
             'Measure type list', 'Activity list', 'Pressure list', 'State list' in sheets
@@ -538,6 +533,7 @@ def read_core_object_descriptions(file_name: str) -> dict[str, dict]:
     """
     general_input = pd.read_excel(io=file_name, sheet_name=None)    # read excel file into DataFrame
 
+    # read data from dataframe and save to new dictionary where the key is the object id
     def create_dict(sheet_name, id_col_name, obj_col_name):
         df = general_input[sheet_name]
         obj_dict = {}
@@ -680,26 +676,19 @@ def read_linkage_descriptions(file_name: str):
     """
     sheet_name = 'MT_to_A_to_S'
     linkages = pd.read_excel(io=file_name, sheet_name=sheet_name)
-    
-    # separate measures grouped together in sheet on the same row with ';' into separate rows
-    linkages['MT'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in linkages['MT']]
-    linkages = linkages.explode('MT')
-    linkages['MT'].notna().astype('int')    # convert non-nan values to int
 
-    # separate activities grouped together in sheet on the same row with ';' into separate rows
-    linkages['Activities'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in linkages['Activities']]
-    linkages = linkages.explode('Activities')
-    linkages['Activities'].notna().astype('int')    # convert non-nan values to int
-
-    # separate pressures grouped together in sheet on the same row with ';' into separate rows
-    linkages['Pressure'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in linkages['Pressure']]
-    linkages = linkages.explode('Pressure')
-    linkages['Pressure'].notna().astype('int')  # convert non-nan values to int
-
-    # separate states grouped together in sheet on the same row with ';' into separate rows
-    linkages['State (if needed)'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in linkages['State (if needed)']]
-    linkages = linkages.explode('State (if needed)')
-    linkages['State (if needed)'].notna().astype('int') # convert non-nan values to int
+    # process each column
+    for category in ['MT', 'Activities', 'Pressure', 'State (if needed)']:
+        # split each id merged with ';', the column value becomes a list (unless it is already integer)
+        linkages[category] = [[y for y in x.split(';') if y != ''] if type(x) == str else x for x in linkages[category]]
+        # find empty column value lists, replace with nan
+        f = lambda x: np.nan if type(x) == list and len(x) == 0 else x
+        linkages[category] = [f(x) for x in linkages[category]]
+        # linkages.loc[linkages[category] == [], category] = np.nan
+        # explode column lists into separate rows
+        linkages = linkages.explode(category)
+        # convert non-nan values to int
+        linkages.loc[linkages[category].notna(), category] = linkages.loc[linkages[category].notna(), category].astype(int)
 
     return linkages
 
