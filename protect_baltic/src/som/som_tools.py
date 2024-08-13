@@ -706,18 +706,28 @@ def read_postprocess_data(file_name: str) -> pd.DataFrame:
     act_to_press = pd.read_excel(file_name, sheet_name=sheet_name)
 
     # read all most likely, min and max column values into lists in new columns
-    act_to_press['expected'] = act_to_press.filter(regex='Ml[1-6]').values.tolist()
-    act_to_press['minimun'] = act_to_press.filter(regex='Min[1-6]').values.tolist()
-    act_to_press['maximum'] = act_to_press.filter(regex='Max[1-6]').values.tolist()
+    for col, regex_str in zip(['expected', 'minimum', 'maximum'], ['Ml[1-6]', 'Min[1-6]', 'Max[1-6]']):
+        act_to_press[col] = act_to_press.filter(regex=regex_str).values.tolist()
 
     # remove all most likely, min and max columns
-    act_to_press.drop(act_to_press.filter(regex='Ml[1-6]').columns, axis=1, inplace=True)
-    act_to_press.drop(act_to_press.filter(regex='Min[1-6]').columns, axis=1, inplace=True)
-    act_to_press.drop(act_to_press.filter(regex='Max[1-6]').columns, axis=1, inplace=True)
+    for regex_str in ['Ml[1-6]', 'Min[1-6]', 'Max[1-6]']:
+        act_to_press.drop(act_to_press.filter(regex=regex_str).columns, axis=1, inplace=True)
 
     # separate basins grouped together in sheet on the same row with ';' into separate rows
     act_to_press['Basins'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in act_to_press['Basins']]
     act_to_press = act_to_press.explode('Basins')
+
+    # process each column
+    for category in ['Activity', 'Pressure', 'GA', 'Basins']:
+        # split each id merged with ';', the column value becomes a list (unless it is already integer)
+        act_to_press[category] = [[y for y in x.split(';') if y != ''] if type(x) == str else x for x in act_to_press[category]]
+        # find empty column value lists, replace with nan
+        f = lambda x: np.nan if type(x) == list and len(x) == 0 else x
+        act_to_press[category] = [f(x) for x in act_to_press[category]]
+        # explode column lists into separate rows
+        act_to_press = act_to_press.explode(category)
+        # convert non-nan values to int
+        act_to_press.loc[act_to_press[category].notna(), category] = act_to_press.loc[act_to_press[category].notna(), category].astype(int)
 
     return act_to_press
 

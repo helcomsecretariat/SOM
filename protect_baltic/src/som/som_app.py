@@ -412,7 +412,7 @@ def postprocess_object_layers(countrybasin_df, object_data):
         ap_id = activity * 10000 + pressure
 
         expected = np.array(act_to_press['expected'].iloc[i]) / 100.0
-        minimum = np.array(act_to_press['minimun'].iloc[i]) / 100.0
+        minimum = np.array(act_to_press['minimum'].iloc[i]) / 100.0
         maximum = np.array(act_to_press['maximum'].iloc[i]) / 100.0
 
         # case if applied to all basins
