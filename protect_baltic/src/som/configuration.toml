@@ -2,9 +2,9 @@
 
 # excel input files
 [input_files]
-    general_input = 'C:/Users/camilo/Documents/SOM/data/generalInput.xlsx'
-    measure_effect_input = 'C:/Users/camilo/Documents/SOM/data/measureEffInput.xlsx'
-    pressure_state_input = 'C:/Users/camilo/Documents/SOM/data/pressStateInput.xlsx'
+    general_input = '/Data/generalInput.xlsx'
+    measure_effect_input = '/Data/measureEffInput.xlsx'
+    pressure_state_input = '/Data/pressStateInput.xlsx'
 
 
 # sheet indexes and names in input files

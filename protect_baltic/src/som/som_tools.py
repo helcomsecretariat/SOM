@@ -684,7 +684,6 @@ def read_linkage_descriptions(file_name: str):
         # find empty column value lists, replace with nan
         f = lambda x: np.nan if type(x) == list and len(x) == 0 else x
         linkages[category] = [f(x) for x in linkages[category]]
-        # linkages.loc[linkages[category] == [], category] = np.nan
         # explode column lists into separate rows
         linkages = linkages.explode(category)
         # convert non-nan values to int
