@@ -520,59 +520,46 @@ def process_pressure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
     return new_df
 
 
-def read_core_object_descriptions(file_name: str) -> dict[str, dict]:
+def read_core_object_descriptions(file_name: str, id_sheets: dict) -> dict[str, dict]:
     """
     Reads in model object descriptions from general input files
 
     Arguments:
-        file_name (str): source excel file name containing 
-            'Measure type list', 'Activity list', 'Pressure list', 'State list' in sheets
+        file_name (str): source excel file name containing measure, activity, pressure and state id sheets
+        id_sheets (dict): should have structure {'measure': sheet_name, 'activity': sheet_name, ...}
 
     Returns:
         object_data (dict): dictionary containing measure, activity, pressure and state ids and descriptions in separate sub-dictionaries
     """
-    general_input = pd.read_excel(io=file_name, sheet_name=None)    # read excel file into DataFrame
-
-    # read data from dataframe and save to new dictionary where the key is the object id
-    def create_dict(sheet_name, id_col_name, obj_col_name):
-        df = general_input[sheet_name]
-        obj_dict = {}
-        [obj_dict.update({id: name}) if isinstance(name, str) else obj_dict.update({id: None}) for id, name in zip(df[id_col_name], df[obj_col_name])]
-        return obj_dict
-
-    # Create dict for measures
-    # convert id number muptiplying it by 1000
-    measures_dict = create_dict('Measure type list', 'ID', 'Measure type')
-
-    # Create dict for activities
-    # convert id number muptiplying it by 1000
-    activities_dict = create_dict('Activity list', 'ID', 'Activity')
-
-    # Create dict for pressures
-    # id number does not need converting
-    pressure_dict = create_dict('Pressure list', 'ID', 'Pressure')
-
-    # Create dict for states
-    # id number does not need converting
-    state_dict = create_dict('State list', 'ID', 'States')
-
-    object_data = {
-        'measure': measures_dict,
-        'activity': activities_dict,
-        'pressure': pressure_dict,
-        'state': state_dict,
-    }
+    # create dicts for each category
+    object_data = {}
+    for category in id_sheets:
+        # read excel sheet into dataframe
+        df = pd.read_excel(io=file_name, sheet_name=id_sheets[category])
+        # remove non-necessary columns
+        df.drop(columns=[col for col in df.columns if col not in ['ID', category]])
+        # remove rows where id is nan or empty string
+        df = df.dropna(subset=['ID'])
+        df = df[df['ID'] != '']
+        # convert id column to integer (if not already)
+        df['ID'] = df['ID'].astype(int)
+        object_data[category] = df
+        
+        # # convert to dict
+        # obj_dict = {}
+        # [obj_dict.update({id: name}) if isinstance(name, str) else obj_dict.update({id: None}) for id, name in zip(df['ID'], df[category])]
+        # object_data[category] = obj_dict
 
     return object_data
 
 
-def read_domain_input(file_name: str, countries_exclude: list[str], basins_exclude: list[str]) -> dict[str, pd.DataFrame]:
+def read_domain_input(file_name: str, id_sheets: dict, countries_exclude: list[str], basins_exclude: list[str]) -> dict[str, pd.DataFrame]:
     """
     Reads in calculation domain descriptions
 
     Arguments:
-        file_name (str): source excel file name containing 
-            'CountBas', 'Country list' and 'Basin list' sheets
+        file_name (str): source excel file name containing country, basin and country-basin sheets
+        id_sheets (dict): dict containing sheet names
         countries_exclude (list): list of countries to exclude
         basins_exclude (list): list of basins to exclude
     
@@ -583,27 +570,33 @@ def read_domain_input(file_name: str, countries_exclude: list[str], basins_exclu
             basins (DataFrame): basin ids
         }
     """
-    # countries
-    sheet_name = 'Country list'
-    countries = pd.read_excel(io=file_name, sheet_name=sheet_name, index_col='ID')  # note that column 'ID' is changed to dataframe index
-    countries = countries[~np.isin(countries.values, countries_exclude)]    # remove rows to be excluded
-
-    # basins
-    sheet_name = 'Basin list'
-    basins = pd.read_excel(io=file_name, sheet_name=sheet_name, index_col='ID') # note that column 'ID' is changed to dataframe index
-    basins = basins[~np.isin(basins.values, basins_exclude)]    # remove rows to be excluded
-
-    # country-basin links
-    sheet_name = 'CountBas'
-    countries_by_basins = pd.read_excel(io=file_name, sheet_name=sheet_name)
-    countries_by_basins = countries_by_basins[np.isin(countries_by_basins['ID'], countries.index)]  # remove excluded countries
-    countries_by_basins = countries_by_basins.drop(columns=[x for x in countries_by_basins.columns if x not in basins.index])   # remove excluded basins (+ ID column)
-
-    domain = {
-        'countries_by_basins': countries_by_basins,
-        'countries': countries,
-        'basins': basins
-    }
+    # create dicts for each category
+    domain = {}
+    for category in id_sheets:
+        # read excel sheet into dataframe
+        df = pd.read_excel(io=file_name, sheet_name=id_sheets[category])
+        # remove rows where id is nan or empty string
+        df = df.dropna(subset=['ID'])
+        df = df[df['ID'] != '']
+        # convert id column to integer (if not already)
+        df['ID'] = df['ID'].astype(int)
+        domain[category] = df
+    
+    # process data
+    for category in domain:
+        if category == 'countries_by_basins':
+            # remove excluded countries
+            domain[category] = domain[category][np.isin(domain[category]['ID'], domain['country'].index)]
+            # remove excluded basins (+ ID column)
+            domain[category] = domain[category].drop(columns=[x for x in domain[category].columns if x not in domain['basin'].index])
+        if category == 'country':
+            # remove rows to be excluded
+            domain[category] = domain[category][~np.isin(domain[category][category], countries_exclude)]
+            domain[category] = domain[category].set_index('ID')
+        if category == 'basin':
+            # remove rows to be excluded
+            domain[category] = domain[category][~np.isin(domain[category][category], basins_exclude)]
+            domain[category] = domain[category].set_index('ID')
 
     return domain
 

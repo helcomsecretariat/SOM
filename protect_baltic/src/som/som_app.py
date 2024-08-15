@@ -72,12 +72,15 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     # read core object descriptions
     # i.e. ids for measures, activities, pressures and states
     file_name = config['input_files']['general_input']
-    object_data = read_core_object_descriptions(file_name=file_name)
+    id_sheets = config['general_input_sheets']['ID']
+    object_data = read_core_object_descriptions(file_name=file_name, id_sheets=id_sheets)
 
     # read calculation domain descriptions
     # i.e. ids for countries, basins and percentage of basin area by each country
     file_name = config['input_files']['general_input']
+    id_sheets = config['general_input_sheets']['domain']
     domain_data = read_domain_input(file_name=file_name, 
+                                    id_sheets = id_sheets, 
                                     countries_exclude=config['domain_settings']['countries_exclude'], 
                                     basins_exclude=config['domain_settings']['basins_exclude'])
 
@@ -100,6 +103,8 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
         'linkages': linkage_data,
         'postprocessing': postprocess_data,
         })
+
+    exit()
 
     return measure_survey_df, object_data
 

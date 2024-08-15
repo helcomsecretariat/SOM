@@ -29,6 +29,17 @@
     6 = 'PS_surv_HZ'
     7 = 'PS_surv_Mammals'
 
+[general_input_sheets]
+    [general_input_sheets.ID]
+        measure = 'Measure ID'
+        activity = 'Activity ID'
+        pressure = 'Pressure ID'
+        state = 'State ID'
+    [general_input_sheets.domain]
+        basin = 'Basin ID'
+        country = 'Country ID'
+        countries_by_basins = 'CountBas'
+
 
 # countries to exclude from domain
 [domain_settings]
