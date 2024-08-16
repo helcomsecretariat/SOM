@@ -260,8 +260,9 @@ class Measure:
         self._activity_pressure = None
         self._states = None
 
-        self._expected = 0.5 
-        self._uncertainty = 0.5
+        self._expected = None
+        self._uncertainty = None
+        self._probability = None
 
         self._effect = None
     
@@ -273,94 +274,117 @@ class Measure:
 
     @property
     def id(self) -> int:
-
         return self._id
 
     @property
     def activity_pressure(self) -> type[ActivityPressure]:
-        
         return self._activity_pressure
 
     @activity_pressure.setter
     def activity_pressure(self, instance:type[ActivityPressure]) -> None:
-
         if isinstance(instance, ActivityPressure):
             self._activity_pressure = instance
     
     @property
     def states(self) -> StateList:
-
         return self._states
 
     @states.setter
     def states(self, instances: StateList) -> None:
-
-       self._states = instances
+        self._states = instances
 
     @property
     def expected(self) -> float:
-
         return self._expected
 
     @expected.setter
     def expected(self, value: float) -> None:
-
         if value >= 1.0 and value <= 0.0:
-            raise ValueError("Value of expexted value has to be between 0.0 and 1.0")
-
+            raise ValueError("Value of expected value has to be between 0.0 and 1.0")
         self._expected = value
         self._effect = self._multiplier * self._expected
 
     @property
     def uncertainty(self) -> float:
-
         return self._uncertainty
 
     @uncertainty.setter
     def uncertainty(self, value: float) -> None:
-
-        #if value >= 1.0 and value <= 0.0:
-        #    raise ValueError("Value of mode has to be between 0.0 and 1.0")
-
+        if value >= 1.0 and value <= 0.0:
+           raise ValueError("Value of uncertainty has to be between 0.0 and 1.0")
         self._uncertainty = value
     
+    @property
+    def probability(self) -> float:
+        return self._probability
+    
+    @probability.setter
+    def probability(self, value: np.ndarray) -> None:
+        if np.min(value) < 0 or np.max(value) > 1:
+            raise ValueError("Invalid value encountered in probability!")
+        self._probability = value
+
     @property
     def multiplier(self) -> float:
         return self._multiplier
     
     @multiplier.setter
     def multiplier(self, value: float):
-
         if value < 0.0:
-
             raise ValueError("Value of multiplier has to be 0.0 or above!")
-
         self._multiplier = value
         self._effect = self._multiplier * self._expected
 
     @property
     def effect(self):
-
         if self._effect == None:
             self._effect = self._expected * self._multiplier
-
         return self._effect
 
     def __hash__(self) -> int:
-
         if self.activity_pressure:
             return hash((self.id, self.activity_pressure.id))
         else:
             return hash((self.id, 0))
     
     def __eq__(self, __o: object) -> bool:
-
         if not isinstance(__o, type(self)): return NotImplemented
-
         if self.activity_pressure:
             return self.id == self.id and self.activity_pressure.id == self.activity_pressure.id
         else:
             return self.id == self.id
+    
+    def get_probability_range(self, x1: int, x2: int = None):
+        '''
+        Returns probability of range [x1, x2], where x1 and x2 are percentages. 
+        If only x1 is given, probability range [0, x1] is returned. 
+        '''
+        if x1 < 0 or x2 > 100:
+            raise ValueError("Given value(s) have to be within [0, 1]!")
+        if x2 is not None:
+            if x1 > x2:
+                raise ValueError("Lower range boundary has to be lower than higher boundary!")
+            return self._probability[x2] - self._probability[x1]
+        else:
+            return self._probability[x1]
+    
+    def get_picks(self, size: int = None):
+        '''
+        Returns given number of random picks weighted by defined probability distribution.
+        '''
+        if size is None:
+            size = 1000
+        picks = []
+        weights = np.zeros(self._probability.shape)
+        for i in range(1, weights.size):
+            weights[i] = self._probability[i] - self._probability[i-1]
+        for i in range(size):
+            pick = np.random.random() * np.sum(weights)
+            for k, val in enumerate(weights):
+                if pick < val:
+                    break
+                pick -= val
+            picks.append(pick)
 
 
 class Case:

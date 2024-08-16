@@ -14,26 +14,18 @@ import numpy as np
 import pandas as pd
 import toml
 
-from som.som_tools import read_survey_data, preprocess_survey_data, process_survey_data, read_core_object_descriptions
-from som.som_tools import read_domain_input, read_case_input, read_linkage_descriptions, read_postprocess_data
+from som.som_tools import read_survey_data, preprocess_measure_survey_data, process_measure_survey_data, preprocess_pressure_survey_data, process_pressure_survey_data
+from som.som_tools import read_core_object_descriptions, read_domain_input, read_case_input, read_linkage_descriptions, read_postprocess_data
+from som.som_tools import get_expert_ids, get_prob_dist
 from som.som_classes import Measure, Activity, Pressure, ActivityPressure, State, CountryBasin, Case
 
 
 def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Reads in data and processes it in usable form.
-    
-    step 1a. read survey data from excel file
-    step 1b. preprocess survey data
-    step 1c. process survey data
-    step 2. read core object descriptions
-    step 3. read calculation domain descriptions
-    step 4. read case input
-    step 5. read linkage descriptions
-    step 6. read postprocessing data
 
     Returns:
-        survey_df (DataFrame): contains the survey data of expert panels
+        measure_survey_df (DataFrame): contains the survey data of expert panels
         object_data (dict): contains following data: 'measure', 'activity', 'pressure', 'state', 'domain', and 'postprocessing'
     """
     # read configuration file
@@ -43,38 +35,70 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     
     # convert sheet name string keys to integers in config
     config['measure_survey_sheets'] = {int(key): config['measure_survey_sheets'][key] for key in config['measure_survey_sheets']}
+    config['pressure_survey_sheets'] = {int(key): config['pressure_survey_sheets'][key] for key in config['pressure_survey_sheets']}
 
-    # step 1a. read survey data from excel file
+    #
+    # measure survey data
+    #
+
+    # read survey data from excel file
     file_name = config['input_files']['measure_effect_input']
-    mteq, measure_survey_data = read_survey_data(file_name=file_name, sheet_names=config['measure_survey_sheets'])
+    mteq, measure_survey_data = read_survey_data(file_name, config['measure_survey_sheets'])
 
-    # step 1b. preprocess survey data
-    survey_df = preprocess_survey_data(mteq=mteq, measure_survey_data=measure_survey_data)
+    # preprocess survey data
+    measure_survey_df = preprocess_measure_survey_data(mteq, measure_survey_data)
 
-    # step 1c. process survey data 
-    survey_df = process_survey_data(survey_df=survey_df)
+    # process survey data 
+    measure_survey_df = process_measure_survey_data(measure_survey_df)
 
-    # step 2. read core object descriptions
+    #
+    # pressure survey data
+    #
+
+    # read survey data from excel file
+    file_name = config['input_files']['pressure_state_input']
+    psq, pressure_survey_data = read_survey_data(file_name, config['pressure_survey_sheets'])
+
+    # preprocess survey data
+    pressure_survey_df = preprocess_pressure_survey_data(psq, pressure_survey_data)
+
+    # process survey data 
+    pressure_survey_df = process_pressure_survey_data(pressure_survey_df)
+
+    #
+    # measure / pressure / activity / state links
+    #
+
+    # read core object descriptions
+    # i.e. ids for measures, activities, pressures and states
     file_name = config['input_files']['general_input']
-    object_data = read_core_object_descriptions(file_name=file_name)
+    id_sheets = config['general_input_sheets']['ID']
+    object_data = read_core_object_descriptions(file_name=file_name, id_sheets=id_sheets)
 
-    # step 3. read calculation domain descriptions
+    # read calculation domain descriptions
+    # i.e. ids for countries, basins and percentage of basin area by each country
     file_name = config['input_files']['general_input']
+    id_sheets = config['general_input_sheets']['domain']
     domain_data = read_domain_input(file_name=file_name, 
+                                    id_sheets = id_sheets, 
                                     countries_exclude=config['domain_settings']['countries_exclude'], 
                                     basins_exclude=config['domain_settings']['basins_exclude'])
 
-    # step 4. read case input 
+    # read case input
+    # links between measures, activities, pressures, basins and countries
     file_name = config['input_files']['general_input']
-    case_data = read_case_input(file_name=file_name)
+    sheet_name = config['general_input_sheets']['case']
+    case_data = read_case_input(file_name=file_name, sheet_name=sheet_name)
 
-    # step 5. read linkage descriptions
+    # read linkage descriptions
     file_name = config['input_files']['general_input']
-    linkage_data = read_linkage_descriptions(file_name=file_name)
+    sheet_name = config['general_input_sheets']['linkage']
+    linkage_data = read_linkage_descriptions(file_name=file_name, sheet_name=sheet_name)
 
-    # step 6. read postprocessing data
+    # read postprocessing data
     file_name = config['input_files']['general_input']
-    postprocess_data = read_postprocess_data(file_name=file_name)
+    sheet_name = config['general_input_sheets']['postprocess']
+    postprocess_data = read_postprocess_data(file_name=file_name, sheet_name=sheet_name)
 
     object_data.update({
         'domain': domain_data,
@@ -83,7 +107,7 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
         'postprocessing': postprocess_data,
         })
 
-    return survey_df, object_data
+    return measure_survey_df, object_data
 
 
 def build_core_object_model(survey_df, object_data) -> pd.DataFrame:
@@ -97,7 +121,6 @@ def build_core_object_model(survey_df, object_data) -> pd.DataFrame:
     Returns:
         measure_df (DataFrame): 
     """
-    print(survey_df)
     # select measures, activities, pressures and states
     measures = survey_df['measure'].loc[(survey_df['title'] == 'expected value')]
     activities = survey_df['activity'].loc[(survey_df['title'] == 'expected value')]
@@ -106,31 +129,39 @@ def build_core_object_model(survey_df, object_data) -> pd.DataFrame:
     # select aggregated expected values and variances
     expecteds = survey_df['aggregated'].loc[(survey_df['title'] == 'expected value')]
     uncertainties = survey_df['aggregated'].loc[(survey_df['title'] == 'variance')]
+    # select individual expert expected values, variances and boundaries
+    expert_ids = get_expert_ids(survey_df)
+    expert_expecteds = survey_df[expert_ids].loc[(survey_df['title'] == 'expected value')]
+    expert_uncertainties = survey_df[expert_ids].loc[(survey_df['title'] == 'variance')]
+    expert_lower_boundaries = survey_df[expert_ids].loc[(survey_df['title'] == 'effectivness lower')]
+    expert_upper_boundaries = survey_df[expert_ids].loc[(survey_df['title'] == 'effectivness upper')]
+    expert_weights = survey_df.loc[survey_df['title'] == 'expert weights', np.insert(expert_ids, 0, 'block')]
+    measures_blocks = survey_df.loc[(survey_df['title'] == 'expected value'), ['measure', 'block']]
 
-    # find unique ids
-    activity_ids = activities.unique()
-    pressure_ids = pressures.unique()
-
+    #
+    # Create activity objects
+    #
     activity_instances = {}
-    pressure_instances = {}
-
-    for id in activity_ids: # for each activity
-
+    activity_ids = activities.unique()  # find unique activity ids
+    for id in activity_ids:
         if id == 0:
             continue    # skip 0 index activities
+        # divide id by multiplier to get actual id
+        name = object_data['activity'].loc[object_data['activity']['ID']==int(id/10000)]['activity'].values[0]
+        a = Activity(id=id, name=name)
+        activity_instances.update({id: a})
 
-        name = object_data['activity'][id/10000]    # activity name, divide by multiplier to get actual id
-        a = Activity(id=id, name=name)  # create Activity object
-        activity_instances.update({id: a})  # add activity to dictionary
-
-    for id in pressure_ids: # for each pressure
-
+    #
+    # Create pressure objects
+    #
+    pressure_instances = {}
+    pressure_ids = pressures.unique()  # find unique pressure ids
+    for id in pressure_ids:
         if id == 0:
             continue    # skip 0 index pressures
-        
-        name = object_data['pressure'][id]  # pressure name
-        p = Pressure(id=id, name=name)  # create Pressure object
-        pressure_instances.update({id: p})  # add pressure to dictionary
+        name = object_data['pressure'].loc[object_data['pressure']['ID']==int(id)]['pressure'].values[0]
+        p = Pressure(id=id, name=name)
+        pressure_instances.update({id: p})
 
     measure_instances = {}
     activitypressure_instances = {}
@@ -139,7 +170,7 @@ def build_core_object_model(survey_df, object_data) -> pd.DataFrame:
 
         # instantiate Measure
         measure_id = measures.loc[num]  # find all occurences of that measure
-        measure_name = object_data['measure'][int(measure_id/10000)]    # measure name
+        measure_name = object_data['measure'].loc[object_data['measure']['ID']==int(measure_id/10000)]['measure'].values[0]
         m = Measure(id=measure_id, name=measure_name)   # create Measure object
         measure_instances.update({measure_id: m})   # add measure to dictionary
 
@@ -158,7 +189,7 @@ def build_core_object_model(survey_df, object_data) -> pd.DataFrame:
                     if id == '' or id == np.nan:
                         continue  # input files have inconsistencies
 
-                    state_name = object_data['state'][int(id)]  # state name
+                    state_name = object_data['state'].loc[object_data['state']['ID']==int(id)]['state'].values[0]
                     s = State(id=id, name=state_name)   # create State object
                     s_instances.append(s)   # add state to list
             
@@ -180,6 +211,15 @@ def build_core_object_model(survey_df, object_data) -> pd.DataFrame:
         # assign expected value and its uncertainty 
         expected = expecteds.loc[num] / 100.0
         uncertainty = uncertainties.loc[num+1] / 100.0
+
+        # get expert survey probability distribution
+        # all arguments to method are one row, expert columns
+        block_id = measures_blocks.loc[num, 'block']
+        weights = expert_weights.loc[expert_weights['block'] == block_id, expert_ids]
+        prob_dist = get_prob_dist(expecteds=expert_expecteds.loc[num].to_numpy().astype(float), 
+                                  lower_boundaries=expert_lower_boundaries.loc[num+2].to_numpy().astype(float), 
+                                  upper_boundaries=expert_upper_boundaries.loc[num+3].to_numpy().astype(float), 
+                                  weights=weights.to_numpy().astype(float).flatten())
 
         m.expected = expected   # set expected value of the measure
         m.uncertainty = uncertainty # set uncertainty of the measure
@@ -245,15 +285,17 @@ def build_second_object_layer(measure_df, object_data):
         measure_df (DataFrame): contains core object instances
         object_data (dict): dictionary that contains following data: domain
     """
-    
-    countries_by_basins, countries, basins = object_data['domain'].values()
+    countries = object_data['domain']['country']
+    basins = object_data['domain']['basin']
+    countries_by_basins = object_data['domain']['countries_by_basins']
+
     instances = {}
 
-    for country in countries['COUNTRY']:
-        country_id = countries[countries['COUNTRY'] == country].index[0]
+    for country in countries['country']:
+        country_id = countries[countries['country'] == country].index[0]
     
-        for basin in basins['Basin']:
-            basin_id = basins[basins['Basin'] == basin].index[0]
+        for basin in basins['basin']:
+            basin_id = basins[basins['basin'] == basin].index[0]
        
             basin_fraction = countries_by_basins.loc[(countries_by_basins.index == country_id), basin_id].values[0]
 
@@ -378,7 +420,7 @@ def postprocess_object_layers(countrybasin_df, object_data):
         ap_id = activity * 10000 + pressure
 
         expected = np.array(act_to_press['expected'].iloc[i]) / 100.0
-        minimum = np.array(act_to_press['minimun'].iloc[i]) / 100.0
+        minimum = np.array(act_to_press['minimum'].iloc[i]) / 100.0
         maximum = np.array(act_to_press['maximum'].iloc[i]) / 100.0
 
         # case if applied to all basins

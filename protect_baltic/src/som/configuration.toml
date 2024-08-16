@@ -2,9 +2,9 @@
 
 # excel input files
 [input_files]
-    general_input = 'C:/Users/camilo/Documents/SOM/data/generalInput.xlsx'
-    measure_effect_input = 'C:/Users/camilo/Documents/SOM/data/measureEffInput.xlsx'
-    pressure_state_input = 'C:/Users/camilo/Documents/SOM/data/pressStateInput.xlsx'
+    general_input = '/Data/generalInput.xlsx'
+    measure_effect_input = '/Data/measureEffInput.xlsx'
+    pressure_state_input = '/Data/pressStateInput.xlsx'
 
 
 # sheet indexes and names in input files
@@ -18,6 +18,30 @@
     5 = 'MT_surv_NIS'
     6 = 'MT_surv_Noise'
     7 = 'MT_surv_Mammals'
+
+[pressure_survey_sheets]
+    0 = 'PSQ'
+    1 = 'PS_surv_Benthic'
+    2 = 'PS_surv_Birds'
+    3 = 'PS_surv_Fish_Migratory'
+    4 = 'PS_surv_Fish_Coastal'
+    5 = 'PS_surv_Fish_Commercial'
+    6 = 'PS_surv_HZ'
+    7 = 'PS_surv_Mammals'
+
+[general_input_sheets]
+    case = 'ActMeas'
+    linkage = 'MT_to_A_to_S'
+    postprocess = 'ActPres'
+    [general_input_sheets.ID]
+        measure = 'Measure ID'
+        activity = 'Activity ID'
+        pressure = 'Pressure ID'
+        state = 'State ID'
+    [general_input_sheets.domain]
+        basin = 'Basin ID'
+        country = 'Country ID'
+        countries_by_basins = 'CountBas'
 
 
 # countries to exclude from domain
