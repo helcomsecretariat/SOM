@@ -87,15 +87,18 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     # read case input
     # links between measures, activities, pressures, basins and countries
     file_name = config['input_files']['general_input']
-    case_data = read_case_input(file_name=file_name)
+    sheet_name = config['general_input_sheets']['case']
+    case_data = read_case_input(file_name=file_name, sheet_name=sheet_name)
 
     # read linkage descriptions
     file_name = config['input_files']['general_input']
-    linkage_data = read_linkage_descriptions(file_name=file_name)
+    sheet_name = config['general_input_sheets']['linkage']
+    linkage_data = read_linkage_descriptions(file_name=file_name, sheet_name=sheet_name)
 
     # read postprocessing data
     file_name = config['input_files']['general_input']
-    postprocess_data = read_postprocess_data(file_name=file_name)
+    sheet_name = config['general_input_sheets']['postprocess']
+    postprocess_data = read_postprocess_data(file_name=file_name, sheet_name=sheet_name)
 
     object_data.update({
         'domain': domain_data,

@@ -30,6 +30,9 @@
     7 = 'PS_surv_Mammals'
 
 [general_input_sheets]
+    case = 'ActMeas'
+    linkage = 'MT_to_A_to_S'
+    postprocess = 'ActPres'
     [general_input_sheets.ID]
         measure = 'Measure ID'
         activity = 'Activity ID'

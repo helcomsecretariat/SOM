@@ -601,7 +601,7 @@ def read_domain_input(file_name: str, id_sheets: dict, countries_exclude: list[s
     return domain
 
 
-def read_case_input(file_name: str) -> pd.DataFrame:
+def read_case_input(file_name: str, sheet_name: str) -> pd.DataFrame:
     """
     Reading in and processing data for cases. Each row represents one case. 
     
@@ -613,34 +613,18 @@ def read_case_input(file_name: str) -> pd.DataFrame:
     - multiply B_ID by 1000 to get right basin_id
 
     Arguments:
-        file_name (str): name of source excel file name containing 'ActMeas' sheet
+        file_name (str): name of source excel file name
+        sheet_name (str): name of excel sheet
 
     Returns:
         cases (DataFrame): case data
     """
-    sheet_name = 'ActMeas'
     cases = pd.read_excel(io=file_name, sheet_name=sheet_name)
-    
-    # separate activities grouped together in sheet on the same row with ';' into separate rows
-    cases['In_Activities'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in cases['In_Activities']]
-    cases = cases.explode('In_Activities')
 
-    # separate pressures grouped together in sheet on the same row with ';' into separate rows
-    cases['In_Pressure'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in cases['In_Pressure']]
-    cases = cases.explode('In_Pressure')
-
-    # separate basins grouped together in sheet on the same row with ';' into separate rows
-    cases['B_ID'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in cases['B_ID']]
-    cases = cases.explode('B_ID')
-
-    # separate countries grouped together in sheet on the same row with ';' into separate rows
-    cases['C_ID'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in cases['C_ID']]
-    cases = cases.explode('C_ID')
-
-    # In_State_components is in input data just for book keeping
-    cases['In_State_components'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in cases['In_State_components']]
-    # cases = cases.explode('In_State_components')
-    # cases['In_State_components'].astype('int')
+    for col in ['In_Activities', 'In_Pressure', 'In_State_components', 'B_ID', 'C_ID']:
+        # separate ids grouped together in sheet on the same row with ';' into separate rows
+        cases[col] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in cases[col]]
+        cases = cases.explode(col)
 
     # change types of split values from str to int
     cases = cases.astype({
@@ -650,13 +634,16 @@ def read_case_input(file_name: str) -> pd.DataFrame:
         'C_ID': 'int'
     })
 
+    # cases['MT_ID'] = cases['MT_ID'] * 10000
+    # cases['In_Activities'] = cases['In_Activities'] * 10000
+
     # create new column 'countrybasin_id' to link basins and countries, and create the unique ids
     cases['countrybasin_id'] = cases['B_ID'] * 1000 + cases['C_ID']
 
     return cases
 
 
-def read_linkage_descriptions(file_name: str):
+def read_linkage_descriptions(file_name: str, sheet_name: str):
     """
     Reads description of links between Measures, Activities, Pressures, and States.
 
@@ -667,7 +654,6 @@ def read_linkage_descriptions(file_name: str):
     Returns:
         linkages (DataFrame): dataframe containing mappings between measures to actitivities to pressures to states
     """
-    sheet_name = 'MT_to_A_to_S'
     linkages = pd.read_excel(io=file_name, sheet_name=sheet_name)
 
     # process each column
@@ -685,7 +671,7 @@ def read_linkage_descriptions(file_name: str):
     return linkages
 
 
-def read_postprocess_data(file_name: str) -> pd.DataFrame:
+def read_postprocess_data(file_name: str, sheet_name: str) -> pd.DataFrame:
     """
     Reads input data of activities to pressures in Baltic Sea basins. 
 
@@ -695,7 +681,6 @@ def read_postprocess_data(file_name: str) -> pd.DataFrame:
     Returns:
         act_to_press (DataFrame): dataframe containing mappings between activities and pressures
     """
-    sheet_name = 'ActPres'
     act_to_press = pd.read_excel(file_name, sheet_name=sheet_name)
 
     # read all most likely, min and max column values into lists in new columns
