@@ -107,8 +107,6 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
         'postprocessing': postprocess_data,
         })
 
-    exit()
-
     return measure_survey_df, object_data
 
 
@@ -140,30 +138,30 @@ def build_core_object_model(survey_df, object_data) -> pd.DataFrame:
     expert_weights = survey_df.loc[survey_df['title'] == 'expert weights', np.insert(expert_ids, 0, 'block')]
     measures_blocks = survey_df.loc[(survey_df['title'] == 'expected value'), ['measure', 'block']]
 
-    # find unique ids
-    activity_ids = activities.unique()
-    pressure_ids = pressures.unique()
-
+    #
+    # Create activity objects
+    #
     activity_instances = {}
-    pressure_instances = {}
-
-    for id in activity_ids: # for each activity
-
+    activity_ids = activities.unique()  # find unique activity ids
+    for id in activity_ids:
         if id == 0:
             continue    # skip 0 index activities
+        # divide id by multiplier to get actual id
+        name = object_data['activity'].loc[object_data['activity']['ID']==int(id/10000)]['activity'].values[0]
+        a = Activity(id=id, name=name)
+        activity_instances.update({id: a})
 
-        name = object_data['activity'][id/10000]    # activity name, divide by multiplier to get actual id
-        a = Activity(id=id, name=name)  # create Activity object
-        activity_instances.update({id: a})  # add activity to dictionary
-
-    for id in pressure_ids: # for each pressure
-
+    #
+    # Create pressure objects
+    #
+    pressure_instances = {}
+    pressure_ids = pressures.unique()  # find unique pressure ids
+    for id in pressure_ids:
         if id == 0:
             continue    # skip 0 index pressures
-        
-        name = object_data['pressure'][id]  # pressure name
-        p = Pressure(id=id, name=name)  # create Pressure object
-        pressure_instances.update({id: p})  # add pressure to dictionary
+        name = object_data['pressure'].loc[object_data['pressure']['ID']==int(id)]['pressure'].values[0]
+        p = Pressure(id=id, name=name)
+        pressure_instances.update({id: p})
 
     measure_instances = {}
     activitypressure_instances = {}
@@ -172,7 +170,7 @@ def build_core_object_model(survey_df, object_data) -> pd.DataFrame:
 
         # instantiate Measure
         measure_id = measures.loc[num]  # find all occurences of that measure
-        measure_name = object_data['measure'][int(measure_id/10000)]    # measure name
+        measure_name = object_data['measure'].loc[object_data['measure']['ID']==int(measure_id/10000)]['measure'].values[0]
         m = Measure(id=measure_id, name=measure_name)   # create Measure object
         measure_instances.update({measure_id: m})   # add measure to dictionary
 
@@ -191,7 +189,7 @@ def build_core_object_model(survey_df, object_data) -> pd.DataFrame:
                     if id == '' or id == np.nan:
                         continue  # input files have inconsistencies
 
-                    state_name = object_data['state'][int(id)]  # state name
+                    state_name = object_data['state'].loc[object_data['state']['ID']==int(id)]['state'].values[0]
                     s = State(id=id, name=state_name)   # create State object
                     s_instances.append(s)   # add state to list
             
@@ -287,15 +285,17 @@ def build_second_object_layer(measure_df, object_data):
         measure_df (DataFrame): contains core object instances
         object_data (dict): dictionary that contains following data: domain
     """
-    
-    countries_by_basins, countries, basins = object_data['domain'].values()
+    countries = object_data['domain']['country']
+    basins = object_data['domain']['basin']
+    countries_by_basins = object_data['domain']['countries_by_basins']
+
     instances = {}
 
-    for country in countries['COUNTRY']:
-        country_id = countries[countries['COUNTRY'] == country].index[0]
+    for country in countries['country']:
+        country_id = countries[countries['country'] == country].index[0]
     
-        for basin in basins['Basin']:
-            basin_id = basins[basins['Basin'] == basin].index[0]
+        for basin in basins['basin']:
+            basin_id = basins[basins['basin'] == basin].index[0]
        
             basin_fraction = countries_by_basins.loc[(countries_by_basins.index == country_id), basin_id].values[0]
 
