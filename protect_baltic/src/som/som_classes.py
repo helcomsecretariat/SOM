@@ -14,7 +14,7 @@ import numpy.typing as npt
 
 class Activity:
     """
-    Describes human activity in Baltic Sea
+    Describes a human activity
     
     Properties:
         name (str): name of human activity
@@ -63,12 +63,12 @@ class Activity:
 
 class Pressure:
     """
-    Pressures describes effects of human activities and protective measures on Baltic Sea.
+    Pressures describe the effects of human activities and protective measures
 
     Properties:
         name (str): name of pressure
         id (int): identification number of pressure
-        pressure (float): baseline pressure value, defaul is 1.0
+        pressure (float): baseline pressure value, default is 1.0
         expected_pressure (float): pressure value based on human activities and protective measures
         uncertainty (float): uncertainty of expected_pressure
     """
@@ -132,21 +132,22 @@ class Pressure:
 
 class State: 
     """
-    State
+    Describes a state
+    
+    Properties:
+        name (str): name of human activity
+        id (int): identification number of activity
     """
-
     def __init__(self, name: str, id: int):
-
         self.name = name
         self._id = id
     
     def __repr__(self) -> str:
-        
+        # defines how class will be printed
         return  "State({id}, {name})".format(id=self.id, name=self.name)
 
     @property
     def id(self) -> int:
-
         return self._id
 
 

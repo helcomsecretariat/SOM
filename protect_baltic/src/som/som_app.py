@@ -148,7 +148,7 @@ def build_core_object_model(survey_df, object_data) -> pd.DataFrame:
             continue    # skip 0 index activities
         # divide id by multiplier to get actual id
         name = object_data['activity'].loc[object_data['activity']['ID']==int(id/10000)]['activity'].values[0]
-        a = Activity(id=id, name=name)
+        a = Activity(name=name, id=id)
         activity_instances.update({id: a})
 
     #
@@ -160,8 +160,24 @@ def build_core_object_model(survey_df, object_data) -> pd.DataFrame:
         if id == 0:
             continue    # skip 0 index pressures
         name = object_data['pressure'].loc[object_data['pressure']['ID']==int(id)]['pressure'].values[0]
-        p = Pressure(id=id, name=name)
+        p = Pressure(name=name, id=id)
         pressure_instances.update({id: p})
+
+    #
+    # Create state objects
+    #
+    state_instances = {}
+    state_ids = object_data['state']['ID'].unique()  # find unique state ids
+    for id in state_ids:
+        if id == 0:
+            continue    # skip 0 index states
+        name = object_data['state'].loc[object_data['state']['ID']==id]['state'].values[0]
+        s = State(name=name, id=id)
+        state_instances.update({id: s})
+
+    #
+    # Create measure objects
+    #
 
     measure_instances = {}
     activitypressure_instances = {}
