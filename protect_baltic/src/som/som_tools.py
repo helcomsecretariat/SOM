@@ -51,7 +51,7 @@ def preprocess_measure_survey_data(mteq: pd.DataFrame, measure_survey_data: dict
     Return:
         survey_df (DataFrame): survey data information
             survey_id: unique id for each questionnaire / survey
-            title: type of value ('expected value' / 'variance' / 'max effectivness' / 'expert weights')
+            title: type of value ('expected value' / 'variance' / 'max effectiveness' / 'expert weights')
             block: id for each set of questions within each survey, unique across all surveys
             measure: measure id of the question
             activity: activity id of the question
@@ -80,11 +80,11 @@ def preprocess_measure_survey_data(mteq: pd.DataFrame, measure_survey_data: dict
             start = end - (2 * amt)     # start column for data
             
             titles = ['expected value', 'variance'] * amt
-            titles.append('max effectivness')
+            titles.append('max effectiveness')
             titles.append('expert weights')
 
             measures = measure_survey_data[survey_id].iloc[0, start:end].tolist() # select current question column names as measure ids
-            measures.append(np.nan) # append NaN for max effectivness (ME)
+            measures.append(np.nan) # append NaN for max effectiveness (ME)
             measures.append(np.nan )   # append NaN for expert weights
 
             activity_id = survey_info['Activity'].iloc[row] # select current row Activity
@@ -146,23 +146,18 @@ def process_measure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
     r'''
     Measure survey data: part 3
 
-    1. Adjust expert answers by scaling factor
-
-    2. Calculate effectivness range boundaries
-
-    3. Calculate mean for expected values and variance
-
-    4. New id for 'measure' and 'activity' by multiplying id by 10000
-
+    - Adjust expert answers by scaling factor
+    - Calculate effectiveness range boundaries
+    - New id for 'measure' and 'activity' by multiplying id by 10000
         This is done as we need to track specific measure-activity-pressure and measure-state combinations
         'pressure' and 'state' id:s are not multiplied!
-
-    5. Scaling factor ('title' with value 'max effectivness') is removed
+    - Calculate probability distributions
+    - Remove rows and columns that are not needed anymore
 
     Arguments:
         survey_df (DataFrame): survey data information
             survey_id: unique id for each questionnaire / survey
-            title: type of value ('expected value' / 'variance' / 'max effectivness' / 'expert weights')
+            title: type of value ('expected value' / 'variance' / 'max effectiveness' / 'expert weights')
             block: id for each set of questions within each survey, unique across all surveys
             measure: measure id of the question
             activity: activity id of the question
@@ -171,14 +166,21 @@ def process_measure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
             1...n (=expert ids): answer value for each expert (NaN if no answer)
     Returns:
         survey_df (DataFrame): processed survey data information
+            measure: measure id
+            activity: activity id
+            pressure: pressure id
+            state: state id (if defined, [nan] if no state)
+            cumulative probability: cum. prob. distribution represented as list
     '''
     id_multiplier = 10000
 
     # select column names corresponding to expert ids (any number between 1 and 100)
     expert_ids = get_expert_ids(survey_df)
 
-    # Step 1: adjust answers by scaling factor
-    
+    #
+    # Adjust answers by scaling factor
+    #
+
     block_ids = survey_df.loc[:,'block'].unique()   # find unique block ids
     for b_id in block_ids:  # for each block
         block = survey_df.loc[survey_df['block'] == b_id, :]    # select all rows with current block id
@@ -196,41 +198,43 @@ def process_measure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
                     continue
                 # find the highest value of the answers
                 max_expected_value = expected_value.max()
-                # find the max effectivness estimated by the expert
-                max_effectivness = block.loc[block['title']=='max effectivness', col].values[0]
+                # find the max effectiveness estimated by the expert
+                max_effectiveness = block.loc[block['title']=='max effectiveness', col].values[0]
                 # calculate scaling factor
-                if np.isnan(max_effectivness):
-                    # set all values to null if no max effectivness (in column, for current block)
+                if np.isnan(max_effectiveness):
+                    # set all values to null if no max effectiveness (in column, for current block)
                     survey_df.loc[survey_df['block'] == b_id, col] = np.nan
-                elif max_effectivness == 0 or max_expected_value == 0:
-                    # scale all expected values to 0 if max effectivness is zero or all expected values are zero
+                elif max_effectiveness == 0 or max_expected_value == 0:
+                    # scale all expected values to 0 if max effectiveness is zero or all expected values are zero
                     survey_df.loc[(survey_df['block'] == b_id) & (survey_df['title'] == 'expected value'), col] = 0
                 else:
                     # get the scaling factor
-                    scaling_factor = np.divide(max_expected_value, max_effectivness)
+                    scaling_factor = np.divide(max_expected_value, max_effectiveness)
                     # divide the expected values by the new scaling factor
                     survey_df.loc[(survey_df['block'] == b_id) & (survey_df['title'] == 'expected value'), col] = np.divide(expected_value, scaling_factor)
 
-    # Step 2: calculate effectivness range boundaries
+    #
+    # Calculate effectiveness range boundaries
+    #
 
-    # create new rows for 'effectivness lower' and 'effectivness upper' bounds after variance rows
+    # create new rows for 'effectiveness lower' and 'effectiveness upper' bounds after variance rows
     new_rows = []
     for i, row in survey_df.iterrows():
         new_rows.append(row)
         if row['title'] == 'variance':
             # create lower bound
             min_row = survey_df.loc[i].copy()
-            min_row['title'] = 'effectivness lower'
+            min_row['title'] = 'effectiveness lower'
             min_row[expert_ids] = np.nan
             new_rows.append(min_row)
             # create upper bound
             max_row = survey_df.loc[i].copy()
-            max_row['title'] = 'effectivness upper'
+            max_row['title'] = 'effectiveness upper'
             max_row[expert_ids] = np.nan
             new_rows.append(max_row)
     survey_df = pd.DataFrame(new_rows, columns=survey_df.columns)
     survey_df.reset_index(drop=True, inplace=True)
-    # set values for 'effectivness lower' and 'effectivness upper' bounds rows
+    # set values for 'effectiveness lower' and 'effectiveness upper' bounds rows
     # calculated as follows:
     #   lower boundary:
     #       if expected_value + variance / 2 > 100:
@@ -249,7 +253,7 @@ def process_measure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
     #           else:
     #               boundary = expected_value + variance / 2
     for i, row in survey_df.iterrows():
-        if row['title'] == 'effectivness lower':
+        if row['title'] == 'effectiveness lower':
             expected_value = survey_df.iloc[i-2][expert_ids]
             variance = survey_df.iloc[i-1][expert_ids]
             reach_upper_limit = expected_value + variance / 2 > 100 # boolean array
@@ -258,7 +262,7 @@ def process_measure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
             row_values[~reach_upper_limit] = expected_value - variance / 2
             row_values[row_values < 0] = 0
             survey_df.loc[i, expert_ids] = row_values
-        if row['title'] == 'effectivness upper':
+        if row['title'] == 'effectiveness upper':
             expected_value = survey_df.iloc[i-3][expert_ids]
             variance = survey_df.iloc[i-2][expert_ids]
             reach_lower_limit = expected_value - variance / 2 < 0   # boolean array
@@ -268,52 +272,9 @@ def process_measure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
             row_values[row_values > 100] = 100
             survey_df.loc[i, expert_ids] = row_values
 
-    # Step 3: calculate aggregated mean and variance
-
-    # create individual PERT distributions for each expert
-    # draw equal and large number of values from each expert distribution (=picks)
-    # amount of picks should be scaled by participating expert weights
-    # pool picks together
-    # apply a discrete probability distribution to picks
-    # from these distributions
-
-    # create a new 'aggregated' column for expected value rows and set their value as the mean of the expert answers per question
-    # expert answers are weighted by amount of participating experts per answer
-    expected_values = survey_df.loc[survey_df['title'] == 'expected value', np.insert(expert_ids, 0, 'block')]  # select expected value rows
-    variances = survey_df.loc[survey_df['title'] == 'variance', np.insert(expert_ids, 0, 'block')]  # select variance rows
-    expert_weights = survey_df.loc[survey_df['title'] == 'expert weights', np.insert(expert_ids, 0, 'block')]   # select expert weight rows
-    for b_id in block_ids:  # for each block
-
-        expert_weights_block = expert_weights.loc[expert_weights['block'] == b_id, expert_ids]  # weights, should only be one row for each block
-        
-        # expected values
-
-        # select expected values of block
-        expected_values_block = expected_values.loc[expected_values['block'] == b_id, expert_ids]
-        # select values that are not nan, bool matrix
-        expected_values_non_nan = ~np.isnan(expected_values_block)
-        # multiply those values with weights, True = 1 and False = 0
-        expected_values_non_nan_weights = expected_values_non_nan * expert_weights_block.reset_index(drop=True).values
-        # sum weights to get number of participating experts
-        expected_values_non_nan_weights_sum = expected_values_non_nan_weights.sum(axis=1)
-        # multiply values by weights and sum
-        expected_values_sum = (expected_values_block * expert_weights_block.values).sum(axis=1)
-        # divide sum by amount of experts to get mean
-        expected_values_aggregated = expected_values_sum / expected_values_non_nan_weights_sum
-        # add aggregated values to dataframe
-        survey_df.loc[(survey_df['block'] == b_id) & (survey_df['title'] == 'expected value'), 'aggregated'] = expected_values_aggregated
-
-        # variance, same way as above
-        
-        variances_block = variances.loc[variances['block'] == b_id, expert_ids]
-        variances_non_nan = ~np.isnan(variances_block)
-        variances_non_nan_weights = variances_non_nan * expert_weights_block.reset_index(drop=True).values
-        variances_non_nan_weights_sum = variances_non_nan_weights.sum(axis=1)
-        variances_sum = (variances_block * expert_weights_block.values).sum(axis=1)
-        variances_aggregated = variances_sum / variances_non_nan_weights_sum
-        survey_df.loc[(survey_df['block'] == b_id) & (survey_df['title'] == 'variance'), 'aggregated'] = variances_aggregated
-
-    # Step 4: Update measure and activity ids
+    #
+    # Update measure and activity ids
+    #
 
     # multiply every measure and activity id with the multiplier
     survey_df['measure'] = survey_df['measure'] * id_multiplier
@@ -334,18 +295,66 @@ def process_measure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
                 survey_df.loc[index, 'measure'] = new_id
                 survey_df.loc[index+1, 'measure'] = new_id
 
-    # Step 5: Scaling factor removed
+    #
+    # Calculate probability distributions
+    #
 
-    survey_df = survey_df.loc[survey_df['title'] != 'max effectivness']     # remove scaling factor from survey data
-    # survey_df = survey_df.loc[survey_df['title'] != 'effectivness lower']     # remove lower effectivness boundary for now
-    # survey_df = survey_df.loc[survey_df['title'] != 'effectivness upper']     # remove upper effectivness boundary for now
+    # add a new column for the probability
+    survey_df['cumulative probability'] = pd.Series([np.nan] * len(survey_df), dtype='object')
+
+    # access expert answer columns, separate rows by type of answer
+    expecteds = survey_df[expert_ids].loc[survey_df['title'] == 'expected value']
+    lower_boundaries = survey_df[expert_ids].loc[survey_df['title'] == 'effectiveness lower']
+    upper_boundaries = survey_df[expert_ids].loc[survey_df['title'] == 'effectiveness upper']
+    weights = survey_df.loc[survey_df['title'] == 'expert weights', np.insert(expert_ids, 0, 'block')]
+    blocks = survey_df['block'].loc[(survey_df['title'] == 'expected value')]
+    # go through each measure-activity-pressure link
+    for num in expecteds.index:
+        # access current row data and convert to 1-D arrays
+        b_id = blocks.loc[num]
+        e = expecteds.loc[num].to_numpy().astype(float)
+        l = lower_boundaries.loc[num+2].to_numpy().astype(float)
+        u = upper_boundaries.loc[num+3].to_numpy().astype(float)
+        w = weights.loc[weights['block'] == b_id, expert_ids].to_numpy().astype(float).flatten()
+        # get expert probability distribution
+        prob_dist = get_prob_dist(expecteds=e, 
+                                  lower_boundaries=l, 
+                                  upper_boundaries=u, 
+                                  weights=w)
+        
+        survey_df.at[num, 'cumulative probability'] = prob_dist
+
+    #
+    # Remove rows and columns that are not needed anymore
+    #
+
+    for title in ['max effectiveness', 'variance', 'effectiveness lower', 'effectiveness upper', 'expert weights']:
+        survey_df = survey_df.loc[survey_df['title'] != title]
+    survey_df = survey_df.drop(columns=expert_ids)
+    survey_df = survey_df.drop(columns=['survey_id', 'title', 'block'])
+
+    #
+    # Split states into separate rows, and finally reset index
+    #
+
+    survey_df = survey_df.explode(column='state')
+    survey_df = survey_df.reset_index(drop=True)
+
+    #
+    # Replace nan values with zeros and convert columns to integers
+    #
+
+    for column in ['measure', 'activity', 'pressure', 'state']:
+        with warnings.catch_warnings(action='ignore'):
+            survey_df[column] = survey_df[column].fillna(0)
+        survey_df[column] = survey_df[column].astype(int)
 
     return survey_df
 
 
 def preprocess_pressure_survey_data(psq: pd.DataFrame, pressure_survey_data: dict[int, pd.DataFrame]) -> pd.DataFrame:
     """
-    Measure survey data: Part 2
+    Pressure survey data: Part 2
 
     This method parses the survey sheets
 
@@ -444,7 +453,7 @@ def preprocess_pressure_survey_data(psq: pd.DataFrame, pressure_survey_data: dic
 
 def process_pressure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
     """
-    Measure survey data: part 3
+    Pressure survey data: part 3
     """
     # create new dataframe for merged rows
     cols = ['survey_id', 'question_id', 'State', 'Basins', 'Countries', 'GES known']

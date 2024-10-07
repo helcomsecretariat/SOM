@@ -25,7 +25,8 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     Reads in data and processes it in usable form.
 
     Returns:
-        measure_survey_df (DataFrame): contains the survey data of expert panels
+        measure_survey_df (DataFrame): contains the measure survey data of expert panels
+        pressure_survey_df (DataFrame): contains the pressure survey data of expert panels
         object_data (dict): contains following data: 'measure', 'activity', 'pressure', 'state', 'domain', and 'postprocessing'
     """
     # read configuration file
@@ -107,150 +108,117 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
         'postprocessing': postprocess_data,
         })
 
-    return measure_survey_df, object_data
+    return measure_survey_df, pressure_survey_data, object_data
 
 
-def build_core_object_model(survey_df, object_data) -> pd.DataFrame:
+def build_core_object_model(msdf: pd.DataFrame, psdf: pd.DataFrame, object_data: dict[str, dict]) -> pd.DataFrame:
     """
     Builds and initializes core object model.
 
     Arguments:
-        survey_df (DataFrame): processed survey results
+        msdf (DataFrame): processed measure survey results
+        psdf (DataFrame): processed pressure survey results
         object_data (dict): dictionary that contains following data: measure, activity, pressure, and state
 
     Returns:
         measure_df (DataFrame): 
     """
-    # select measures, activities, pressures and states
-    measures = survey_df['measure'].loc[(survey_df['title'] == 'expected value')]
-    activities = survey_df['activity'].loc[(survey_df['title'] == 'expected value')]
-    pressures = survey_df['pressure'].loc[(survey_df['title'] == 'expected value')]
-    states = survey_df['state'].loc[(survey_df['title'] == 'expected value')]
-    # select aggregated expected values and variances
-    expecteds = survey_df['aggregated'].loc[(survey_df['title'] == 'expected value')]
-    uncertainties = survey_df['aggregated'].loc[(survey_df['title'] == 'variance')]
-    # select individual expert expected values, variances and boundaries
-    expert_ids = get_expert_ids(survey_df)
-    expert_expecteds = survey_df[expert_ids].loc[(survey_df['title'] == 'expected value')]
-    expert_uncertainties = survey_df[expert_ids].loc[(survey_df['title'] == 'variance')]
-    expert_lower_boundaries = survey_df[expert_ids].loc[(survey_df['title'] == 'effectivness lower')]
-    expert_upper_boundaries = survey_df[expert_ids].loc[(survey_df['title'] == 'effectivness upper')]
-    expert_weights = survey_df.loc[survey_df['title'] == 'expert weights', np.insert(expert_ids, 0, 'block')]
-    measures_blocks = survey_df.loc[(survey_df['title'] == 'expected value'), ['measure', 'block']]
+
+    # verify that there are no duplicate links
+    assert len(msdf[msdf.duplicated(['measure', 'activity', 'pressure', 'state'])]) == 0
 
     #
     # Create activity objects
     #
-    activity_instances = {}
-    activity_ids = activities.unique()  # find unique activity ids
+    activities = {}
+    activity_ids = msdf['activity'].unique()  # find unique activity ids
     for id in activity_ids:
         if id == 0:
             continue    # skip 0 index activities
         # divide id by multiplier to get actual id
         name = object_data['activity'].loc[object_data['activity']['ID']==int(id/10000)]['activity'].values[0]
         a = Activity(name=name, id=id)
-        activity_instances.update({id: a})
+        activities.update({id: a})
 
     #
     # Create pressure objects
     #
-    pressure_instances = {}
-    pressure_ids = pressures.unique()  # find unique pressure ids
+    pressures = {}
+    pressure_ids = msdf['pressure'].unique()  # find unique pressure ids
     for id in pressure_ids:
         if id == 0:
             continue    # skip 0 index pressures
         name = object_data['pressure'].loc[object_data['pressure']['ID']==int(id)]['pressure'].values[0]
         p = Pressure(name=name, id=id)
-        pressure_instances.update({id: p})
+        pressures.update({id: p})
 
     #
     # Create state objects
     #
-    state_instances = {}
-    state_ids = object_data['state']['ID'].unique()  # find unique state ids
+    states = {}
+    state_ids = msdf['state'].unique()  # find unique state ids
     for id in state_ids:
         if id == 0:
             continue    # skip 0 index states
-        name = object_data['state'].loc[object_data['state']['ID']==id]['state'].values[0]
+        name = object_data['state'].loc[object_data['state']['ID']==int(id)]['state'].values[0]
         s = State(name=name, id=id)
-        state_instances.update({id: s})
+        states.update({id: s})
 
     #
     # Create measure objects
     #
+    measures = {}
+    measure_ids = msdf['measure'].unique()     # find unique measure ids
+    for id in measure_ids:
+        if id == 0:
+            continue    # skip 0 index measures
+        name = object_data['measure'].loc[object_data['measure']['ID']==int(id/10000)]['measure'].values[0]
+        m = Measure(name=name, id=id)
+        measures.update({id: m})
 
-    measure_instances = {}
+    #
+    # Create activity-pressure links
+    #
     activitypressure_instances = {}
+    for num in msdf['measure'].index:  # for every measure in the survey data
 
-    for num in measures.index:  # for every measure row (not unique)
-
-        # instantiate Measure
-        measure_id = measures.loc[num]  # find all occurences of that measure
-        measure_name = object_data['measure'].loc[object_data['measure']['ID']==int(measure_id/10000)]['measure'].values[0]
-        m = Measure(id=measure_id, name=measure_name)   # create Measure object
-        measure_instances.update({measure_id: m})   # add measure to dictionary
-
-        # instantiate only State
-        # Activity and Pressure have been instantiated above
-        activity_id = activities.loc[num]
-        pressure_id = pressures.loc[num]
-
-        if int(activity_id) == 0 or pressure_id == 0:   # if the measure affects all activities or pressures
-            state_id = states.loc[num]  # select state id list from 
-            
-            s_instances = []
-            if isinstance(state_id, list):  # if the state_id is a list
-
-                for id in state_id:
-                    if id == '' or id == np.nan:
-                        continue  # input files have inconsistencies
-
-                    state_name = object_data['state'].loc[object_data['state']['ID']==int(id)]['state'].values[0]
-                    s = State(id=id, name=state_name)   # create State object
-                    s_instances.append(s)   # add state to list
-            
-            m.states = s_instances  # set the state link for the measure
-
-        else:   # measure affect specific activities or pressures
-            a = activity_instances[activity_id] # linked activity
-            p = pressure_instances[pressure_id] # linked pressure
-            activitypressure_id = activity_id + pressure_id # combined id of activity and pressure
-
-            if activitypressure_id not in activity_instances:   # if the id is not already added
-                ap = ActivityPressure(activity=a, pressure=p)   # create ActivityPressure object
-                activitypressure_instances.update({activitypressure_id: ap}) # add link to dictionary
-            else:
-                ap = activitypressure_instances[activitypressure_id]    # access the link
-
-            m.activity_pressure = ap    # add the link to the measure object
-
-        # assign expected value and its uncertainty 
-        expected = expecteds.loc[num] / 100.0
-        uncertainty = uncertainties.loc[num+1] / 100.0
-
-        # get expert survey probability distribution
-        # all arguments to method are one row, expert columns
-        block_id = measures_blocks.loc[num, 'block']
-        weights = expert_weights.loc[expert_weights['block'] == block_id, expert_ids]
-        prob_dist = get_prob_dist(expecteds=expert_expecteds.loc[num].to_numpy().astype(float), 
-                                  lower_boundaries=expert_lower_boundaries.loc[num+2].to_numpy().astype(float), 
-                                  upper_boundaries=expert_upper_boundaries.loc[num+3].to_numpy().astype(float), 
-                                  weights=weights.to_numpy().astype(float).flatten())
-
-        m.expected = expected   # set expected value of the measure
-        m.uncertainty = uncertainty # set uncertainty of the measure
+        # get the ids of the row
+        measure_id = msdf['measure'].loc[num]
+        activity_id = msdf['activity'].loc[num]
+        pressure_id = msdf['pressure'].loc[num]
+        # create the link to the measure
+        if activity_id == 0 or pressure_id == 0:    # if the measure affects a state
+            state_id = msdf['state'].loc[num]
+            if state_id == 0:
+                continue    # skip 0 index states
+            measures[measure_id].add_state(states[state_id])
+        else:
+            ap = ActivityPressure(activity=activities[activity_id], pressure=pressures[pressure_id])
+            if ap.id not in list(activitypressure_instances.keys()):
+                activitypressure_instances.update({ap.id: ap})
+            # link to ap from dict, so that there is only one object being linked
+            measures[measure_id].activity_pressure = activitypressure_instances[ap.id]
+    
+        # set probability distribution
+        measures[measure_id].expected_distribution = msdf['cumulative probability'].loc[num]
 
     # Rearrange initialized core objects in DataFrame
     # and make linkages between core objects
     measure_df = pd.DataFrame.from_dict({
-        'instance': measure_instances.values()
+        'instance': measures.values()
     })
- 
+
     # ID:s are calculated so that they can be tracked
     measure_df['measure id'] = [int(x.id / 10000) * 10000 for x in measure_df['instance']]
     measure_df['activity-pressure id'] = [x.activity_pressure.id if x.activity_pressure != None else np.nan for x in measure_df['instance']]
     measure_df['activity id'] = [int(x.activity_pressure.id / 10000) * 10000 if x.activity_pressure != None else np.nan for x in measure_df['instance']]
     measure_df['pressure id'] = measure_df['activity-pressure id'] - measure_df['activity id']
+    
+    measure_df['activity id'] = [x.activity_pressure.activity.id if x.activity_pressure != None else np.nan for x in measure_df['instance']]
+    measure_df['pressure id'] = [x.activity_pressure.pressure.id if x.activity_pressure != None else np.nan for x in measure_df['instance']]
+
+    print(measure_df)
+    exit()
 
     # Going through core objects and setting initial values
     # ActPress sheet values are still missing!
@@ -263,7 +231,7 @@ def build_core_object_model(survey_df, object_data) -> pd.DataFrame:
             continue
 
         # setting expected value first on measure instance
-        # multiplicating on activity-pressure intance based on measure instance
+        # multiplicating on activity-pressure instance based on measure instance
         # setting pressure reduction value in pressure instance  
         elif m.activity_pressure:
             ap = m.activity_pressure
