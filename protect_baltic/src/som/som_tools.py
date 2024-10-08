@@ -705,7 +705,7 @@ def read_postprocess_data(file_name: str, sheet_name: str) -> pd.DataFrame:
     act_to_press = act_to_press.explode('Basins')
 
     # process each column
-    for category in ['Activity', 'Pressure', 'GA', 'Basins']:
+    for category in ['Activity', 'Pressure', 'Basins']:
         # split each id merged with ';', the column value becomes a list (unless it is already integer)
         act_to_press[category] = [[y for y in x.split(';') if y != ''] if type(x) == str else x for x in act_to_press[category]]
         # find empty column value lists, replace with nan
@@ -715,6 +715,25 @@ def read_postprocess_data(file_name: str, sheet_name: str) -> pd.DataFrame:
         act_to_press = act_to_press.explode(category)
         # convert non-nan values to int
         act_to_press.loc[act_to_press[category].notna(), category] = act_to_press.loc[act_to_press[category].notna(), category].astype(int)
+
+    act_to_press = act_to_press.reset_index(drop=True)
+
+    # calculate probability distributions
+    act_to_press['cumulative probability'] = pd.Series([np.nan] * len(act_to_press), dtype='object')
+    for num in act_to_press.index:
+        # convert expert answers to array
+        expected = np.array(list(act_to_press.loc[num, ['expected']])).flatten()
+        lower = np.array(list(act_to_press.loc[num, ['minimum']])).flatten()
+        upper = np.array(list(act_to_press.loc[num, ['maximum']])).flatten()
+        weights = np.full(len(expected), 1)
+        # if boundaries are unknown, set to same as expected
+        lower[np.isnan(lower)] = expected[np.isnan(lower)]
+        upper[np.isnan(upper)] = expected[np.isnan(upper)]
+        # get probability distribution
+        prob_dist = get_prob_dist(expected, lower, upper, weights)
+        act_to_press.at[num, 'cumulative probability'] = prob_dist
+
+    act_to_press = act_to_press.drop(columns=['expected', 'minimum', 'maximum'])
 
     return act_to_press
 

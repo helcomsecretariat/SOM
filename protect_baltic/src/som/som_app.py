@@ -16,7 +16,6 @@ import toml
 
 from som.som_tools import read_survey_data, preprocess_measure_survey_data, process_measure_survey_data, preprocess_pressure_survey_data, process_pressure_survey_data
 from som.som_tools import read_core_object_descriptions, read_domain_input, read_case_input, read_linkage_descriptions, read_postprocess_data
-from som.som_tools import get_expert_ids, get_prob_dist
 from som.som_classes import Measure, Activity, Pressure, ActivityPressure, State, CountryBasin, Case
 
 
@@ -217,13 +216,11 @@ def build_core_object_model(msdf: pd.DataFrame, psdf: pd.DataFrame, object_data:
     measure_df['activity id'] = [x.activity_pressure.activity.id if x.activity_pressure != None else np.nan for x in measure_df['instance']]
     measure_df['pressure id'] = [x.activity_pressure.pressure.id if x.activity_pressure != None else np.nan for x in measure_df['instance']]
 
-    print(measure_df)
-    exit()
-
     # Going through core objects and setting initial values
-    # ActPress sheet values are still missing!
+    # ActPres sheet values are still missing!
 
     for num in measure_df.index:
+
         m = measure_df.loc[num, 'instance']
 
         # measures have activity-pressure pairs or states
@@ -242,6 +239,9 @@ def build_core_object_model(msdf: pd.DataFrame, psdf: pd.DataFrame, object_data:
 
         else:
             raise AttributeError("Measure instance is missing Activity-Pressure pair or State instances.")
+
+    print(measure_df)
+    exit()
 
     return measure_df
 
