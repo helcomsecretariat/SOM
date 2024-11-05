@@ -227,6 +227,8 @@ def build_core_object_model(msdf: pd.DataFrame, psdf: pd.DataFrame, object_data:
         if m.states:
             continue
 
+        # TODO: the section below is wrong, go through Pressure and ActivityPressure classes and fix
+
         # setting expected value first on measure instance
         # multiplicating on activity-pressure instance based on measure instance
         # setting pressure reduction value in pressure instance  

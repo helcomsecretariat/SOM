@@ -735,6 +735,22 @@ def read_postprocess_data(file_name: str, sheet_name: str) -> pd.DataFrame:
 
     act_to_press = act_to_press.drop(columns=['expected', 'minimum', 'maximum'])
 
+    def get_pick(dist) -> float:
+        if dist is not None:
+            weights = np.zeros(dist.shape)
+            for i in range(1, weights.size):
+                weights[i] = dist[i] - dist[i-1]
+            pick = np.random.random() * np.sum(weights)
+            for k, val in enumerate(weights):
+                if pick < val:
+                    break
+                pick -= val
+            return pick
+        else:
+            return np.nan
+
+    act_to_press['value'] = act_to_press['cumulative probability'].apply(get_pick)
+
     return act_to_press
 
 
