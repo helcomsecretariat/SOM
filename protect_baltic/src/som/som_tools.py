@@ -172,8 +172,6 @@ def process_measure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
             state: state id (if defined, [nan] if no state)
             cumulative probability: cum. prob. distribution represented as list
     '''
-    id_multiplier = 10000
-
     # select column names corresponding to expert ids (any number between 1 and 100)
     expert_ids = get_expert_ids(survey_df)
 
@@ -276,24 +274,28 @@ def process_measure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
     # Update measure and activity ids
     #
 
-    # multiply every measure and activity id with the multiplier
-    survey_df['measure'] = survey_df['measure'] * id_multiplier
-    survey_df['activity'] = survey_df['activity'] * id_multiplier
+    # id_multiplier = 10000
 
-    measure_ids = survey_df['measure'].unique() # identify unique measure ids
-    measure_ids = measure_ids[~pd.isnull(measure_ids)]  # remove null value ids
+    # # multiply every measure and activity id with the multiplier
+    # survey_df['measure'] = survey_df['measure'] * id_multiplier
+    # survey_df['activity'] = survey_df['activity'] * id_multiplier
 
-    for m_id in measure_ids:    # for every measure
-        measures = survey_df.loc[(survey_df['measure'] == m_id) & (survey_df['title'] == 'expected value')]   # select expected value rows for current measure
-        indices = measures.index.values # select indices
+    # measure_ids = survey_df['measure'].unique() # identify unique measure ids
+    # measure_ids = measure_ids[~pd.isnull(measure_ids)]  # remove null value ids
+
+    # for m_id in measure_ids:    # for every measure
+    #     measures = survey_df.loc[(survey_df['measure'] == m_id) & (survey_df['title'] == 'expected value')]   # select expected value rows for current measure
+    #     indices = measures.index.values # select indices
         
-        if len(measures) > 1:   # if there are more than one row for each measure
-            for num, id in enumerate(measures['measure']):  # for each measure
-                new_id = id + (num + 1)  # the new id is the old one + the current counter + 1
-                index = indices[num]    # select the index of the current measure row
-                # set new measure id for both expected value and variance rows
-                survey_df.loc[index, 'measure'] = new_id
-                survey_df.loc[index+1, 'measure'] = new_id
+    #     if len(measures) > 1:   # if there are more than one row for each measure
+    #         for num, id in enumerate(measures['measure']):  # for each measure
+    #             new_id = id + (num + 1)  # the new id is the old one + the current counter + 1
+    #             index = indices[num]    # select the index of the current measure row
+    #             # set new measure id for both expected value and variance rows
+    #             survey_df.loc[index, 'measure'] = new_id
+    #             survey_df.loc[index+1, 'measure'] = new_id
+    #             survey_df.loc[index+2, 'measure'] = new_id
+    #             survey_df.loc[index+3, 'measure'] = new_id
 
     #
     # Calculate probability distributions

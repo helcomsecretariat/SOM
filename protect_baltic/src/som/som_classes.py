@@ -149,7 +149,7 @@ class ActivityPressure:
         self.activity = activity
         self.pressure = pressure
         self.name = f"Activity {self.activity.id} and Pressure {self.pressure.id}"
-        self._id = self.activity.id + self.pressure.id
+        self._id = (activity.id, pressure.id)
         self._expected = 0.0
         self._min_expected = 0.0
         self._max_expected = 0.0
@@ -518,3 +518,4 @@ class CountryBasin:
         self._cases.append(instance)
 
 #EOF
+

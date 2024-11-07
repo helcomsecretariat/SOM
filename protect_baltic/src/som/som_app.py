@@ -122,7 +122,6 @@ def build_core_object_model(msdf: pd.DataFrame, psdf: pd.DataFrame, object_data:
     Returns:
         measure_df (DataFrame): 
     """
-
     # verify that there are no duplicate links
     assert len(msdf[msdf.duplicated(['measure', 'activity', 'pressure', 'state'])]) == 0
 
@@ -135,7 +134,7 @@ def build_core_object_model(msdf: pd.DataFrame, psdf: pd.DataFrame, object_data:
         if id == 0:
             continue    # skip 0 index activities
         # divide id by multiplier to get actual id
-        name = object_data['activity'].loc[object_data['activity']['ID']==int(id/10000)]['activity'].values[0]
+        name = object_data['activity'].loc[object_data['activity']['ID']==id]['activity'].values[0]
         a = Activity(name=name, id=id)
         activities.update({id: a})
 
@@ -147,7 +146,7 @@ def build_core_object_model(msdf: pd.DataFrame, psdf: pd.DataFrame, object_data:
     for id in pressure_ids:
         if id == 0:
             continue    # skip 0 index pressures
-        name = object_data['pressure'].loc[object_data['pressure']['ID']==int(id)]['pressure'].values[0]
+        name = object_data['pressure'].loc[object_data['pressure']['ID']==id]['pressure'].values[0]
         p = Pressure(name=name, id=id)
         pressures.update({id: p})
 
@@ -159,7 +158,7 @@ def build_core_object_model(msdf: pd.DataFrame, psdf: pd.DataFrame, object_data:
     for id in state_ids:
         if id == 0:
             continue    # skip 0 index states
-        name = object_data['state'].loc[object_data['state']['ID']==int(id)]['state'].values[0]
+        name = object_data['state'].loc[object_data['state']['ID']==id]['state'].values[0]
         s = State(name=name, id=id)
         states.update({id: s})
 
@@ -171,7 +170,7 @@ def build_core_object_model(msdf: pd.DataFrame, psdf: pd.DataFrame, object_data:
     for id in measure_ids:
         if id == 0:
             continue    # skip 0 index measures
-        name = object_data['measure'].loc[object_data['measure']['ID']==int(id/10000)]['measure'].values[0]
+        name = object_data['measure'].loc[object_data['measure']['ID']==id]['measure'].values[0]
         m = Measure(name=name, id=id)
         measures.update({id: m})
 
@@ -179,7 +178,7 @@ def build_core_object_model(msdf: pd.DataFrame, psdf: pd.DataFrame, object_data:
     # Create activity-pressure links
     #
     activitypressure_instances = {}
-    for num in msdf['measure'].index:  # for every measure in the survey data
+    for num in msdf.index:  # for every row in the survey data
 
         # get the ids of the row
         measure_id = msdf['measure'].loc[num]
@@ -208,11 +207,8 @@ def build_core_object_model(msdf: pd.DataFrame, psdf: pd.DataFrame, object_data:
     })
 
     # ID:s are calculated so that they can be tracked
-    measure_df['measure id'] = [int(x.id / 10000) * 10000 for x in measure_df['instance']]
-    measure_df['activity-pressure id'] = [x.activity_pressure.id if x.activity_pressure != None else np.nan for x in measure_df['instance']]
-    measure_df['activity id'] = [int(x.activity_pressure.id / 10000) * 10000 if x.activity_pressure != None else np.nan for x in measure_df['instance']]
-    measure_df['pressure id'] = measure_df['activity-pressure id'] - measure_df['activity id']
-    
+    measure_df['measure id'] = [x.id for x in measure_df['instance']]
+    measure_df['activity-pressure id'] = [x.activity_pressure.id if x.activity_pressure != None else np.nan for x in measure_df['instance']]    
     measure_df['activity id'] = [x.activity_pressure.activity.id if x.activity_pressure != None else np.nan for x in measure_df['instance']]
     measure_df['pressure id'] = [x.activity_pressure.pressure.id if x.activity_pressure != None else np.nan for x in measure_df['instance']]
 
