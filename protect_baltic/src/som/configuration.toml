@@ -2,9 +2,9 @@
 
 # excel input files
 [input_files]
-    general_input = '/Data/generalInput.xlsx'
-    measure_effect_input = '/Data/measureEffInput.xlsx'
-    pressure_state_input = '/Data/pressStateInput.xlsx'
+    general_input = 'C:/Users/camilo/Helsinki Commission/Venla Ala-Harja - SOM folder PROTECT/Data/generalInput.xlsx'
+    measure_effect_input = 'C:/Users/camilo/Helsinki Commission/Venla Ala-Harja - SOM folder PROTECT/Data/measureEffInput.xlsx'
+    pressure_state_input = 'C:/Users/camilo/Helsinki Commission/Venla Ala-Harja - SOM folder PROTECT/Data/pressStateInput.xlsx'
 
 
 # sheet indexes and names in input files
@@ -31,8 +31,8 @@
 
 [general_input_sheets]
     case = 'ActMeas'
-    linkage = 'MT_to_A_to_S'
     postprocess = 'ActPres'
+    overlaps = 'Overlaps'
     [general_input_sheets.ID]
         measure = 'Measure ID'
         activity = 'Activity ID'

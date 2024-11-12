@@ -637,6 +637,8 @@ def read_case_input(file_name: str, sheet_name: str) -> pd.DataFrame:
         cases[col] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in cases[col]]
         cases = cases.explode(col)
 
+    cases = cases.reset_index()
+
     # change types of split values from str to int
     cases = cases.astype({
         'In_Activities': 'int',
@@ -648,38 +650,13 @@ def read_case_input(file_name: str, sheet_name: str) -> pd.DataFrame:
     # cases['MT_ID'] = cases['MT_ID'] * 10000
     # cases['In_Activities'] = cases['In_Activities'] * 10000
 
-    # create new column 'countrybasin_id' to link basins and countries, and create the unique ids
-    cases['countrybasin_id'] = cases['B_ID'] * 1000 + cases['C_ID']
+    # create new column 'area_id' to link basins and countries, and create the unique ids
+    # cases['area_id'] = cases['B_ID'] * 1000 + cases['C_ID']
+    cases['area_id'] = None
+    for i, row in cases.iterrows():
+        cases.at[i, 'area_id'] = (row['B_ID'], row['C_ID'])
 
     return cases
-
-
-def read_linkage_descriptions(file_name: str, sheet_name: str):
-    """
-    Reads description of links between Measures, Activities, Pressures, and States.
-
-     Arguments:
-        file_name (str): name of source excel file name containing 'ActMeas' sheet
-        sheet_name (str): name of sheet in source excel ('ActMeas')
-
-    Returns:
-        linkages (DataFrame): dataframe containing mappings between measures to actitivities to pressures to states
-    """
-    linkages = pd.read_excel(io=file_name, sheet_name=sheet_name)
-
-    # process each column
-    for category in ['MT', 'Activities', 'Pressure', 'State (if needed)']:
-        # split each id merged with ';', the column value becomes a list (unless it is already integer)
-        linkages[category] = [[y for y in x.split(';') if y != ''] if type(x) == str else x for x in linkages[category]]
-        # find empty column value lists, replace with nan
-        f = lambda x: np.nan if type(x) == list and len(x) == 0 else x
-        linkages[category] = [f(x) for x in linkages[category]]
-        # explode column lists into separate rows
-        linkages = linkages.explode(category)
-        # convert non-nan values to int
-        linkages.loc[linkages[category].notna(), category] = linkages.loc[linkages[category].notna(), category].astype(int)
-
-    return linkages
 
 
 def read_postprocess_data(file_name: str, sheet_name: str) -> pd.DataFrame:
@@ -754,6 +731,27 @@ def read_postprocess_data(file_name: str, sheet_name: str) -> pd.DataFrame:
     act_to_press['value'] = act_to_press['cumulative probability'].apply(get_pick)
 
     return act_to_press
+
+
+def read_overlaps(file_name: str, sheet_name: str) -> pd.DataFrame:
+    """
+    Reads input data of measure-measure interactions. 
+
+    Arguments:
+        file_name (str): name of source excel file name
+        sheet_name (str): name of sheet in excel file
+
+    Returns:
+        overlaps (DataFrame): dataframe containing overlaps between individual measures
+    """
+    overlaps = pd.read_excel(file_name, sheet_name=sheet_name)
+
+    # replace nan values in ID columns with 0 and make sure they are integers
+    for category in ['Overlap', 'Pressure', 'Activity', 'Overlapping', 'Overlapped']:
+        overlaps.loc[np.isnan(overlaps[category]), category] = 0
+        overlaps[category] = overlaps[category].astype(int)
+
+    return overlaps
 
 
 def pert_dist(peak, low, high, size) -> np.ndarray:

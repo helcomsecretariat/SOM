@@ -15,7 +15,7 @@ import pandas as pd
 import toml
 
 from som.som_tools import read_survey_data, preprocess_measure_survey_data, process_measure_survey_data, preprocess_pressure_survey_data, process_pressure_survey_data
-from som.som_tools import read_core_object_descriptions, read_domain_input, read_case_input, read_linkage_descriptions, read_postprocess_data
+from som.som_tools import read_core_object_descriptions, read_domain_input, read_case_input, read_postprocess_data, read_overlaps
 from som.som_classes import Measure, Activity, Pressure, ActivityPressure, State, CountryBasin, Case
 
 
@@ -90,21 +90,21 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     sheet_name = config['general_input_sheets']['case']
     case_data = read_case_input(file_name=file_name, sheet_name=sheet_name)
 
-    # read linkage descriptions
-    file_name = config['input_files']['general_input']
-    sheet_name = config['general_input_sheets']['linkage']
-    linkage_data = read_linkage_descriptions(file_name=file_name, sheet_name=sheet_name)
-
     # read postprocessing data
     file_name = config['input_files']['general_input']
     sheet_name = config['general_input_sheets']['postprocess']
     postprocess_data = read_postprocess_data(file_name=file_name, sheet_name=sheet_name)
 
+    # read overlap data
+    file_name = config['input_files']['general_input']
+    sheet_name = config['general_input_sheets']['overlaps']
+    overlap_data = read_overlaps(file_name=file_name, sheet_name=sheet_name)
+
     object_data.update({
         'domain': domain_data,
         'cases': case_data,
-        'linkages': linkage_data,
         'postprocessing': postprocess_data,
+        'overlaps': overlap_data
         })
 
     return measure_survey_df, pressure_survey_data, object_data
@@ -314,7 +314,7 @@ def build_second_object_layer(measure_df, object_data):
         # choose measures from a dataframe
         measures = measure_df.loc[measure_df['measure id'] == measure_num * 10000]
 
-        countrybasins = cases['countrybasin_id'].loc[cases['ID'] == c_num]
+        countrybasins = cases['area_id'].loc[cases['ID'] == c_num]
 
         for cb_id in countrybasins.values:
 
@@ -451,5 +451,60 @@ def postprocess_object_layers(countrybasin_df, object_data):
     countrybasin_df = countrybasin_df.loc[:, ['instance', 'country-basin id', 'basin id', 'country id']].drop_duplicates()
 
     return countrybasin_df
+
+
+def build_core_links(msdf: pd.DataFrame, psdf: pd.DataFrame, object_data: dict[str, dict]) -> pd.DataFrame:
+    """
+    Builds and initializes core object model.
+
+    Arguments:
+        msdf (DataFrame): processed measure survey results
+        psdf (DataFrame): processed pressure survey results
+        object_data (dict): dictionary that contains following data: measure, activity, pressure, and state
+
+    Returns:
+        links (DataFrame) = Measure-Activity-Pressure-State reduction table
+    """
+    # verify that there are no duplicate links
+    assert len(msdf[msdf.duplicated(['measure', 'activity', 'pressure', 'state'])]) == 0
+
+    # create a new dataframe for links
+    links = pd.DataFrame(msdf)
+
+    # initialize multiplier column
+    links['multiplier'] = np.ones(len(msdf))
+
+    #
+    # Overlaps (measure-measure interaction)
+    #
+
+    measure_ids = links['measure'].unique()
+    overlaps = object_data['overlaps']
+    for id in measure_ids:
+        rows = overlaps.loc[overlaps['Overlapping'] == id, :]
+        for i, row in rows.iterrows():
+            overlapping_id = row['Overlapping']
+            overlapped_id = row['Overlapped']
+            pressure_id = row['Pressure']
+            activity_id = row['Activity']
+            multiplier = row['Multiplier']
+            query = (links['measure'] == overlapped_id) & (links['pressure'] == pressure_id)
+            if activity_id != 0:
+                query = query & (links['activity'] == activity_id)
+            links.loc[query, 'multiplier'] = links.loc[query, 'multiplier'] * multiplier
+
+    return links
+
+
+def build_cases(links: pd.DataFrame, object_data: dict[str, dict]) -> pd.DataFrame:
+    """
+    Builds cases.
+    """
+    print(object_data['cases'])
+
+
+
+    exit()
+
 
 #EOF
