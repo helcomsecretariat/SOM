@@ -33,6 +33,7 @@
     case = 'ActMeas'
     postprocess = 'ActPres'
     overlaps = 'Overlaps'
+    development_scenarios = 'DEV_scenarios'
     [general_input_sheets.ID]
         measure = 'Measure ID'
         activity = 'Activity ID'

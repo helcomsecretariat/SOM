@@ -17,10 +17,10 @@ def run():
     measure_survey_df, pressure_survey_df, object_data = som_app.process_input_data()
 
     # Create links between core components
-    links = som_app.build_core_links(measure_survey_df, pressure_survey_df, object_data)
+    links = som_app.build_links(measure_survey_df, pressure_survey_df, object_data)
 
     # Create cases
-    cases = som_app.build_cases(links, object_data)
+    cases = som_app.build_cases(links, pressure_survey_df, object_data)
 
     # Build core object model and initialize core object instances
     measure_df = som_app.build_core_object_model(measure_survey_df, pressure_survey_df, object_data)

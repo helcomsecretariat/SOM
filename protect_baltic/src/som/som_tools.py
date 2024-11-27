@@ -487,13 +487,17 @@ def process_pressure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
                 if int(p) not in weights:
                     weights[int(p)] = []
                 weights[int(p)].append(s / s_tot)
-        # using weights, calculate uncertainties
+        # using weights, calculate contributions and uncertainties
         average = {p: np.mean(weights[p]) for p in weights}
         stddev = {p: np.std(weights[p]) for p in weights}
         # scale contributions and uncertainties so contributions sum up to 100 %
         factor = np.sum([average[p] for p in average])
         average = {p: average[p] / factor for p in average}
         stddev = {p: stddev[p] / factor for p in stddev}
+        # round values
+        decimals = 4
+        average = {p: np.round(average[p], decimals) for p in average}
+        stddev = {p: np.round(stddev[p], decimals) for p in stddev}
         # convert to lists
         pressures = list(average.keys())
         average = [average[p] for p in pressures]
@@ -528,6 +532,41 @@ def process_pressure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
             data.at[0, r] = reductions[r]
         with warnings.catch_warnings(action='ignore'):
             new_df = pd.concat([new_df, data], ignore_index=True, sort=False)
+    #
+    # get probability from distribution for each of the thresholds
+    #
+    for col in ['PR', '10', '25', '50']:
+        new_df[col] = new_df[col].apply(lambda x: get_pick(x) if not np.any(np.isnan(x)) else np.nan)
+    #
+    # explode basin and country columns and create area_id
+    #
+    for col in ['Basins', 'Countries']:
+        new_df = new_df.explode(col)
+    new_df = new_df.reset_index(drop=True)
+    new_df['area_id'] = None
+    for i, row in new_df.iterrows():
+        new_df.at[i, 'area_id'] = (row['Basins'], row['Countries'])
+    new_df = new_df.drop(columns=['Basins', 'Countries'])
+    #
+    # split pressures into separate rows
+    #
+    new_df = new_df.assign(pressure=[list(zip(*row)) for row in zip(new_df['Pressures'], new_df['Averages'], new_df['Uncertainties'])])
+    new_df = new_df.explode('pressure')
+    new_df = new_df.reset_index(drop=True)
+    new_df = new_df.drop(columns=['Pressures', 'Averages', 'Uncertainties'])
+    new_df[['pressure', 'average', 'uncertainty']] = pd.DataFrame(new_df['pressure'].tolist())
+    #
+    # remove rows with missing data (no pressure or no thresholds)
+    #
+    new_df = new_df.loc[~new_df['pressure'].isna(), :]
+    mask = (new_df['PR'].isna()) & (new_df['10'].isna()) & (new_df['25'].isna()) & (new_df['50'].isna())
+    new_df = new_df.loc[~mask, :]
+    #
+    # final steps
+    #
+    new_df['pressure'] = new_df['pressure'].astype(int)
+    new_df = new_df.drop(columns=['survey_id', 'question_id', 'GES known'])
+
     return new_df
 
 
@@ -616,12 +655,7 @@ def read_case_input(file_name: str, sheet_name: str) -> pd.DataFrame:
     """
     Reading in and processing data for cases. Each row represents one case. 
     
-    In columns of 'ActMeas' sheet ('in_Activities', 'in_Pressure' and 'In_State_components') the value 0 == 'all relevant'.
-    Relevant activities, pressures and state can be found in measure-wise from 'MT_to_A_to_S' sheets (linkages)
-    
-    - multiply MT_ID id by 10000 to get right measure_id
-    - multiply In_Activities ids by 10000 to get right activity_id
-    - multiply B_ID by 1000 to get right basin_id
+    In columns of 'ActMeas' sheet ('activities', 'pressure' and 'state') the value 0 == 'all relevant'.
 
     Arguments:
         file_name (str): name of source excel file name
@@ -632,29 +666,24 @@ def read_case_input(file_name: str, sheet_name: str) -> pd.DataFrame:
     """
     cases = pd.read_excel(io=file_name, sheet_name=sheet_name)
 
-    for col in ['In_Activities', 'In_Pressure', 'In_State_components', 'B_ID', 'C_ID']:
+    assert len(cases[cases.duplicated(['ID'])]) == 0
+
+    for col in ['activity', 'pressure', 'state', 'basin', 'country']:
         # separate ids grouped together in sheet on the same row with ';' into separate rows
         cases[col] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in cases[col]]
         cases = cases.explode(col)
+        # change types of split values from str to int
+        cases[col] = cases[col].astype(int)
+    
+    for col in ['coverage', 'implementation']:
+        cases[col] = cases[col].astype(float)
 
     cases = cases.reset_index()
 
-    # change types of split values from str to int
-    cases = cases.astype({
-        'In_Activities': 'int',
-        'In_Pressure': 'int',
-        'B_ID': 'int',
-        'C_ID': 'int'
-    })
-
-    # cases['MT_ID'] = cases['MT_ID'] * 10000
-    # cases['In_Activities'] = cases['In_Activities'] * 10000
-
     # create new column 'area_id' to link basins and countries, and create the unique ids
-    # cases['area_id'] = cases['B_ID'] * 1000 + cases['C_ID']
     cases['area_id'] = None
     for i, row in cases.iterrows():
-        cases.at[i, 'area_id'] = (row['B_ID'], row['C_ID'])
+        cases.at[i, 'area_id'] = (row['basin'], row['country'])
 
     return cases
 
@@ -714,23 +743,31 @@ def read_postprocess_data(file_name: str, sheet_name: str) -> pd.DataFrame:
 
     act_to_press = act_to_press.drop(columns=['expected', 'minimum', 'maximum'])
 
-    def get_pick(dist) -> float:
-        if dist is not None:
-            weights = np.zeros(dist.shape)
-            for i in range(1, weights.size):
-                weights[i] = dist[i] - dist[i-1]
-            pick = np.random.random() * np.sum(weights)
-            for k, val in enumerate(weights):
-                if pick < val:
-                    break
-                pick -= val
-            return pick
-        else:
-            return np.nan
-
     act_to_press['value'] = act_to_press['cumulative probability'].apply(get_pick)
 
     return act_to_press
+
+
+def read_development_scenarios(file_name: str, sheet_name: str) -> pd.DataFrame:
+    """
+    Reads input data of activity development scnearios. 
+
+    Arguments:
+        file_name (str): name of source excel file name
+        sheet_name (str): name of sheet in excel file
+
+    Returns:
+        development_scenarios (DataFrame): dataframe containing activity development scenarios
+    """
+    development_scenarios = pd.read_excel(file_name, sheet_name=sheet_name)
+
+    # replace nan values with 0, assuming that no value means no change
+    for category in ['Scenario BAU', 'Scenario low change', 'Scenario most likely change', 'Scenario high change']:
+        development_scenarios.loc[np.isnan(development_scenarios[category]), category] = 0
+    
+    development_scenarios['Activity'] = development_scenarios['Activity'].astype(int)
+
+    return development_scenarios
 
 
 def read_overlaps(file_name: str, sheet_name: str) -> pd.DataFrame:
@@ -831,6 +868,21 @@ def get_prob_dist(expecteds: np.ndarray,
         disc_dist[i] = np.sum(picks < i) / picks.size
 
     return disc_dist
+
+
+def get_pick(dist) -> float:
+    if dist is not None:
+        weights = np.zeros(dist.shape)
+        for i in range(1, weights.size):
+            weights[i] = dist[i] - dist[i-1]
+        pick = np.random.random() * np.sum(weights)
+        for k, val in enumerate(weights):
+            if pick < val:
+                break
+            pick -= val
+        return pick
+    else:
+        return np.nan
 
 
 #EOF
