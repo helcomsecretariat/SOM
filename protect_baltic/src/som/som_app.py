@@ -14,10 +14,10 @@ import numpy as np
 import pandas as pd
 import toml
 
-from som.som_tools import read_survey_data, preprocess_measure_survey_data, process_measure_survey_data, preprocess_pressure_survey_data, process_pressure_survey_data
+from som.som_tools import read_survey_data, preprocess_measure_survey_data, process_measure_survey_data, process_pressure_survey_data
 from som.som_tools import read_core_object_descriptions, read_domain_input, read_case_input, read_postprocess_data, read_overlaps, read_development_scenarios, get_pick
 from som.som_classes import Measure, Activity, Pressure, ActivityPressure, State, CountryBasin, Case
-
+from utilities import Timer, exception_traceback
 
 def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     """
@@ -26,7 +26,16 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     Returns:
         measure_survey_df (DataFrame): contains the measure survey data of expert panels
         pressure_survey_df (DataFrame): contains the pressure survey data of expert panels
-        object_data (dict): contains following data: 'measure', 'activity', 'pressure', 'state', 'domain', and 'postprocessing'
+        object_data (dict): 
+            'measure'
+            'activity'
+            'pressure'
+            'state'
+            'measure_effects': measure effects on activities / pressures / states (DataFrame)
+            'pressure_contributions': pressure contributions to states (DataFrame)
+            'thresholds': changes in states required to meet specific target thresholds (DataFrame)
+            'domain'
+            'postprocessing'
     """
     # read configuration file
     config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'configuration.toml')
@@ -48,22 +57,15 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     # preprocess survey data
     measure_survey_df = preprocess_measure_survey_data(mteq, measure_survey_data)
 
-    # process survey data 
+    # process survey data
     measure_survey_df = process_measure_survey_data(measure_survey_df)
 
     #
     # pressure survey data
     #
 
-    # read survey data from excel file
     file_name = config['input_files']['pressure_state_input']
-    psq, pressure_survey_data = read_survey_data(file_name, config['pressure_survey_sheets'])
-
-    # preprocess survey data
-    pressure_survey_df = preprocess_pressure_survey_data(psq, pressure_survey_data)
-
-    # process survey data 
-    pressure_survey_df = process_pressure_survey_data(pressure_survey_df)
+    pressure_contributions, thresholds = process_pressure_survey_data(file_name, config['pressure_survey_sheets'])
 
     #
     # measure / pressure / activity / state links
@@ -106,6 +108,9 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     development_scenarios_data = read_development_scenarios(file_name=file_name, sheet_name=sheet_name)
 
     object_data.update({
+        'measure_effects': measure_survey_df, 
+        'pressure_contributions': pressure_contributions, 
+        'thresholds': thresholds, 
         'domain': domain_data,
         'cases': case_data,
         'postprocessing': postprocess_data,
@@ -113,7 +118,7 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
         'development_scenarios': development_scenarios_data
         })
 
-    return measure_survey_df, pressure_survey_df, object_data
+    return object_data
 
 
 def build_core_object_model(msdf: pd.DataFrame, psdf: pd.DataFrame, object_data: dict[str, dict]) -> pd.DataFrame:
@@ -456,18 +461,19 @@ def postprocess_object_layers(countrybasin_df, object_data):
     return countrybasin_df
 
 
-def build_links(msdf: pd.DataFrame, psdf: pd.DataFrame, object_data: dict[str, pd.DataFrame]) -> pd.DataFrame:
+def build_links(object_data: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """
     Builds and initializes core object model.
 
     Arguments:
-        msdf (DataFrame): processed measure survey results
-        psdf (DataFrame): processed pressure survey results
-        object_data (dict): dictionary that contains following data: measure, activity, pressure, and state
+        object_data (dict):
 
     Returns:
         links (DataFrame) = Measure-Activity-Pressure-State reduction table
     """
+    msdf = object_data['measure_effects']
+    psdf = object_data['pressure_contributions']
+
     # verify that there are no duplicate links
     assert len(msdf[msdf.duplicated(['measure', 'activity', 'pressure', 'state'])]) == 0
 
@@ -503,7 +509,7 @@ def build_links(msdf: pd.DataFrame, psdf: pd.DataFrame, object_data: dict[str, p
     return links
 
 
-def build_cases(links: pd.DataFrame, psdf: pd.DataFrame, object_data: dict[str, pd.DataFrame]) -> pd.DataFrame:
+def build_cases(links: pd.DataFrame, object_data: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """
     Builds cases.
     """
@@ -597,18 +603,19 @@ def build_cases(links: pd.DataFrame, psdf: pd.DataFrame, object_data: dict[str, 
                 state_change.at[s_i, area] = state_change.at[s_i, area] - reduction
     
     # pressure contributions
+    pressure_contributions = object_data['pressure_contributions']
     for area in areas:
         a_i = pressure_change.columns.get_loc(area)
         for s_i, s in state_change.iterrows():
-            relevant_pressures = psdf.loc[psdf['State'] == s['ID'], :]
+            relevant_pressures = pressure_contributions.loc[pressure_contributions['State'] == s['ID'], :]
             for p_i, p in relevant_pressures.iterrows():
                 row_i = pressure_change.loc[pressure_change['ID'] == p['pressure']].index[0]
                 reduction = pressure_change.iloc[row_i, a_i]
                 contribution = p['average']
                 state_change.at[s_i, area] = state_change.at[s_i, area] - contribution * reduction
     
-    # TODO: compare state reduction to GES threshold
-
+    # compare state reduction to GES threshold
+    thresholds = object_data['thresholds']
     cols = ['PR', '10', '25', '50']
     state_ges = {}
     for col in cols:
@@ -616,12 +623,13 @@ def build_cases(links: pd.DataFrame, psdf: pd.DataFrame, object_data: dict[str, 
     for area in areas:
         a_i = state_change.columns.get_loc(area)
         for s_i, s in state_change.iterrows():
-            row = psdf.loc[(psdf['State'] == s['ID']) & (psdf['area_id'] == area), cols]
+            row = thresholds.loc[(thresholds['State'] == s['ID']) & (thresholds['area_id'] == area), cols]
+            if len(row) == 0:
+                continue
             for col in cols:
-                state_ges[col].at[s_i, area] = row[col]
+                state_ges[col].iloc[s_i, a_i] = row.loc[:, col].values[0]
 
-
-    exit()
+    return state_ges
 
 
 #EOF

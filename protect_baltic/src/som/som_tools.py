@@ -10,7 +10,13 @@ url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
 import numpy as np
 import pandas as pd
 import warnings     # for suppressing deprecated warnings
-import traceback
+
+def get_expert_ids(df: pd.DataFrame) -> list:
+    '''
+    Returns list of expert id column names from dataframe using regex
+    '''
+    return df.filter(regex='^(100|[1-9]?[0-9])$').columns
+
 
 def read_survey_data(file_name: str, sheet_names: dict[int, str]) -> tuple[pd.DataFrame, dict[int, pd.DataFrame]]:
     """
@@ -133,13 +139,6 @@ def preprocess_measure_survey_data(mteq: pd.DataFrame, measure_survey_data: dict
             block_number = block_number + 1
 
     return survey_df
-
-
-def get_expert_ids(df: pd.DataFrame) -> list:
-    '''
-    Returns list of expert id column names from dataframe using regex
-    '''
-    return df.filter(regex='^(100|[1-9]?[0-9])$').columns
 
 
 def process_measure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
@@ -354,29 +353,44 @@ def process_measure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
     return survey_df
 
 
-def preprocess_pressure_survey_data(psq: pd.DataFrame, pressure_survey_data: dict[int, pd.DataFrame]) -> pd.DataFrame:
+def process_pressure_survey_data(file_name: str, sheet_names: dict[int, str]) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Pressure survey data: Part 2
-
-    This method parses the survey sheets
+    This method reads input from the excel file containing data about pressure contributions to states 
+    and the changes in state required to reach required thresholds of improvement.
 
     Arguments:
-        psq (DataFrame): survey data information
-        pressure_survey_data (dict): survey data
-    
-    Return:
-        survey_df (DataFrame): survey data information
-            survey_id: unique id for each questionnaire / survey
-            question_id: unique id for each question across questionnaires
+        file_name (str): path of survey excel file
+        sheet_names (dict): dict of survey sheet ids in file_name
+
+    Returns:
+        pressure_contributions (DataFrame):
             State: state id
-            Basins: basin id
-            GES known: 0 or 1, is the GES threshold known
-            Weight: amount of experts participating in answer
-            Expert: expert id
-            PX: pressure id of pressure X
-            SX: significance of pressure X
-            MIN, MAX, ML: minimum, maximum, most likely pressure reduction required to reach GES, 10, 25 and 50 % improvement
+            pressure: pressure id
+            area_id: area id
+            average: average contribution of pressure
+            uncertainty: standard deveiation of pressure contribution
+        thresholds (DataFrame):
+            State: state id
+            area_id: area id
+            PR: reduction in state required to reach GES target
+            10: reduction in state required to reach 10 % improvement
+            25: reduction in state required to reach 25 % improvement
+            50: reduction in state required to reach 50 % improvement
     """
+    #
+    # read information sheet from input Excel file
+    #
+
+    psq = pd.read_excel(io=file_name, sheet_name=sheet_names[0])
+
+    pressure_survey_data = {}
+    for id, sheet in enumerate(sheet_names.values()):
+        # skip if information sheet
+        if id == 0:
+            continue
+        # read data sheet from input Excel file, set header to None to include top row in data
+        pressure_survey_data[id] = pd.read_excel(io=file_name, sheet_name=sheet, header=None)
+    
     # preprocess values
     psq['Basins'] = [x.split(';') if type(x) == str else x for x in psq['Basins']]
     psq['Countries'] = [x.split(';') if type(x) == str else x for x in psq['Countries']]
@@ -449,14 +463,19 @@ def preprocess_pressure_survey_data(psq: pd.DataFrame, pressure_survey_data: dic
 
         # increase counter
         start += questions
+    
+    # survey_df (DataFrame): survey data information
+    #     survey_id: unique id for each questionnaire / survey
+    #     question_id: unique id for each question across questionnaires
+    #     State: state id
+    #     Basins: basin id
+    #     GES known: 0 or 1, is the GES threshold known
+    #     Weight: amount of experts participating in answer
+    #     Expert: expert id
+    #     PX: pressure id of pressure X
+    #     SX: significance of pressure X
+    #     MIN, MAX, ML: minimum, maximum, most likely pressure reduction required to reach GES, 10, 25 and 50 % improvement
 
-    return survey_df
-
-
-def process_pressure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
-    """
-    Pressure survey data: part 3
-    """
     # create new dataframe for merged rows
     cols = ['survey_id', 'question_id', 'State', 'Basins', 'Countries', 'GES known']
     new_df = pd.DataFrame(columns=cols+['Pressures', 'Averages', 'Uncertainties']+['PR', '10', '25', '50'])
@@ -561,13 +580,19 @@ def process_pressure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
     new_df = new_df.loc[~new_df['pressure'].isna(), :]
     mask = (new_df['PR'].isna()) & (new_df['10'].isna()) & (new_df['25'].isna()) & (new_df['50'].isna())
     new_df = new_df.loc[~mask, :]
+    new_df = new_df.reset_index(drop=True)
     #
-    # final steps
+    # make sure pressure ids are integers, remove unnecessary columns
     #
     new_df['pressure'] = new_df['pressure'].astype(int)
     new_df = new_df.drop(columns=['survey_id', 'question_id', 'GES known'])
+    #
+    # split new_df into two dataframes, one for pressure contributions and one for thresholds
+    #
+    pressure_contributions = pd.DataFrame(new_df.loc[:, ['State', 'pressure', 'area_id', 'average', 'uncertainty']])
+    thresholds = pd.DataFrame(new_df.loc[:, ['State', 'area_id', 'PR', '10', '25', '50']]).drop_duplicates(subset=['State', 'area_id'], keep='first').reset_index(drop=True)
 
-    return new_df
+    return pressure_contributions, thresholds
 
 
 def read_core_object_descriptions(file_name: str, id_sheets: dict) -> dict[str, dict]:
