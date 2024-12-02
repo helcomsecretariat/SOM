@@ -14,30 +14,43 @@ import numpy as np
 import pandas as pd
 import toml
 
-from som.som_tools import read_survey_data, preprocess_measure_survey_data, process_measure_survey_data, process_pressure_survey_data
-from som.som_tools import read_core_object_descriptions, read_domain_input, read_case_input, read_postprocess_data, read_overlaps, read_development_scenarios, get_pick
+from som.som_tools import process_measure_survey_data, process_pressure_survey_data
+from som.som_tools import read_core_object_descriptions, read_domain_input, read_case_input, read_activity_contributions, read_overlaps, read_development_scenarios, get_pick
 from som.som_classes import Measure, Activity, Pressure, ActivityPressure, State, CountryBasin, Case
 from utilities import Timer, exception_traceback
 
 def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Reads in data and processes it in usable form.
+    Reads in data and processes to usable form.
 
     Returns:
         measure_survey_df (DataFrame): contains the measure survey data of expert panels
         pressure_survey_df (DataFrame): contains the pressure survey data of expert panels
         object_data (dict): 
-            'measure'
-            'activity'
-            'pressure'
-            'state'
-            'measure_effects': measure effects on activities / pressures / states (DataFrame)
-            'pressure_contributions': pressure contributions to states (DataFrame)
-            'thresholds': changes in states required to meet specific target thresholds (DataFrame)
+            'measure' (DataFrame):
+                'ID': unique measure identifier
+                'measure': name / description column
+            'activity' (DataFrame):
+                'ID': unique activity identifier
+                'activity': name / description column
+            'pressure' (DataFrame):
+                'ID': unique pressure identifier
+                'pressure': name / description column
+            'state' (DataFrame):
+                'ID': unique state identifier
+                'state': name / description column
+            'measure_effects' (DataFrame): measure effects on activities / pressures / states
+            'pressure_contributions' (DataFrame): pressure contributions to states
+            'thresholds' (DataFrame): changes in states required to meet specific target thresholds
             'domain'
-            'postprocessing'
+            'cases'
+            'activity_contributions'
+            'overlaps'
+            'development_scenarios'
     """
+    #
     # read configuration file
+    #
     config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'configuration.toml')
     with open(config_file, 'r') as f:
         config = toml.load(f)
@@ -52,16 +65,10 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
 
     # read survey data from excel file
     file_name = config['input_files']['measure_effect_input']
-    mteq, measure_survey_data = read_survey_data(file_name, config['measure_survey_sheets'])
-
-    # preprocess survey data
-    measure_survey_df = preprocess_measure_survey_data(mteq, measure_survey_data)
-
-    # process survey data
-    measure_survey_df = process_measure_survey_data(measure_survey_df)
+    measure_effects = process_measure_survey_data(file_name, config['measure_survey_sheets'])
 
     #
-    # pressure survey data
+    # pressure survey data (combined pressure contributions and GES threshold)
     #
 
     file_name = config['input_files']['pressure_state_input']
@@ -86,37 +93,48 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
                                     countries_exclude=config['domain_settings']['countries_exclude'], 
                                     basins_exclude=config['domain_settings']['basins_exclude'])
 
+    #
     # read case input
-    # links between measures, activities, pressures, basins and countries
+    #
+
     file_name = config['input_files']['general_input']
     sheet_name = config['general_input_sheets']['case']
-    case_data = read_case_input(file_name=file_name, sheet_name=sheet_name)
+    cases = read_case_input(file_name=file_name, sheet_name=sheet_name)
 
-    # read postprocessing data
+    #
+    # read activity contribution data
+    #
+
     file_name = config['input_files']['general_input']
     sheet_name = config['general_input_sheets']['postprocess']
-    postprocess_data = read_postprocess_data(file_name=file_name, sheet_name=sheet_name)
+    activity_contributions = read_activity_contributions(file_name=file_name, sheet_name=sheet_name)
 
+    #
     # read overlap data
+    #
+
     file_name = config['input_files']['general_input']
     sheet_name = config['general_input_sheets']['overlaps']
-    overlap_data = read_overlaps(file_name=file_name, sheet_name=sheet_name)
+    overlaps = read_overlaps(file_name=file_name, sheet_name=sheet_name)
 
-    # read overlap data
+    #
+    # read activity development scenario data
+    #
+
     file_name = config['input_files']['general_input']
     sheet_name = config['general_input_sheets']['development_scenarios']
-    development_scenarios_data = read_development_scenarios(file_name=file_name, sheet_name=sheet_name)
+    development_scenarios = read_development_scenarios(file_name=file_name, sheet_name=sheet_name)
 
     object_data.update({
-        'measure_effects': measure_survey_df, 
+        'measure_effects': measure_effects, 
         'pressure_contributions': pressure_contributions, 
         'thresholds': thresholds, 
-        'domain': domain_data,
-        'cases': case_data,
-        'postprocessing': postprocess_data,
-        'overlaps': overlap_data, 
-        'development_scenarios': development_scenarios_data
-        })
+        'domain': domain_data, 
+        'cases': cases, 
+        'activity_contributions': activity_contributions, 
+        'overlaps': overlaps, 
+        'development_scenarios': development_scenarios
+    })
 
     return object_data
 
@@ -574,8 +592,8 @@ def build_cases(links: pd.DataFrame, object_data: dict[str, pd.DataFrame]) -> pd
                 if m['activity'] == 0:
                     contribution = 1
                 # if activity is not in contribution list, contribution will be 0
-                mask = (object_data['postprocessing']['Activity'] == m['activity']) & (object_data['postprocessing']['Pressure'] == m['pressure'])
-                contribution = object_data['postprocessing'].loc[mask, 'value']
+                mask = (object_data['activity_contributions']['Activity'] == m['activity']) & (object_data['activity_contributions']['Pressure'] == m['pressure'])
+                contribution = object_data['activity_contributions'].loc[mask, 'value']
                 if len(contribution) == 0:
                     contribution = 0
                 else:

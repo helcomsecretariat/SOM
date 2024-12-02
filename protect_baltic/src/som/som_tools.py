@@ -18,20 +18,27 @@ def get_expert_ids(df: pd.DataFrame) -> list:
     return df.filter(regex='^(100|[1-9]?[0-9])$').columns
 
 
-def read_survey_data(file_name: str, sheet_names: dict[int, str]) -> tuple[pd.DataFrame, dict[int, pd.DataFrame]]:
+def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> pd.DataFrame:
     """
-    Measure survey data: Part 1
+    This method reads input from the excel file containing data about measure reduction efficiencies 
+    on activities, pressures and states.
 
     Arguments:
         file_name (str): path of survey excel file
         sheet_names (dict): dict of survey sheet ids in file_name
-    
-    Return:
-        info (DataFrame): survey data information
-        survey_data (dict): survey data
+
+    Returns:
+        survey_df (DataFrame): processed survey data information
+            measure: measure id
+            activity: activity id
+            pressure: pressure id
+            state: state id (if defined, [nan] if no state)
+            cumulative probability: cum. prob. distribution represented as list
     """
+    #
     # read information sheet from input Excel file
-    info = pd.read_excel(io=file_name, sheet_name=sheet_names[0])
+    #
+    mteq = pd.read_excel(io=file_name, sheet_name=sheet_names[0])
 
     measure_survey_data = {}
     for id, sheet in enumerate(sheet_names.values()):
@@ -40,20 +47,8 @@ def read_survey_data(file_name: str, sheet_names: dict[int, str]) -> tuple[pd.Da
             continue
         # read data sheet from input Excel file, set header to None to include top row in data
         measure_survey_data[id] = pd.read_excel(io=file_name, sheet_name=sheet, header=None)
-
-    return info, measure_survey_data
-
-
-def preprocess_measure_survey_data(mteq: pd.DataFrame, measure_survey_data: dict[int, pd.DataFrame]) -> pd.DataFrame:
-    """
-    Measure survey data: Part 2
-
-    This method parses the survey sheets from webropol
-
-    Arguments:
-        mteq (DataFrame): survey data information
-        measure_survey_data (dict): survey data
     
+    """
     Return:
         survey_df (DataFrame): survey data information
             survey_id: unique id for each questionnaire / survey
@@ -138,39 +133,6 @@ def preprocess_measure_survey_data(mteq: pd.DataFrame, measure_survey_data: dict
                 survey_df = pd.concat([survey_df, data], ignore_index=True, sort=False)
             block_number = block_number + 1
 
-    return survey_df
-
-
-def process_measure_survey_data(survey_df: pd.DataFrame) -> pd.DataFrame:
-    r'''
-    Measure survey data: part 3
-
-    - Adjust expert answers by scaling factor
-    - Calculate effectiveness range boundaries
-    - New id for 'measure' and 'activity' by multiplying id by 10000
-        This is done as we need to track specific measure-activity-pressure and measure-state combinations
-        'pressure' and 'state' id:s are not multiplied!
-    - Calculate probability distributions
-    - Remove rows and columns that are not needed anymore
-
-    Arguments:
-        survey_df (DataFrame): survey data information
-            survey_id: unique id for each questionnaire / survey
-            title: type of value ('expected value' / 'variance' / 'max effectiveness' / 'expert weights')
-            block: id for each set of questions within each survey, unique across all surveys
-            measure: measure id of the question
-            activity: activity id of the question
-            pressure: pressure id of the question
-            state: state id (if defined) of the question ([nan] if no state)
-            1...n (=expert ids): answer value for each expert (NaN if no answer)
-    Returns:
-        survey_df (DataFrame): processed survey data information
-            measure: measure id
-            activity: activity id
-            pressure: pressure id
-            state: state id (if defined, [nan] if no state)
-            cumulative probability: cum. prob. distribution represented as list
-    '''
     # select column names corresponding to expert ids (any number between 1 and 100)
     expert_ids = get_expert_ids(survey_df)
 
@@ -713,7 +675,7 @@ def read_case_input(file_name: str, sheet_name: str) -> pd.DataFrame:
     return cases
 
 
-def read_postprocess_data(file_name: str, sheet_name: str) -> pd.DataFrame:
+def read_activity_contributions(file_name: str, sheet_name: str) -> pd.DataFrame:
     """
     Reads input data of activities to pressures in Baltic Sea basins. 
 
