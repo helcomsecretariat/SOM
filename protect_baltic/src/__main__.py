@@ -10,21 +10,26 @@ url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
 # main package script
 
 import som.som_app as som_app
+from utilities import Timer, exception_traceback
 
 def run():
 
-    # Process survey data and read general input
-    object_data = som_app.process_input_data()
-    measure_survey_df = object_data['measure_effects']
-    pressure_survey_df = object_data['pressure_contributions']
+    try:
+        # Process survey data and read general input
+        object_data = som_app.process_input_data()
+        measure_survey_df = object_data['measure_effects']
+        pressure_survey_df = object_data['pressure_contributions']
 
-    # Create links between core components
-    links = som_app.build_links(object_data)
+        # Create links between core components
+        links = som_app.build_links(object_data)
 
-    # Create cases
-    state_ges = som_app.build_cases(links, object_data)
+        # Create cases
+        state_ges = som_app.build_cases(links, object_data)
 
-    print(state_ges['PR'])
+        print(state_ges['PR'])
+    except Exception as e:
+        exception_traceback(e)
+    
     return
 
     # Build core object model and initialize core object instances
