@@ -85,30 +85,20 @@ def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> 
             measures.append(np.nan)
             measures.append(np.nan)
 
-            # create list and fill with current activity id
-            activity_id = survey_info['Activity'].iloc[row]
-            activities = [activity_id] * amt * 2
-            activities.append(np.nan)
-            activities.append(np.nan)
-
-            # create list and fill with current pressure id
-            pressure_id = survey_info['Pressure'].iloc[row]
-            pressures = [pressure_id] * amt * 2
-            pressures.append(np.nan)
-            pressures.append(np.nan)
-
-            # create list to hold state ids and format each row as a list
-            direct_ids = survey_info['State'].iloc[row]
-            if isinstance(direct_ids, str):
-                directs = [[int(x) for x in direct_ids.split(';') if x != '']] * amt * 2
-            elif isinstance(direct_ids, list):
-                directs = [[int(x) for x in direct_ids if x != '']] * amt * 2
-            elif isinstance(direct_ids, float) or isinstance(direct_ids, int):
-                directs = [[direct_ids if not np.isnan(direct_ids) else np.nan]] * amt * 2
-            else:
-                directs = [direct_ids] * amt * 2
-            directs.append(np.nan)
-            directs.append(np.nan)
+            # create lists to hold ids and format each row as a list
+            ids = {}
+            for category in ['Activity', 'Pressure', 'State']:
+                category_ids = survey_info[category].iloc[row]
+                if isinstance(category_ids, str):
+                    ids[category] = [[int(x) for x in category_ids.split(';') if x != '']] * amt * 2
+                elif isinstance(category_ids, list):
+                    ids[category] = [[int(x) for x in category_ids if x != '']] * amt * 2
+                elif isinstance(category_ids, float) or isinstance(category_ids, int):
+                    ids[category] = [[category_ids if not np.isnan(category_ids) else np.nan]] * amt * 2
+                else:
+                    ids[category] = [category_ids] * amt * 2
+                ids[category].append(np.nan)
+                ids[category].append(np.nan)
 
             # in MTEQ sheet, find all expert weight columns, get the values for the current row, set empty cells to 1
             expert_cols = [True if 'exp' in col.lower() else False for col in survey_info.columns]
@@ -126,9 +116,9 @@ def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> 
             data['title'] = titles
             data['block'] = [block_number] * len(data)  # new column with block_number for every row
             data['measure'] = measures
-            data['activity'] = activities
-            data['pressure'] = pressures
-            data['state'] = directs
+            data['activity'] = ids['Activity']
+            data['pressure'] = ids['Pressure']
+            data['state'] = ids['State']
 
             with warnings.catch_warnings(action='ignore'):
                 survey_df = pd.concat([survey_df, data], ignore_index=True, sort=False)
@@ -271,11 +261,12 @@ def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> 
     survey_df = survey_df.drop(columns=['survey_id', 'title', 'block'])
 
     #
-    # Split states into separate rows, and finally reset index
+    # Split activity / pressure / state lists into separate rows, and reset index
     #
 
-    survey_df = survey_df.explode(column='state')
-    survey_df = survey_df.reset_index(drop=True)
+    for col in ['activity', 'pressure', 'state']:
+        survey_df = survey_df.explode(column=col)
+        survey_df = survey_df.reset_index(drop=True)
 
     #
     # Replace nan values with zeros and convert columns to integers
@@ -285,9 +276,6 @@ def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> 
         with warnings.catch_warnings(action='ignore'):
             survey_df[column] = survey_df[column].fillna(0)
         survey_df[column] = survey_df[column].astype(int)
-
-    print(survey_df)
-    exit()
 
     return survey_df
 
