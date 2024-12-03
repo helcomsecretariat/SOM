@@ -29,15 +29,16 @@ def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> 
 
     Returns:
         survey_df (DataFrame): processed survey data information
-            measure: measure id
-            activity: activity id
-            pressure: pressure id
-            state: state id (if defined, [nan] if no state)
-            cumulative probability: cum. prob. distribution represented as list
+            measure (int): measure id
+            activity (int): activity id
+            pressure (int): pressure id
+            state (int): state id (if defined, [nan] if no state)
+            cumulative probability (list[float]): cum. prob. distribution represented as list
     """
     #
     # read information sheet from input Excel file
     #
+
     mteq = pd.read_excel(io=file_name, sheet_name=sheet_names[0])
 
     measure_survey_data = {}
@@ -48,24 +49,18 @@ def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> 
         # read data sheet from input Excel file, set header to None to include top row in data
         measure_survey_data[id] = pd.read_excel(io=file_name, sheet_name=sheet, header=None)
     
-    """
-    Return:
-        survey_df (DataFrame): survey data information
-            survey_id: unique id for each questionnaire / survey
-            title: type of value ('expected value' / 'variance' / 'max effectiveness' / 'expert weights')
-            block: id for each set of questions within each survey, unique across all surveys
-            measure: measure id of the question
-            activity: activity id of the question
-            pressure: pressure id of the question
-            state: state id (if defined) of the question ([nan] if no state)
-            1...n (=expert ids): answer value for each expert (NaN if no answer)
-    """
+    #
     # preprocess values
-    mteq['Direct_to_state'] = [x.split(';') if type(x) == str else x for x in mteq['Direct_to_state']]
+    #
 
+    mteq['State'] = [x.split(';') if type(x) == str else x for x in mteq['State']]
+
+    #
     # create new dataframe
+    #
+
     cols = ['survey_id', 'title', 'block', 'measure', 'activity', 'pressure', 'state']
-    survey_df = pd.DataFrame(columns=cols)  # create new DataFrame
+    survey_df = pd.DataFrame(columns=cols)
 
     block_number = 0    # represents the survey block
 
@@ -77,28 +72,33 @@ def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> 
         end = 0     # represents last column index of the question set
         for row, amt in enumerate(survey_info['AMT']):  # for each set of questions (row in MTEQ)
             
-            end = end + (2 * amt + 1)     # end column for data
-            start = end - (2 * amt)     # start column for data
+            end = end + (2 * amt + 1)     # end column index for data
+            start = end - (2 * amt)     # start column index for data
             
+            # create list to describe the data on each row
             titles = ['expected value', 'variance'] * amt
             titles.append('max effectiveness')
             titles.append('expert weights')
 
-            measures = measure_survey_data[survey_id].iloc[0, start:end].tolist() # select current question column names as measure ids
-            measures.append(np.nan) # append NaN for max effectiveness (ME)
-            measures.append(np.nan )   # append NaN for expert weights
+            # select current question column names as measure ids
+            measures = measure_survey_data[survey_id].iloc[0, start:end].tolist()
+            measures.append(np.nan)
+            measures.append(np.nan)
 
-            activity_id = survey_info['Activity'].iloc[row] # select current row Activity
+            # create list and fill with current activity id
+            activity_id = survey_info['Activity'].iloc[row]
             activities = [activity_id] * amt * 2
             activities.append(np.nan)
             activities.append(np.nan)
 
-            pressure_id = survey_info['Pressure'].iloc[row] # select current row Pressure
+            # create list and fill with current pressure id
+            pressure_id = survey_info['Pressure'].iloc[row]
             pressures = [pressure_id] * amt * 2
             pressures.append(np.nan)
             pressures.append(np.nan)
 
-            direct_ids = survey_info['Direct_to_state'].iloc[row]   # select current row state
+            # create list to hold state ids and format each row as a list
+            direct_ids = survey_info['State'].iloc[row]
             if isinstance(direct_ids, str):
                 directs = [[int(x) for x in direct_ids.split(';') if x != '']] * amt * 2
             elif isinstance(direct_ids, list):
@@ -110,9 +110,10 @@ def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> 
             directs.append(np.nan)
             directs.append(np.nan)
 
-            expert_cols = [True if 'exp' in col.lower() else False for col in survey_info.columns]  # find all expert columns
-            expert_weights = survey_info.loc[:, expert_cols].iloc[row]  # select expert weight values
-            expert_weights.fillna(1, inplace=True)  # replace NaN values in weights with ones
+            # in MTEQ sheet, find all expert weight columns, get the values for the current row, set empty cells to 1
+            expert_cols = [True if 'exp' in col.lower() else False for col in survey_info.columns]
+            expert_weights = survey_info.loc[:, expert_cols].iloc[row]
+            expert_weights.fillna(1, inplace=True)
             
             data = measure_survey_data[survey_id].loc[1:, start:end]    # select current question answers
             data[end+1] = expert_weights  # create column for expert weights
@@ -232,33 +233,6 @@ def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> 
             survey_df.loc[i, expert_ids] = row_values
 
     #
-    # Update measure and activity ids
-    #
-
-    # id_multiplier = 10000
-
-    # # multiply every measure and activity id with the multiplier
-    # survey_df['measure'] = survey_df['measure'] * id_multiplier
-    # survey_df['activity'] = survey_df['activity'] * id_multiplier
-
-    # measure_ids = survey_df['measure'].unique() # identify unique measure ids
-    # measure_ids = measure_ids[~pd.isnull(measure_ids)]  # remove null value ids
-
-    # for m_id in measure_ids:    # for every measure
-    #     measures = survey_df.loc[(survey_df['measure'] == m_id) & (survey_df['title'] == 'expected value')]   # select expected value rows for current measure
-    #     indices = measures.index.values # select indices
-        
-    #     if len(measures) > 1:   # if there are more than one row for each measure
-    #         for num, id in enumerate(measures['measure']):  # for each measure
-    #             new_id = id + (num + 1)  # the new id is the old one + the current counter + 1
-    #             index = indices[num]    # select the index of the current measure row
-    #             # set new measure id for both expected value and variance rows
-    #             survey_df.loc[index, 'measure'] = new_id
-    #             survey_df.loc[index+1, 'measure'] = new_id
-    #             survey_df.loc[index+2, 'measure'] = new_id
-    #             survey_df.loc[index+3, 'measure'] = new_id
-
-    #
     # Calculate probability distributions
     #
 
@@ -311,6 +285,9 @@ def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> 
         with warnings.catch_warnings(action='ignore'):
             survey_df[column] = survey_df[column].fillna(0)
         survey_df[column] = survey_df[column].astype(int)
+
+    print(survey_df)
+    exit()
 
     return survey_df
 
