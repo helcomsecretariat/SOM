@@ -305,6 +305,13 @@ def process_pressure_survey_data(file_name: str, sheet_names: dict[int, str]) ->
             50: reduction in state required to reach 50 % improvement
     """
     #
+    # set parameter values
+    #
+
+    expert_number = 6   # max number of experts per question
+    threshold_cols = ['PR', '10', '25', '50']   # target thresholds (PR=GES)
+
+    #
     # read information sheet from input Excel file
     #
 
@@ -318,20 +325,26 @@ def process_pressure_survey_data(file_name: str, sheet_names: dict[int, str]) ->
         # read data sheet from input Excel file, set header to None to include top row in data
         pressure_survey_data[id] = pd.read_excel(io=file_name, sheet_name=sheet, header=None)
     
+    #
     # preprocess values
+    #
+
     psq['Basins'] = [x.split(';') if type(x) == str else x for x in psq['Basins']]
     psq['Countries'] = [x.split(';') if type(x) == str else x for x in psq['Countries']]
 
     # add question id column
     psq['question_id'] = list(range(len(psq)))
 
+    #
     # create new dataframe
+    #
+
     survey_df = pd.DataFrame(columns=['survey_id', 'question_id', 'State', 'Basins', 'Countries', 'GES known', 'Weight'])
     
     # survey columns from which to take data
     cols = ['Expert']
-    cols += [x + str(i+1) for x in ['P', 'S'] for i in range(6)]    # up to 6 different pressures related to state, and their significance
-    cols += [x + y for x in ['MIN', 'MAX', 'ML'] for y in ['PR', '10', '25', '50']]     # required pressure reduction to reach GES (if known) or X % improvement in state
+    cols += [x + str(i+1) for x in ['P', 'S'] for i in range(expert_number)]    # up to expert_number different pressures related to state, and their significance
+    cols += [x + y for x in ['MIN', 'MAX', 'ML'] for y in threshold_cols]     # required pressure reduction to reach GES (if known) or X % improvement in state
 
     start = 0    # keep track of where to access data in psq
 
@@ -390,22 +403,10 @@ def process_pressure_survey_data(file_name: str, sheet_names: dict[int, str]) ->
 
         # increase counter
         start += questions
-    
-    # survey_df (DataFrame): survey data information
-    #     survey_id: unique id for each questionnaire / survey
-    #     question_id: unique id for each question across questionnaires
-    #     State: state id
-    #     Basins: basin id
-    #     GES known: 0 or 1, is the GES threshold known
-    #     Weight: amount of experts participating in answer
-    #     Expert: expert id
-    #     PX: pressure id of pressure X
-    #     SX: significance of pressure X
-    #     MIN, MAX, ML: minimum, maximum, most likely pressure reduction required to reach GES, 10, 25 and 50 % improvement
 
     # create new dataframe for merged rows
     cols = ['survey_id', 'question_id', 'State', 'Basins', 'Countries', 'GES known']
-    new_df = pd.DataFrame(columns=cols+['Pressures', 'Averages', 'Uncertainties']+['PR', '10', '25', '50'])
+    new_df = pd.DataFrame(columns=cols+['Pressures', 'Averages', 'Uncertainties']+threshold_cols)
     # remove empty elements from Basins and Countries, and convert ids to integers
     survey_df['Basins'] = survey_df['Basins'].apply(lambda x: [int(basin) for basin in x if basin != ''])
     survey_df['Countries'] = survey_df['Countries'].apply(lambda x: [int(country) for country in x if country != ''])
@@ -419,8 +420,8 @@ def process_pressure_survey_data(file_name: str, sheet_names: dict[int, str]) ->
         # pressure contributions and uncertainties
         #
         # select pressures and significances, and find non nan values
-        pressures = data[['P'+str(x+1) for x in range(6)]].to_numpy().astype(float)
-        significances = data[['S'+str(x+1) for x in range(6)]].to_numpy().astype(float)
+        pressures = data[['P'+str(x+1) for x in range(expert_number)]].to_numpy().astype(float)
+        significances = data[['S'+str(x+1) for x in range(expert_number)]].to_numpy().astype(float)
         mask = ~np.isnan(pressures)
         # weigh significancs by amount of participating experts
         w = data[['Weight']].to_numpy().astype(float)
@@ -452,7 +453,7 @@ def process_pressure_survey_data(file_name: str, sheet_names: dict[int, str]) ->
         # probability distributions for pressure reductions
         #
         reductions = {}
-        for r in ['PR', '10', '25', '50']:
+        for r in threshold_cols:
             # get min, max and ml data
             r_min = data['MIN'+r].to_numpy().astype(float)
             r_max = data['MAX'+r].to_numpy().astype(float)
@@ -467,21 +468,21 @@ def process_pressure_survey_data(file_name: str, sheet_names: dict[int, str]) ->
         data = survey_df[cols].loc[survey_df['question_id'] == question].reset_index(drop=True).iloc[0]
         data = pd.DataFrame([data])
         # initialize new columns
-        for c in ['Pressures', 'Averages', 'Uncertainties']+['PR', '10', '25', '50']:
+        for c in ['Pressures', 'Averages', 'Uncertainties']+threshold_cols:
             data[c] = np.nan
             data[c] = data[c].astype(object)
         # change data type to allow for lists
         data.at[0, 'Pressures'] = pressures
         data.at[0, 'Averages'] = average
         data.at[0, 'Uncertainties'] = stddev
-        for r in ['PR', '10', '25', '50']:
+        for r in threshold_cols:
             data.at[0, r] = reductions[r]
         with warnings.catch_warnings(action='ignore'):
             new_df = pd.concat([new_df, data], ignore_index=True, sort=False)
     #
     # get probability from distribution for each of the thresholds
     #
-    for col in ['PR', '10', '25', '50']:
+    for col in threshold_cols:
         new_df[col] = new_df[col].apply(lambda x: get_pick(x) if not np.any(np.isnan(x)) else np.nan)
     #
     # explode basin and country columns and create area_id
@@ -504,9 +505,8 @@ def process_pressure_survey_data(file_name: str, sheet_names: dict[int, str]) ->
     #
     # remove rows with missing data (no pressure or no thresholds)
     #
-    new_df = new_df.loc[~new_df['pressure'].isna(), :]
-    mask = (new_df['PR'].isna()) & (new_df['10'].isna()) & (new_df['25'].isna()) & (new_df['50'].isna())
-    new_df = new_df.loc[~mask, :]
+    new_df = new_df.loc[new_df['pressure'].notna(), :]
+    new_df = new_df[new_df[threshold_cols].notna().any(axis=1)]
     new_df = new_df.reset_index(drop=True)
     #
     # make sure pressure ids are integers, remove unnecessary columns
@@ -517,7 +517,7 @@ def process_pressure_survey_data(file_name: str, sheet_names: dict[int, str]) ->
     # split new_df into two dataframes, one for pressure contributions and one for thresholds
     #
     pressure_contributions = pd.DataFrame(new_df.loc[:, ['State', 'pressure', 'area_id', 'average', 'uncertainty']])
-    thresholds = pd.DataFrame(new_df.loc[:, ['State', 'area_id', 'PR', '10', '25', '50']]).drop_duplicates(subset=['State', 'area_id'], keep='first').reset_index(drop=True)
+    thresholds = pd.DataFrame(new_df.loc[:, ['State', 'area_id'] + threshold_cols]).drop_duplicates(subset=['State', 'area_id'], keep='first').reset_index(drop=True)
 
     return pressure_contributions, thresholds
 
