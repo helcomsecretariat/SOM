@@ -598,7 +598,7 @@ def read_domain_input(file_name: str, id_sheets: dict, countries_exclude: list[s
     return domain
 
 
-def read_case_input(file_name: str, sheet_name: str) -> pd.DataFrame:
+def read_cases(file_name: str, sheet_name: str) -> pd.DataFrame:
     """
     Reading in and processing data for cases. Each row represents one case. 
     

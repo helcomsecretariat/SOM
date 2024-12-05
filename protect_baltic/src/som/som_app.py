@@ -15,7 +15,7 @@ import pandas as pd
 import toml
 
 from som.som_tools import process_measure_survey_data, process_pressure_survey_data
-from som.som_tools import read_ids, read_domain_input, read_case_input, read_activity_contributions, read_overlaps, read_development_scenarios, get_pick
+from som.som_tools import read_ids, read_domain_input, read_cases, read_activity_contributions, read_overlaps, read_development_scenarios, get_pick
 from utilities import Timer, exception_traceback
 
 def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -25,7 +25,7 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     Returns:
         measure_survey_df (DataFrame): contains the measure survey data of expert panels
         pressure_survey_df (DataFrame): contains the pressure survey data of expert panels
-        object_data (dict): 
+        data (dict): 
             'measure' (DataFrame):
                 'ID': unique measure identifier
                 'measure': name / description column
@@ -62,7 +62,6 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     # measure survey data
     #
 
-    # read survey data from excel file
     file_name = config['input_files']['measure_effect_input']
     measure_effects = process_measure_survey_data(file_name, config['measure_survey_sheets'])
 
@@ -81,7 +80,7 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     # i.e. ids for measures, activities, pressures and states
     file_name = config['input_files']['general_input']
     id_sheets = config['general_input_sheets']['ID']
-    object_data = read_ids(file_name=file_name, id_sheets=id_sheets)
+    data = read_ids(file_name=file_name, id_sheets=id_sheets)
 
     # read calculation domain descriptions
     # i.e. ids for countries, basins and percentage of basin area by each country
@@ -98,7 +97,7 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
 
     file_name = config['input_files']['general_input']
     sheet_name = config['general_input_sheets']['case']
-    cases = read_case_input(file_name=file_name, sheet_name=sheet_name)
+    cases = read_cases(file_name=file_name, sheet_name=sheet_name)
 
     #
     # read activity contribution data
@@ -124,7 +123,7 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     sheet_name = config['general_input_sheets']['development_scenarios']
     development_scenarios = read_development_scenarios(file_name=file_name, sheet_name=sheet_name)
 
-    object_data.update({
+    data.update({
         'measure_effects': measure_effects, 
         'pressure_contributions': pressure_contributions, 
         'thresholds': thresholds, 
@@ -135,21 +134,21 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
         'development_scenarios': development_scenarios
     })
 
-    return object_data
+    return data
 
 
-def build_links(object_data: dict[str, pd.DataFrame]) -> pd.DataFrame:
+def build_links(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """
     Builds and initializes core object model.
 
     Arguments:
-        object_data (dict):
+        data (dict):
 
     Returns:
         links (DataFrame) = Measure-Activity-Pressure-State reduction table
     """
-    msdf = object_data['measure_effects']
-    psdf = object_data['pressure_contributions']
+    msdf = data['measure_effects']
+    psdf = data['pressure_contributions']
 
     # verify that there are no duplicate links
     assert len(msdf[msdf.duplicated(['measure', 'activity', 'pressure', 'state'])]) == 0
@@ -169,7 +168,7 @@ def build_links(object_data: dict[str, pd.DataFrame]) -> pd.DataFrame:
     #
 
     measure_ids = links['measure'].unique()
-    overlaps = object_data['overlaps']
+    overlaps = data['overlaps']
     for id in measure_ids:
         rows = overlaps.loc[overlaps['Overlapping'] == id, :]
         for i, row in rows.iterrows():
@@ -186,13 +185,13 @@ def build_links(object_data: dict[str, pd.DataFrame]) -> pd.DataFrame:
     return links
 
 
-def build_cases(links: pd.DataFrame, object_data: dict[str, pd.DataFrame]) -> pd.DataFrame:
+def build_cases(links: pd.DataFrame, data: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """
     Builds cases.
     """
     
     # identify and go through each case individually
-    cases = object_data['cases']
+    cases = data['cases']
     areas = cases['area_id'].unique()
 
     # replace all zeros (0) in activity / pressure / state columns with full list of values
@@ -224,8 +223,8 @@ def build_cases(links: pd.DataFrame, object_data: dict[str, pd.DataFrame]) -> pd
     # create new dataframes for pressures and states each, one column per area_id
     # the value of each cell is the reduction in the pressure for that area
     # NOTE: the DataFrames are created on one line to avoid PerformanceWarning
-    pressure_change = pd.DataFrame(object_data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
-    state_change = pd.DataFrame(object_data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
+    pressure_change = pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
+    state_change = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
 
     # TODO: add development over time here
     # so that it multiplies with the pressure change
@@ -251,8 +250,8 @@ def build_cases(links: pd.DataFrame, object_data: dict[str, pd.DataFrame]) -> pd
                 if m['activity'] == 0:
                     contribution = 1
                 # if activity is not in contribution list, contribution will be 0
-                mask = (object_data['activity_contributions']['Activity'] == m['activity']) & (object_data['activity_contributions']['Pressure'] == m['pressure'])
-                contribution = object_data['activity_contributions'].loc[mask, 'value']
+                mask = (data['activity_contributions']['Activity'] == m['activity']) & (data['activity_contributions']['Pressure'] == m['pressure'])
+                contribution = data['activity_contributions'].loc[mask, 'value']
                 if len(contribution) == 0:
                     contribution = 0
                 else:
@@ -280,7 +279,7 @@ def build_cases(links: pd.DataFrame, object_data: dict[str, pd.DataFrame]) -> pd
                 state_change.at[s_i, area] = state_change.at[s_i, area] - reduction
     
     # pressure contributions
-    pressure_contributions = object_data['pressure_contributions']
+    pressure_contributions = data['pressure_contributions']
     for area in areas:
         a_i = pressure_change.columns.get_loc(area)
         for s_i, s in state_change.iterrows():
@@ -292,11 +291,11 @@ def build_cases(links: pd.DataFrame, object_data: dict[str, pd.DataFrame]) -> pd
                 state_change.at[s_i, area] = state_change.at[s_i, area] - contribution * reduction
     
     # compare state reduction to GES threshold
-    thresholds = object_data['thresholds']
+    thresholds = data['thresholds']
     cols = ['PR', '10', '25', '50']
     state_ges = {}
     for col in cols:
-        state_ges[col] = pd.DataFrame(object_data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
+        state_ges[col] = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
     for area in areas:
         a_i = state_change.columns.get_loc(area)
         for s_i, s in state_change.iterrows():

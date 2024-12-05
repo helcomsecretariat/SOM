@@ -16,13 +16,13 @@ def run():
 
     try:
         # Process survey data and read general input
-        object_data = som_app.process_input_data()
+        data = som_app.process_input_data()
 
         # Create links between core components
-        links = som_app.build_links(object_data)
+        links = som_app.build_links(data)
 
         # Create cases
-        state_ges = som_app.build_cases(links, object_data)
+        state_ges = som_app.build_cases(links, data)
 
         print(state_ges['PR'])
     except Exception as e:
