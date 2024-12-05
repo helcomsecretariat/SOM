@@ -15,7 +15,7 @@ import pandas as pd
 import toml
 
 from som.som_tools import process_measure_survey_data, process_pressure_survey_data
-from som.som_tools import read_core_object_descriptions, read_domain_input, read_case_input, read_activity_contributions, read_overlaps, read_development_scenarios, get_pick
+from som.som_tools import read_ids, read_domain_input, read_case_input, read_activity_contributions, read_overlaps, read_development_scenarios, get_pick
 from som.som_classes import Measure, Activity, Pressure, ActivityPressure, State, CountryBasin, Case
 from utilities import Timer, exception_traceback
 
@@ -82,7 +82,7 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
     # i.e. ids for measures, activities, pressures and states
     file_name = config['input_files']['general_input']
     id_sheets = config['general_input_sheets']['ID']
-    object_data = read_core_object_descriptions(file_name=file_name, id_sheets=id_sheets)
+    object_data = read_ids(file_name=file_name, id_sheets=id_sheets)
 
     # read calculation domain descriptions
     # i.e. ids for countries, basins and percentage of basin area by each country

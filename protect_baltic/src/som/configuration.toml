@@ -39,6 +39,7 @@
         activity = 'Activity ID'
         pressure = 'Pressure ID'
         state = 'State ID'
+        area = 'Area ID'
     [general_input_sheets.domain]
         basin = 'Basin ID'
         country = 'Country ID'

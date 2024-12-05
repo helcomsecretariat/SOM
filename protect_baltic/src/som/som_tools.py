@@ -522,7 +522,7 @@ def process_pressure_survey_data(file_name: str, sheet_names: dict[int, str]) ->
     return pressure_contributions, thresholds
 
 
-def read_core_object_descriptions(file_name: str, id_sheets: dict) -> dict[str, dict]:
+def read_ids(file_name: str, id_sheets: dict) -> dict[str, dict]:
     """
     Reads in model object descriptions from general input files
 
@@ -531,7 +531,7 @@ def read_core_object_descriptions(file_name: str, id_sheets: dict) -> dict[str, 
         id_sheets (dict): should have structure {'measure': sheet_name, 'activity': sheet_name, ...}
 
     Returns:
-        object_data (dict): dictionary containing measure, activity, pressure and state ids and descriptions in separate sub-dictionaries
+        object_data (dict): dictionary containing measure, activity, pressure and state ids and descriptions in separate dataframes
     """
     # create dicts for each category
     object_data = {}
@@ -547,11 +547,6 @@ def read_core_object_descriptions(file_name: str, id_sheets: dict) -> dict[str, 
         df['ID'] = df['ID'].astype(int)
         object_data[category] = df
         
-        # # convert to dict
-        # obj_dict = {}
-        # [obj_dict.update({id: name}) if isinstance(name, str) else obj_dict.update({id: None}) for id, name in zip(df['ID'], df[category])]
-        # object_data[category] = obj_dict
-
     return object_data
 
 
