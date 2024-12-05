@@ -17,8 +17,6 @@ def run():
     try:
         # Process survey data and read general input
         object_data = som_app.process_input_data()
-        measure_survey_df = object_data['measure_effects']
-        pressure_survey_df = object_data['pressure_contributions']
 
         # Create links between core components
         links = som_app.build_links(object_data)
@@ -31,15 +29,6 @@ def run():
         exception_traceback(e)
     
     return
-
-    # Build core object model and initialize core object instances
-    measure_df = som_app.build_core_object_model(measure_survey_df, pressure_survey_df, object_data)
-
-    # Build second object layer model and initialize second object layer instances
-    countrybasin_df = som_app.build_second_object_layer(measure_df=measure_df, object_data=object_data)
-
-    # Post-process object layers by setting values based on general input
-    countrybasin_df = som_app.postprocess_object_layers(countrybasin_df=countrybasin_df, object_data=object_data)
 
 if __name__ == "__main__":
     run()
