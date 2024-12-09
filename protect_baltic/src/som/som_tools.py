@@ -631,6 +631,8 @@ def read_cases(file_name: str, sheet_name: str) -> pd.DataFrame:
     cases['area_id'] = None
     for i, row in cases.iterrows():
         cases.at[i, 'area_id'] = (row['basin'], row['country'])
+    
+    cases = cases.drop(columns=['basin', 'country'])
 
     return cases
 
