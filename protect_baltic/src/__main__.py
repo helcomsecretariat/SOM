@@ -15,7 +15,7 @@ import os
 import pickle
 
 
-def save(data: object, path: str):
+def p_save(data: object, path: str):
     """
     Saves the given data as a pickle object
     """
@@ -23,7 +23,7 @@ def save(data: object, path: str):
         pickle.dump(data, f)
 
 
-def load(path: str):
+def p_load(path: str):
     """
     Loads pickle data
     """
@@ -37,11 +37,12 @@ def run():
         # check if processed input data already exists, otherwise process it
         data_path = 'data.p'
         links_path = 'links.p'
-        if os.path.exists(data_path) and os.path.exists(links_path):
+        # if os.path.exists(data_path) and os.path.exists(links_path):
+        if False:
             print('heh')
             # load pickled data
-            data = load(data_path)
-            links = load(links_path)
+            data = p_load(data_path)
+            links = p_load(links_path)
         else:
             # Process survey data and read general input
             data = som_app.process_input_data()
@@ -50,8 +51,8 @@ def run():
             # Create cases
             data['cases'] = som_app.build_cases(data['cases'], links)
             # save the data as pickle objects
-            save(data, data_path)
-            save(links, links_path)
+            p_save(data, data_path)
+            p_save(links, links_path)
 
         state_ges = som_app.simulate(data, links)
 

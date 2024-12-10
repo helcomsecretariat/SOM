@@ -139,7 +139,7 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
 
 def build_links(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """
-    Builds and initializes core object model.
+    Builds links.
 
     Arguments:
         data (dict):
@@ -204,12 +204,14 @@ def build_cases(cases: pd.DataFrame, links: pd.DataFrame) -> pd.DataFrame:
             cases.at[i, col] = maps_links[col].unique().tolist() if row[col] == 0 else row[col]
     for col in cols:
         cases = cases.explode(col)
+    
+    cases = cases.reset_index(drop=True)
 
     # filter out links that don't have associated reduction
-    m = cases['activity'].isin(links['measure']).astype(int)
-    a = cases['activity'].isin(links['activity']).astype(int)
-    p = cases['pressure'].isin(links['pressure']).astype(int)
-    s = cases['state'].isin(links['state']).astype(int)
+    m = cases['measure'].isin(links['measure'])
+    a = cases['activity'].isin(links['activity'])
+    p = cases['pressure'].isin(links['pressure'])
+    s = cases['state'].isin(links['state'])
     existing_links = (m & a & p & s)
     cases = cases.loc[existing_links, :]
 
@@ -245,10 +247,14 @@ def simulate(data: dict[str, pd.DataFrame], links: pd.DataFrame) -> pd.DataFrame
         c = cases.loc[cases['area_id'] == area, :]  # select cases for current area
         for p_i, p in pressure_change.iterrows():
             relevant_measures = c.loc[c['pressure'] == p['ID'], :]
-            for m_i, m in relevant_measures.iterrows():
+            for m_i, m in relevant_measures.iterrows(): # for each case of the current pressure in the current area
                 mask = (links['measure'] == m['measure']) & (links['activity'] == m['activity']) & (links['pressure'] == m['pressure']) & (links['state'] == m['state'])
-                red = links.loc[mask, 'reduction'].values[0]
-                multiplier = links.loc[mask, 'multiplier'].values[0]
+                row = links.loc[mask, :]
+                if len(row) == 0:
+                    continue
+                else:
+                    red = row['reduction'].values[0]
+                    multiplier = row['multiplier'].values[0]
                 for mod in ['coverage', 'implementation']:
                     multiplier = multiplier * m[mod]
                 reduction = red * multiplier
@@ -277,8 +283,12 @@ def simulate(data: dict[str, pd.DataFrame], links: pd.DataFrame) -> pd.DataFrame
             relevant_measures = c.loc[c['state'] == s['ID'], :]
             for m_i, m in relevant_measures.iterrows():
                 mask = (links['measure'] == m['measure']) & (links['activity'] == m['activity']) & (links['pressure'] == m['pressure']) & (links['state'] == m['state'])
-                red = links.loc[mask, 'reduction'].values[0]
-                multiplier = links.loc[mask, 'multiplier'].values[0]
+                row = links.loc[mask, :]
+                if len(row) == 0:
+                    continue
+                else:
+                    red = row['reduction'].values[0]
+                    multiplier = row['multiplier'].values[0]
                 for mod in ['coverage', 'implementation']:
                     multiplier = multiplier * m[mod]
                 reduction = red * multiplier
