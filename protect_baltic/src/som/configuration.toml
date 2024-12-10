@@ -2,9 +2,9 @@
 
 # excel input files
 [input_files]
-    general_input = 'C:/Users/camilo/Documents/SOM/protect_baltic/src/data/generalInput.xlsx'
-    measure_effect_input = 'C:/Users/camilo/Documents/SOM/protect_baltic/src/data/measureEffInput.xlsx'
-    pressure_state_input = 'C:/Users/camilo/Documents/SOM/protect_baltic/src/data/pressStateInput.xlsx'
+    general_input = 'C:/Users/camilo/Helsinki Commission/Venla Ala-Harja - SOM folder PROTECT/Data/generalInput.xlsx'
+    measure_effect_input = 'C:/Users/camilo/Helsinki Commission/Venla Ala-Harja - SOM folder PROTECT/Data/measureEffInput.xlsx'
+    pressure_state_input = 'C:/Users/camilo/Helsinki Commission/Venla Ala-Harja - SOM folder PROTECT/Data/pressStateInput.xlsx'
 
 
 # sheet indexes and names in input files

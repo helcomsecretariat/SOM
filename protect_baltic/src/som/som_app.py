@@ -185,10 +185,15 @@ def build_links(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
     return links
 
 
-def build_cases(cases: pd.DataFrame, links: pd.DataFrame) -> pd.DataFrame:
+def build_cases(links: pd.DataFrame, data: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """
     Builds cases.
     """
+    
+    # identify and go through each case individually
+    cases = data['cases']
+    areas = cases['area_id'].unique()
+
     # replace all zeros (0) in activity / pressure / state columns with full list of values
     # filter those lists to only include relevant IDs (from links)
     # finally explode to only have single IDs per row
@@ -214,17 +219,6 @@ def build_cases(cases: pd.DataFrame, links: pd.DataFrame) -> pd.DataFrame:
     cases = cases.loc[existing_links, :]
 
     cases = cases.reset_index(drop=True)
-
-    return cases
-
-
-def simulate(data: dict[str, pd.DataFrame], links: pd.DataFrame) -> pd.DataFrame:
-    """
-    Simulate the reduction in activities and pressures caused by measures and 
-    return the change observed in state. 
-    """
-    cases = data['cases']
-    areas = cases['area_id'].unique()
 
     # create new dataframes for pressures and states each, one column per area_id
     # the value of each cell is the reduction in the pressure for that area

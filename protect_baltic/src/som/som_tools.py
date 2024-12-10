@@ -711,17 +711,10 @@ def read_development_scenarios(file_name: str, sheet_name: str) -> pd.DataFrame:
     development_scenarios = pd.read_excel(file_name, sheet_name=sheet_name)
 
     # replace nan values with 0, assuming that no value means no change
-    for category in ['BAU', 'ChangeMin', 'ChangeML', 'ChangeMax']:
+    for category in ['Scenario BAU', 'Scenario low change', 'Scenario most likely change', 'Scenario high change']:
         development_scenarios.loc[np.isnan(development_scenarios[category]), category] = 0
-        development_scenarios[category] = development_scenarios[category].astype(float)
     
     development_scenarios['Activity'] = development_scenarios['Activity'].astype(int)
-
-    development_scenarios = development_scenarios.drop(columns=['Activity Description'])
-
-    # change values from percentual change to multiplier type by adding 1
-    for category in ['BAU', 'ChangeMin', 'ChangeML', 'ChangeMax']:
-        development_scenarios[category] = development_scenarios[category] + 1
 
     return development_scenarios
 

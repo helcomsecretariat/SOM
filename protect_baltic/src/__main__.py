@@ -22,9 +22,7 @@ def run():
         links = som_app.build_links(data)
 
         # Create cases
-        data['cases'] = som_app.build_cases(data['cases'], links)
-
-        state_ges = som_app.simulate(data, links)
+        state_ges = som_app.build_cases(links, data)
 
         print(state_ges['PR'])
     except Exception as e:
