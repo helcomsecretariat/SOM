@@ -11,18 +11,47 @@ url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
 
 import som.som_app as som_app
 from utilities import Timer, exception_traceback
+import os
+import pickle
+
+
+def save(data: object, path: str):
+    """
+    Saves the given data as a pickle object
+    """
+    with open(path, 'wb') as f:
+        pickle.dump(data, f)
+
+
+def load(path: str):
+    """
+    Loads pickle data
+    """
+    with open(path, 'rb') as f:
+        pickle.load(f)
+
 
 def run():
 
     try:
-        # Process survey data and read general input
-        data = som_app.process_input_data()
-
-        # Create links between core components
-        links = som_app.build_links(data)
-
-        # Create cases
-        data['cases'] = som_app.build_cases(data['cases'], links)
+        # check if processed input data already exists, otherwise process it
+        data_path = 'data.p'
+        links_path = 'links.p'
+        if os.path.exists(data_path) and os.path.exists(links_path):
+            print('heh')
+            # load pickled data
+            data = load(data_path)
+            links = load(links_path)
+        else:
+            # Process survey data and read general input
+            data = som_app.process_input_data()
+            # Create links between core components
+            links = som_app.build_links(data)
+            # Create cases
+            data['cases'] = som_app.build_cases(data['cases'], links)
+            # save the data as pickle objects
+            save(data, data_path)
+            save(links, links_path)
 
         state_ges = som_app.simulate(data, links)
 
