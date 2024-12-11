@@ -9,18 +9,19 @@ url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
 
 from copy import deepcopy
 
-import os
 import numpy as np
 import pandas as pd
-import toml
 
 from som.som_tools import process_measure_survey_data, process_pressure_survey_data
 from som.som_tools import read_ids, read_domain_input, read_cases, read_activity_contributions, read_overlaps, read_development_scenarios, get_pick
 from utilities import Timer, exception_traceback
 
-def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
+def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Reads in data and processes to usable form.
+
+    Arguments:
+        config (dict): dictionary loaded from configuration file
 
     Returns:
         measure_survey_df (DataFrame): contains the measure survey data of expert panels
@@ -47,17 +48,6 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
             'overlaps'
             'development_scenarios'
     """
-    #
-    # read configuration file
-    #
-    config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'configuration.toml')
-    with open(config_file, 'r') as f:
-        config = toml.load(f)
-    
-    # convert sheet name string keys to integers in config
-    config['measure_survey_sheets'] = {int(key): config['measure_survey_sheets'][key] for key in config['measure_survey_sheets']}
-    config['pressure_survey_sheets'] = {int(key): config['pressure_survey_sheets'][key] for key in config['pressure_survey_sheets']}
-
     #
     # measure survey data
     #

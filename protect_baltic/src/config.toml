@@ -1,5 +1,8 @@
 # Configuration file
 
+# load already processed input data from pickle files
+pickle = true
+
 # excel input files
 [input_files]
     general_input = 'C:/Users/camilo/Documents/SOM/protect_baltic/src/data/generalInput.xlsx'
