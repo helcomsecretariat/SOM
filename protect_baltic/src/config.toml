@@ -1,7 +1,10 @@
 # Configuration file
 
 # load already processed input data from pickle files
-pickle = true
+pickle = false
+
+# scenario used for calculations
+scenario = 'BAU'
 
 # excel input files
 [input_files]
@@ -53,3 +56,4 @@ pickle = true
 [domain_settings]
     countries_exclude = ['All countries', 'Global (non-Baltic)']
     basins_exclude = ['All basins']
+

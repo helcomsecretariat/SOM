@@ -12,8 +12,7 @@ from copy import deepcopy
 import numpy as np
 import pandas as pd
 
-from som.som_tools import process_measure_survey_data, process_pressure_survey_data
-from som.som_tools import read_ids, read_domain_input, read_cases, read_activity_contributions, read_overlaps, read_development_scenarios, get_pick
+from som.som_tools import *
 from utilities import Timer, exception_traceback
 
 def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -124,6 +123,8 @@ def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
         'development_scenarios': development_scenarios
     })
 
+    data = link_area_ids(data)
+
     return data
 
 
@@ -138,7 +139,6 @@ def build_links(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
         links (DataFrame) = Measure-Activity-Pressure-State reduction table
     """
     msdf = data['measure_effects']
-    psdf = data['pressure_contributions']
 
     # verify that there are no duplicate links
     assert len(msdf[msdf.duplicated(['measure', 'activity', 'pressure', 'state'])]) == 0
@@ -173,6 +173,14 @@ def build_links(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
             links.loc[query, 'multiplier'] = links.loc[query, 'multiplier'] * multiplier
 
     return links
+
+
+def build_scenario(data: dict[str, pd.DataFrame], scenario: str) -> pd.DataFrame:
+    """
+    Build scenario
+    """
+    act_to_press = data['activity_contributions']
+    return act_to_press
 
 
 def build_cases(cases: pd.DataFrame, links: pd.DataFrame) -> pd.DataFrame:
@@ -227,6 +235,7 @@ def simulate(data: dict[str, pd.DataFrame], links: pd.DataFrame) -> pd.DataFrame
     # TODO: add development over time here
     # so that it multiplies with the pressure change
 
+
     # TODO: for each area
     # for each pressure
     # for each measure from cases
@@ -252,7 +261,7 @@ def simulate(data: dict[str, pd.DataFrame], links: pd.DataFrame) -> pd.DataFrame
                 if m['activity'] == 0:
                     contribution = 1
                 # if activity is not in contribution list, contribution will be 0
-                mask = (data['activity_contributions']['Activity'] == m['activity']) & (data['activity_contributions']['Pressure'] == m['pressure'])
+                mask = (data['activity_contributions']['Activity'] == m['activity']) & (data['activity_contributions']['Pressure'] == m['pressure']) & (data['activity_contributions']['area_id'] == area)
                 contribution = data['activity_contributions'].loc[mask, 'value']
                 if len(contribution) == 0:
                     contribution = 0

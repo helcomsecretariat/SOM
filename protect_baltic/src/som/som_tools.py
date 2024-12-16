@@ -637,12 +637,41 @@ def read_cases(file_name: str, sheet_name: str) -> pd.DataFrame:
     return cases
 
 
+def link_area_ids(data: dict[str, pd.DataFrame]):
+    """
+    Links area ids in the area dataframe to the (basin, country) tuples of the data and updates 
+    area_id fields in the data to use actual area ids from the area dataframe.
+    """
+    # create area_id column
+    data['area']['area_id'] = None
+    for i, row in data['area'].iterrows():
+        data['area'].at[i, 'area_id'] = (row['basin'], row['country'])
+    def find_area_id(area_id):
+        new_id = data['area'].loc[data['area']['area_id'] == area_id, 'ID']
+        assert len(new_id.values) == 1
+        new_id = new_id.values[0]
+        return new_id
+    for category in data.keys():
+        if type(data[category]) == pd.DataFrame and category != 'area':
+            if 'area_id' in data[category].columns:
+                # filter out non-existent areas
+                mask = data[category]['area_id'].isin(data['area']['area_id'])
+                data[category] = data[category].loc[mask, :]
+                data[category] = data[category].reset_index(drop=True)
+                # change all other columns using area_id to use actual id
+                data[category]['area_id'] = data[category]['area_id'].apply(find_area_id)
+
+    return data
+
+
 def read_activity_contributions(file_name: str, sheet_name: str) -> pd.DataFrame:
     """
     Reads input data of activities to pressures in Baltic Sea basins. 
 
     Arguments:
-        file_name (str): name of source excel file name containing 'ActPres' sheet
+        file_name (str): name of source excel file name
+        sheet_name (str): name of excel sheet
+        areas (DataFrame): table to link countries/basins with area ids
 
     Returns:
         act_to_press (DataFrame): dataframe containing mappings between activities and pressures
@@ -650,28 +679,25 @@ def read_activity_contributions(file_name: str, sheet_name: str) -> pd.DataFrame
     act_to_press = pd.read_excel(file_name, sheet_name=sheet_name)
 
     # read all most likely, min and max column values into lists in new columns
-    for col, regex_str in zip(['expected', 'minimum', 'maximum'], ['Ml[1-6]', 'Min[1-6]', 'Max[1-6]']):
+    for col, regex_str in zip(['expected', 'minimum', 'maximum'], ['ML[1-6]', 'Min[1-6]', 'Max[1-6]']):
         act_to_press[col] = act_to_press.filter(regex=regex_str).values.tolist()
 
     # remove all most likely, min and max columns
-    for regex_str in ['Ml[1-6]', 'Min[1-6]', 'Max[1-6]']:
+    for regex_str in ['ML[1-6]', 'Min[1-6]', 'Max[1-6]']:
         act_to_press.drop(act_to_press.filter(regex=regex_str).columns, axis=1, inplace=True)
 
-    # separate basins grouped together in sheet on the same row with ';' into separate rows
-    act_to_press['Basins'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in act_to_press['Basins']]
-    act_to_press = act_to_press.explode('Basins')
-
-    # process each column
-    for category in ['Activity', 'Pressure', 'Basins']:
-        # split each id merged with ';', the column value becomes a list (unless it is already integer)
-        act_to_press[category] = [[y for y in x.split(';') if y != ''] if type(x) == str else x for x in act_to_press[category]]
-        # find empty column value lists, replace with nan
-        f = lambda x: np.nan if type(x) == list and len(x) == 0 else x
-        act_to_press[category] = [f(x) for x in act_to_press[category]]
-        # explode column lists into separate rows
+    # separate valuesgrouped together in sheet on the same row with ';' into separate rows
+    for category in ['Activity', 'Pressure', 'Basin', 'Country']:
+        act_to_press[category] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in act_to_press[category]]
         act_to_press = act_to_press.explode(category)
-        # convert non-nan values to int
-        act_to_press.loc[act_to_press[category].notna(), category] = act_to_press.loc[act_to_press[category].notna(), category].astype(int)
+        act_to_press[category] = act_to_press[category].astype(int)
+    act_to_press = act_to_press.reset_index(drop=True)
+
+    # create area_id column
+    act_to_press['area_id'] = None
+    for i, row in act_to_press.iterrows():
+        act_to_press.at[i, 'area_id'] = (row['Basin'], row['Country'])
+    act_to_press = act_to_press.drop(columns=['Basin', 'Country'])
 
     act_to_press = act_to_press.reset_index(drop=True)
 
@@ -690,9 +716,9 @@ def read_activity_contributions(file_name: str, sheet_name: str) -> pd.DataFrame
         prob_dist = get_prob_dist(expected, lower, upper, weights)
         act_to_press.at[num, 'cumulative probability'] = prob_dist
 
-    act_to_press = act_to_press.drop(columns=['expected', 'minimum', 'maximum'])
-
     act_to_press['value'] = act_to_press['cumulative probability'].apply(get_pick)
+
+    act_to_press = act_to_press.drop(columns=['expected', 'minimum', 'maximum', 'cumulative probability'])
 
     return act_to_press
 
