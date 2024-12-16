@@ -71,15 +71,6 @@ def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
     id_sheets = config['general_input_sheets']['ID']
     data = read_ids(file_name=file_name, id_sheets=id_sheets)
 
-    # read calculation domain descriptions
-    # i.e. ids for countries, basins and percentage of basin area by each country
-    file_name = config['input_files']['general_input']
-    id_sheets = config['general_input_sheets']['domain']
-    domain_data = read_domain_input(file_name=file_name, 
-                                    id_sheets = id_sheets, 
-                                    countries_exclude=config['domain_settings']['countries_exclude'], 
-                                    basins_exclude=config['domain_settings']['basins_exclude'])
-
     #
     # read case input
     #
@@ -116,7 +107,6 @@ def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
         'measure_effects': measure_effects, 
         'pressure_contributions': pressure_contributions, 
         'thresholds': thresholds, 
-        'domain': domain_data, 
         'cases': cases, 
         'activity_contributions': activity_contributions, 
         'overlaps': overlaps, 

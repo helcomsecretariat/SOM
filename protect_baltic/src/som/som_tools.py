@@ -550,54 +550,6 @@ def read_ids(file_name: str, id_sheets: dict) -> dict[str, dict]:
     return object_data
 
 
-def read_domain_input(file_name: str, id_sheets: dict, countries_exclude: list[str], basins_exclude: list[str]) -> dict[str, pd.DataFrame]:
-    """
-    Reads in calculation domain descriptions
-
-    Arguments:
-        file_name (str): source excel file name containing country, basin and country-basin sheets
-        id_sheets (dict): dict containing sheet names
-        countries_exclude (list): list of countries to exclude
-        basins_exclude (list): list of basins to exclude
-    
-    Returns:
-        domain (dict): {
-            countries_by_basins (DataFrame): area fractions of basins (column) per country (row)
-            countries (DataFrame): country ids
-            basins (DataFrame): basin ids
-        }
-    """
-    # create dicts for each category
-    domain = {}
-    for category in id_sheets:
-        # read excel sheet into dataframe
-        df = pd.read_excel(io=file_name, sheet_name=id_sheets[category])
-        # remove rows where id is nan or empty string
-        df = df.dropna(subset=['ID'])
-        df = df[df['ID'] != '']
-        # convert id column to integer (if not already)
-        df['ID'] = df['ID'].astype(int)
-        domain[category] = df
-    
-    # process data
-    for category in domain:
-        if category == 'countries_by_basins':
-            # remove excluded countries
-            domain[category] = domain[category][np.isin(domain[category]['ID'], domain['country'].index)]
-            # remove excluded basins (+ ID column)
-            domain[category] = domain[category].drop(columns=[x for x in domain[category].columns if x not in domain['basin'].index])
-        if category == 'country':
-            # remove rows to be excluded
-            domain[category] = domain[category][~np.isin(domain[category][category], countries_exclude)]
-            domain[category] = domain[category].set_index('ID')
-        if category == 'basin':
-            # remove rows to be excluded
-            domain[category] = domain[category][~np.isin(domain[category][category], basins_exclude)]
-            domain[category] = domain[category].set_index('ID')
-
-    return domain
-
-
 def read_cases(file_name: str, sheet_name: str) -> pd.DataFrame:
     """
     Reading in and processing data for cases. Each row represents one case. 
