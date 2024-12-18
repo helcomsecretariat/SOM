@@ -170,6 +170,39 @@ def build_scenario(data: dict[str, pd.DataFrame], scenario: str) -> pd.DataFrame
     Build scenario
     """
     act_to_press = data['activity_contributions']
+    dev_scen = data['development_scenarios']
+
+    # for each pressure, save the total contribution of activities for later normalization
+    actual_sum = {}
+    for pressure_id in act_to_press['Pressure'].unique():
+        actual_sum[pressure_id] = {}
+        activities = act_to_press.loc[act_to_press['Pressure'] == pressure_id, :]
+        for area in activities['area_id'].unique():
+            actual_sum[pressure_id][area] = activities.loc[activities['area_id'] == area, 'value'].sum()
+    
+    # multiply activities by scenario multiplier
+    def get_scenario(activity_id):
+        multiplier = dev_scen.loc[dev_scen['Activity'] == activity_id, scenario]
+        if len(multiplier) == 0:
+            return 1
+        multiplier = multiplier.values[0]
+        return multiplier
+    act_to_press['value'] = act_to_press['value'] * act_to_press['Activity'].apply(get_scenario)
+
+    # normalize
+    normalize_factor = {}
+    for pressure_id in act_to_press['Pressure'].unique():
+        normalize_factor[pressure_id] = {}
+        activities = act_to_press.loc[act_to_press['Pressure'] == pressure_id, :]
+        for area in activities['area_id'].unique():
+            scenario_sum = activities.loc[activities['area_id'] == area, 'value'].sum()
+            normalize_factor[pressure_id][area] = 1 + scenario_sum - actual_sum[pressure_id][area]
+
+    def normalize(value, pressure_id, area_id):
+        return value * normalize_factor[pressure_id][area_id]
+
+    act_to_press['value'] = act_to_press.apply(lambda x: normalize(x['value'], x['Pressure'], x['area_id']), axis=1)
+    
     return act_to_press
 
 

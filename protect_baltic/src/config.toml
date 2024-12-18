@@ -4,7 +4,8 @@
 pickle = false
 
 # scenario used for calculations
-scenario = 'BAU'
+use_scenario = true
+scenario = 'ChangeML'
 
 # excel input files
 [input_files]

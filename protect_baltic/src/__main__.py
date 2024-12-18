@@ -66,8 +66,9 @@ def run():
             data = som_app.process_input_data(config)
             # Create links between core components
             links = som_app.build_links(data)
-            # Update activity contributions to scenario values
-            data['activity_contributions'] = som_app.build_scenario(data, config['scenario'])
+            if config['use_scenario']:
+                # Update activity contributions to scenario values
+                data['activity_contributions'] = som_app.build_scenario(data, config['scenario'])
             # Create cases
             data['cases'] = som_app.build_cases(data['cases'], links)
             
