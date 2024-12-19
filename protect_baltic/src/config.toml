@@ -1,5 +1,8 @@
 # Configuration file
 
+# export path
+export_path = 'C:/Users/camilo/Documents/SOM/protect_baltic/src/data/results.xlsx'
+
 # load already processed input data from pickle files
 pickle = false
 

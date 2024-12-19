@@ -241,7 +241,7 @@ def build_cases(cases: pd.DataFrame, links: pd.DataFrame) -> pd.DataFrame:
     return cases
 
 
-def simulate(data: dict[str, pd.DataFrame], links: pd.DataFrame) -> pd.DataFrame:
+def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame) -> pd.DataFrame:
     """
     Simulate the reduction in activities and pressures caused by measures and 
     return the change observed in state. 
@@ -343,7 +343,13 @@ def simulate(data: dict[str, pd.DataFrame], links: pd.DataFrame) -> pd.DataFrame
             for col in cols:
                 state_ges[col].iloc[s_i, a_i] = row.loc[:, col].values[0]
 
-    return state_ges
+    data.update({
+        'pressure_change': pressure_change, 
+        'state_change': state_change, 
+        'state_ges': state_ges
+    })
+
+    return data
 
 
 #EOF

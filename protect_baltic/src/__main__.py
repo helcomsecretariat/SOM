@@ -14,6 +14,7 @@ import som.som_app as som_app
 from utilities import Timer, exception_traceback
 import os
 import pickle
+import pandas as pd
 
 
 def p_save(data: object, path: str):
@@ -77,9 +78,19 @@ def run():
             p_save(data, data_path)
             p_save(links, links_path)
 
-        state_ges = som_app.simulate(data, links)
+        data = som_app.build_changes(data, links)
 
-        print(state_ges['PR'])
+        #
+        # export results
+        #
+        filename = config['export_path']
+        if not os.path.exists(os.path.dirname(filename)):
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+        with pd.ExcelWriter(filename) as writer:
+            data['pressure_change'].to_excel(writer, sheet_name='PressureChange')
+            data['state_change'].to_excel(writer, sheet_name='StateChange')
+            data['state_ges']['PR'].to_excel(writer, sheet_name='GapGES')
+
     except Exception as e:
         exception_traceback(e)
     
