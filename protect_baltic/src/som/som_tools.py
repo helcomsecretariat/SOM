@@ -577,7 +577,7 @@ def read_cases(file_name: str, sheet_name: str) -> pd.DataFrame:
     for col in ['coverage', 'implementation']:
         cases[col] = cases[col].astype(float)
 
-    cases = cases.reset_index()
+    cases = cases.reset_index(drop=True)
 
     # create new column 'area_id' to link basins and countries, and create the unique ids
     cases['area_id'] = None

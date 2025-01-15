@@ -238,6 +238,11 @@ def build_cases(cases: pd.DataFrame, links: pd.DataFrame) -> pd.DataFrame:
 
     cases = cases.reset_index(drop=True)
 
+    # remove duplicate measures in areas, measure with highest coverage and implementation is chosen
+    cases = cases.sort_values(by=['coverage', 'implementation'], ascending=[False, False])
+    cases = cases.drop_duplicates(subset=['measure', 'activity', 'pressure', 'state', 'area_id'], keep='first')
+    cases = cases.reset_index(drop=True)
+
     return cases
 
 
@@ -255,28 +260,23 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame) -> pd.Data
     pressure_change = pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
     state_change = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
 
-    # TODO: add development over time here
-    # so that it multiplies with the pressure change
+    #
+    # pressure reductions
+    #
 
-
-    # TODO: for each area
-    # for each pressure
-    # for each measure from cases
-    # subtract activity-pressure reduction from links (multiplied with dev and press. contribution)
-
-    # go through each case individually
-    for area in areas:
+    # activity contributions
+    for area in areas: # for each area
         c = cases.loc[cases['area_id'] == area, :]  # select cases for current area
         for p_i, p in pressure_change.iterrows():
             relevant_measures = c.loc[c['pressure'] == p['ID'], :]
-            for m_i, m in relevant_measures.iterrows(): # for each case of the current pressure in the current area
+            for m_i, m in relevant_measures.iterrows(): # for each measure implementation affecting the current pressure in the current area
                 mask = (links['measure'] == m['measure']) & (links['activity'] == m['activity']) & (links['pressure'] == m['pressure']) & (links['state'] == m['state'])
-                row = links.loc[mask, :]
+                row = links.loc[mask, :]    # find the reduction of the current measure implementation
                 if len(row) == 0:
-                    continue
-                else:
-                    red = row['reduction'].values[0]
-                    multiplier = row['multiplier'].values[0]
+                    continue    # skip measure if data on the effect is not known
+                assert len(row) == 1
+                red = row['reduction'].values[0]
+                multiplier = row['multiplier'].values[0]
                 for mod in ['coverage', 'implementation']:
                     multiplier = multiplier * m[mod]
                 reduction = red * multiplier
@@ -292,11 +292,9 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame) -> pd.Data
                     contribution = contribution.values[0]
                 pressure_change.at[p_i, area] = pressure_change.at[p_i, area] - reduction * contribution
 
-    # TODO: for each area
-    # for each state
-    # for each measure from cases
-    # subtract state reduction
-    # also, subtract reduction seen in pressure multiplied with corresponding pressure contribution
+    #
+    # state reductions
+    #
 
     # straight to state measures
     for area in areas:
