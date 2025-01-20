@@ -229,7 +229,7 @@ def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> 
     #
 
     # add a new column for the probability
-    survey_df['cumulative probability'] = pd.Series([np.nan] * len(survey_df), dtype='object')
+    survey_df['probability'] = pd.Series([np.nan] * len(survey_df), dtype='object')
 
     # access expert answer columns, separate rows by type of answer
     expecteds = survey_df[expert_ids].loc[survey_df['title'] == 'expected value']
@@ -251,7 +251,7 @@ def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> 
                                   upper_boundaries=u, 
                                   weights=w)
         
-        survey_df.at[num, 'cumulative probability'] = prob_dist
+        survey_df.at[num, 'probability'] = prob_dist
 
     #
     # Remove rows and columns that are not needed anymore
@@ -656,7 +656,7 @@ def read_activity_contributions(file_name: str, sheet_name: str) -> pd.DataFrame
     act_to_press = act_to_press.reset_index(drop=True)
 
     # calculate probability distributions
-    act_to_press['cumulative probability'] = pd.Series([np.nan] * len(act_to_press), dtype='object')
+    act_to_press['probability'] = pd.Series([np.nan] * len(act_to_press), dtype='object')
     for num in act_to_press.index:
         # convert expert answers to array
         expected = np.array(list(act_to_press.loc[num, ['expected']])).flatten()
@@ -668,11 +668,11 @@ def read_activity_contributions(file_name: str, sheet_name: str) -> pd.DataFrame
         upper[np.isnan(upper)] = expected[np.isnan(upper)]
         # get probability distribution
         prob_dist = get_prob_dist(expected, lower, upper, weights)
-        act_to_press.at[num, 'cumulative probability'] = prob_dist
+        act_to_press.at[num, 'probability'] = prob_dist
 
-    act_to_press['value'] = act_to_press['cumulative probability'].apply(get_pick)
+    act_to_press['value'] = act_to_press['probability'].apply(get_pick)
 
-    act_to_press = act_to_press.drop(columns=['expected', 'minimum', 'maximum', 'cumulative probability'])
+    act_to_press = act_to_press.drop(columns=['expected', 'minimum', 'maximum', 'probability'])
 
     return act_to_press
 

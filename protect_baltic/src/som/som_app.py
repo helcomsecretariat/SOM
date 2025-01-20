@@ -137,8 +137,8 @@ def build_links(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
     links = pd.DataFrame(msdf)
 
     # get picks from cumulative distribution
-    links['reduction'] = links['cumulative probability'].apply(get_pick)
-    links = links.drop(columns=['cumulative probability'])
+    links['reduction'] = links['probability'].apply(get_pick)
+    links = links.drop(columns=['probability'])
 
     # initialize multiplier column
     links['multiplier'] = np.ones(len(msdf))
