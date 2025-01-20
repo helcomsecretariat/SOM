@@ -10,6 +10,8 @@ url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
 import numpy as np
 import pandas as pd
 import warnings     # for suppressing deprecated warnings
+import os
+import matplotlib.pyplot as plt
 
 def get_expert_ids(df: pd.DataFrame) -> list:
     '''
@@ -777,7 +779,7 @@ def get_prob_dist(expecteds: np.ndarray,
     # create a PERT distribution for each expert
     # from each distribution, draw a large number of picks
     # pool the picks together
-    number_of_picks = 200
+    number_of_picks = 5000
     picks = []
     for i in range(len(expecteds)):
         peak = expecteds[i]
@@ -792,31 +794,59 @@ def get_prob_dist(expecteds: np.ndarray,
     # return nan if no distributions (= no expert answers)
     if len(picks) == 0:
         return np.nan
-    
-    # fit picks to discrete distribution
-    # the distribution has 100 elements
-    # every element at index i represents the probability of a value below i percent
-    picks = np.array(picks)
-    disc_dist = np.zeros(shape=100)
-    for i in range(disc_dist.size):
-        disc_dist[i] = np.sum(picks < i) / picks.size
+        
+    # create final probability distribution
+    picks = np.array(picks) / 100.0   # convert percentages to fractions
+    prob_dist = get_dist_from_picks(picks)
+    cum_dist = np.cumsum(prob_dist) # cumulative distribution, not used
 
-    return disc_dist
+    return prob_dist
 
 
-def get_pick(dist) -> float:
+def get_pick(dist: np.ndarray) -> float:
+    """
+    Makes a random pick within [0, 1] weighted by the given discrete distribution.
+    """
     if dist is not None:
-        weights = np.zeros(dist.shape)
-        for i in range(1, weights.size):
-            weights[i] = dist[i] - dist[i-1]
-        pick = np.random.random() * np.sum(weights)
-        for k, val in enumerate(weights):
-            if pick < val:
-                break
-            pick -= val
+        step = 1 / (dist.size - 1)
+        a = np.arange(0, 1 + step, step)
+        pick = np.random.choice(a, p=dist)
         return pick
     else:
         return np.nan
 
+
+def get_dist_from_picks(picks: np.ndarray) -> np.ndarray:
+    """
+    Takes an array of picks and returns the probability distribution for each percentage unit. Picks need to be fractions in [0, 1].
+    """
+    picks = np.round(picks, decimals=2)
+    unique, count = np.unique(picks, return_counts=True)
+    dist = np.zeros(shape=101)  # probability distribution, each element represents a percentage from 0 - 100 %
+    # for each percentage, set its value to its frequency in the picks
+    for i in range(dist.size):
+        for k in range(unique.size):
+            if i / 100.0 == unique[k]:
+                dist[i] = count[k]
+    dist = dist / dist.sum()    # normalize frequencies to sum up to 1
+    return dist
+
+
+def plot_dist(dist):
+    """
+    Plot the given distribution
+    """
+    # plot distribution
+    y_vals = dist
+    step = 1 / y_vals.size
+    x_vals = np.arange(0, 1, step)
+    plt.plot(x_vals, y_vals)
+    # verify that get_pick works
+    picks = np.array([get_pick(dist) for i in range(5000)])
+    y_vals = get_dist_from_picks(picks)
+    step = 1 / y_vals.size
+    x_vals = np.arange(0, 1, step)
+    plt.plot(x_vals, y_vals)
+    plt.show()
 
 #EOF
