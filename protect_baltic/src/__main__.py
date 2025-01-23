@@ -15,6 +15,7 @@ from utilities import Timer, exception_traceback
 import os
 import pickle
 import pandas as pd
+import sys
 
 
 def p_save(data: object, path: str):
@@ -34,8 +35,10 @@ def p_load(path: str):
     return data
 
 
-def run():
+def run(is_test: bool = False):
+
     timer = Timer()
+    print('\nInitiating program.')
 
     #
     # read configuration file
@@ -44,12 +47,18 @@ def run():
         config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'config.toml')
         with open(config_file, 'r') as f:
             config = toml.load(f)
+            # if test_run, swap input files
+            if is_test:
+                for key in config['input_data'].keys():
+                    if key in config['test_data'].keys():
+                        config['input_data'][key] = config['test_data'][key]
         
         # convert sheet name string keys to integers in config
-        config['measure_survey_sheets'] = {int(key): config['measure_survey_sheets'][key] for key in config['measure_survey_sheets']}
-        config['pressure_survey_sheets'] = {int(key): config['pressure_survey_sheets'][key] for key in config['pressure_survey_sheets']}
-    except:
+        config['input_data']['measure_survey_sheets'] = {int(key): config['input_data']['measure_survey_sheets'][key] for key in config['input_data']['measure_survey_sheets']}
+        config['input_data']['pressure_survey_sheets'] = {int(key): config['input_data']['pressure_survey_sheets'][key] for key in config['input_data']['pressure_survey_sheets']}
+    except Exception as e:
         print('Could not load config file!')
+        exception_traceback(e)
         return
 
     #
@@ -99,5 +108,6 @@ def run():
     return
 
 if __name__ == "__main__":
-    run()
+    is_test = '-test' in sys.argv or '-t' in sys.argv
+    run(is_test=is_test)
 

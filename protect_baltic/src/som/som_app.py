@@ -51,15 +51,15 @@ def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
     # measure survey data
     #
 
-    file_name = config['input_files']['measure_effect_input']
-    measure_effects = process_measure_survey_data(file_name, config['measure_survey_sheets'])
+    file_name = config['input_data']['measure_effect_input']
+    measure_effects = process_measure_survey_data(file_name, config['input_data']['measure_survey_sheets'])
 
     #
     # pressure survey data (combined pressure contributions and GES threshold)
     #
 
-    file_name = config['input_files']['pressure_state_input']
-    pressure_contributions, thresholds = process_pressure_survey_data(file_name, config['pressure_survey_sheets'])
+    file_name = config['input_data']['pressure_state_input']
+    pressure_contributions, thresholds = process_pressure_survey_data(file_name, config['input_data']['pressure_survey_sheets'])
 
     #
     # measure / pressure / activity / state links
@@ -67,40 +67,40 @@ def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
 
     # read core object descriptions
     # i.e. ids for measures, activities, pressures and states
-    file_name = config['input_files']['general_input']
-    id_sheets = config['general_input_sheets']['ID']
+    file_name = config['input_data']['general_input']
+    id_sheets = config['input_data']['general_input_sheets']['ID']
     data = read_ids(file_name=file_name, id_sheets=id_sheets)
 
     #
     # read case input
     #
 
-    file_name = config['input_files']['general_input']
-    sheet_name = config['general_input_sheets']['case']
+    file_name = config['input_data']['general_input']
+    sheet_name = config['input_data']['general_input_sheets']['case']
     cases = read_cases(file_name=file_name, sheet_name=sheet_name)
 
     #
     # read activity contribution data
     #
 
-    file_name = config['input_files']['general_input']
-    sheet_name = config['general_input_sheets']['postprocess']
+    file_name = config['input_data']['general_input']
+    sheet_name = config['input_data']['general_input_sheets']['postprocess']
     activity_contributions = read_activity_contributions(file_name=file_name, sheet_name=sheet_name)
 
     #
     # read overlap data
     #
 
-    file_name = config['input_files']['general_input']
-    sheet_name = config['general_input_sheets']['overlaps']
+    file_name = config['input_data']['general_input']
+    sheet_name = config['input_data']['general_input_sheets']['overlaps']
     overlaps = read_overlaps(file_name=file_name, sheet_name=sheet_name)
 
     #
     # read activity development scenario data
     #
 
-    file_name = config['input_files']['general_input']
-    sheet_name = config['general_input_sheets']['development_scenarios']
+    file_name = config['input_data']['general_input']
+    sheet_name = config['input_data']['general_input_sheets']['development_scenarios']
     development_scenarios = read_development_scenarios(file_name=file_name, sheet_name=sheet_name)
 
     data.update({
@@ -264,6 +264,9 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame) -> pd.Data
     # pressure reductions
     #
 
+    # TODO: check if overlaps should be done on a per area basis
+    # TODO: make sure pressure reductions don't exceed 100 %
+
     # activity contributions
     for area in areas: # for each area
         c = cases.loc[cases['area_id'] == area, :]  # select cases for current area
@@ -290,7 +293,7 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame) -> pd.Data
                     contribution = 0
                 else:
                     contribution = contribution.values[0]
-                pressure_change.at[p_i, area] = pressure_change.at[p_i, area] - reduction * contribution
+                pressure_change.at[p_i, area] = pressure_change.at[p_i, area] * (1 - reduction * contribution)
 
     #
     # state reductions
@@ -312,7 +315,7 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame) -> pd.Data
                 for mod in ['coverage', 'implementation']:
                     multiplier = multiplier * m[mod]
                 reduction = red * multiplier
-                state_change.at[s_i, area] = state_change.at[s_i, area] - reduction
+                state_change.at[s_i, area] = state_change.at[s_i, area] * (1 - reduction)
     
     # pressure contributions
     pressure_contributions = data['pressure_contributions']
@@ -322,9 +325,9 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame) -> pd.Data
             relevant_pressures = pressure_contributions.loc[pressure_contributions['State'] == s['ID'], :]
             for p_i, p in relevant_pressures.iterrows():
                 row_i = pressure_change.loc[pressure_change['ID'] == p['pressure']].index[0]
-                reduction = pressure_change.iloc[row_i, a_i]
+                reduction = 1 - pressure_change.iloc[row_i, a_i]    # reduction = 100 % - the part that is left of the pressure
                 contribution = p['average']
-                state_change.at[s_i, area] = state_change.at[s_i, area] - contribution * reduction
+                state_change.at[s_i, area] = state_change.at[s_i, area] * (1 - reduction * contribution)
     
     # compare state reduction to GES threshold
     thresholds = data['thresholds']
@@ -340,6 +343,12 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame) -> pd.Data
                 continue
             for col in cols:
                 state_ges[col].iloc[s_i, a_i] = row.loc[:, col].values[0]
+    
+    #
+    # Next time step updates
+    #
+
+    # TODO: update activity contributions, according to which contributions that got reduced
 
     data.update({
         'pressure_change': pressure_change, 

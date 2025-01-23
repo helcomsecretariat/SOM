@@ -11,45 +11,58 @@ use_scenario = true
 scenario = 'ChangeML'
 
 # excel input files
-[input_files]
+[input_data]
     general_input = 'C:/Users/camilo/Documents/SOM/protect_baltic/src/data/generalInput.xlsx'
     measure_effect_input = 'C:/Users/camilo/Documents/SOM/protect_baltic/src/data/measureEffInput.xlsx'
     pressure_state_input = 'C:/Users/camilo/Documents/SOM/protect_baltic/src/data/pressStateInput.xlsx'
 
+    # sheet indexes and names in input files
+    # indexes are converted to integers
+    [input_data.measure_survey_sheets]
+        0 = 'MTEQ'
+        1 = 'MT_surv_Benthic'
+        2 = 'MT_surv_Birds'
+        3 = 'MT_surv_Fish'
+        4 = 'MT_surv_HZ'
+        5 = 'MT_surv_NIS'
+        6 = 'MT_surv_Noise'
+        7 = 'MT_surv_Mammals'
 
-# sheet indexes and names in input files
-# indexes are converted to integers
-[measure_survey_sheets]
-    0 = 'MTEQ'
-    1 = 'MT_surv_Benthic'
-    2 = 'MT_surv_Birds'
-    3 = 'MT_surv_Fish'
-    4 = 'MT_surv_HZ'
-    5 = 'MT_surv_NIS'
-    6 = 'MT_surv_Noise'
-    7 = 'MT_surv_Mammals'
+    [input_data.pressure_survey_sheets]
+        0 = 'PSQ'
+        1 = 'PS_surv_Benthic'
+        2 = 'PS_surv_Birds'
+        3 = 'PS_surv_Fish_Migratory'
+        4 = 'PS_surv_Fish_Coastal'
+        5 = 'PS_surv_Fish_Commercial'
+        6 = 'PS_surv_HZ'
+        7 = 'PS_surv_Mammals'
 
-[pressure_survey_sheets]
-    0 = 'PSQ'
-    1 = 'PS_surv_Benthic'
-    2 = 'PS_surv_Birds'
-    3 = 'PS_surv_Fish_Migratory'
-    4 = 'PS_surv_Fish_Coastal'
-    5 = 'PS_surv_Fish_Commercial'
-    6 = 'PS_surv_HZ'
-    7 = 'PS_surv_Mammals'
+    [input_data.general_input_sheets]
+        case = 'ActMeas'
+        postprocess = 'ActPres'
+        overlaps = 'Overlaps'
+        development_scenarios = 'DEV_scenarios'
+        [input_data.general_input_sheets.ID]
+            measure = 'Measure ID'
+            activity = 'Activity ID'
+            pressure = 'Pressure ID'
+            state = 'State ID'
+            area = 'Area ID'
+            basin = 'Basin ID'
+            country = 'Country ID'
 
-[general_input_sheets]
-    case = 'ActMeas'
-    postprocess = 'ActPres'
-    overlaps = 'Overlaps'
-    development_scenarios = 'DEV_scenarios'
-    [general_input_sheets.ID]
-        measure = 'Measure ID'
-        activity = 'Activity ID'
-        pressure = 'Pressure ID'
-        state = 'State ID'
-        area = 'Area ID'
-        basin = 'Basin ID'
-        country = 'Country ID'
+[test_data]
+    general_input = 'C:/Users/camilo/Documents/SOM/protect_baltic/src/data/exampleData.xlsx'
+    measure_effect_input = 'C:/Users/camilo/Documents/SOM/protect_baltic/src/data/exampleEffect.xlsx'
+    pressure_state_input = 'C:/Users/camilo/Documents/SOM/protect_baltic/src/data/examplePressureState.xlsx'
+
+    [test_data.measure_survey_sheets]
+        0 = 'MTEQ'
+        1 = 'MT_survey_1'
+        2 = 'MT_survey_2'
+
+    [test_data.pressure_survey_sheets]
+        0 = 'PSQ'
+        1 = 'PS_survey_1'
 
