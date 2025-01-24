@@ -282,7 +282,7 @@ def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> 
     return survey_df
 
 
-def process_pressure_survey_data(file_name: str, sheet_names: dict[int, str]) -> tuple[pd.DataFrame, pd.DataFrame]:
+def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     This method reads input from the excel file containing data about pressure contributions to states 
     and the changes in state required to reach required thresholds of improvement.
@@ -317,15 +317,14 @@ def process_pressure_survey_data(file_name: str, sheet_names: dict[int, str]) ->
     # read information sheet from input Excel file
     #
 
-    psq = pd.read_excel(io=file_name, sheet_name=sheet_names[0])
+    data = pd.read_excel(io=file_name, sheet_name=None)
+    sheet_names = list(data.keys())
+
+    psq = data[sheet_names[0]]
 
     pressure_survey_data = {}
-    for id, sheet in enumerate(sheet_names.values()):
-        # skip if information sheet
-        if id == 0:
-            continue
-        # read data sheet from input Excel file, set header to None to include top row in data
-        pressure_survey_data[id] = pd.read_excel(io=file_name, sheet_name=sheet, header=None)
+    for id in range(1, len(sheet_names)):
+        pressure_survey_data[id] = data[sheet_names[id]]
     
     #
     # preprocess values
@@ -352,10 +351,6 @@ def process_pressure_survey_data(file_name: str, sheet_names: dict[int, str]) ->
 
     # for every survey sheet
     for survey_id in pressure_survey_data:
-
-        # set first row as header
-        pressure_survey_data[survey_id].columns = pressure_survey_data[survey_id].iloc[0].values
-        pressure_survey_data[survey_id].drop(index=0, axis=0, inplace=True)
 
         # identify amount of experts in survey
         expert_ids = pressure_survey_data[survey_id]['Expert'].unique()

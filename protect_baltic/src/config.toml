@@ -28,16 +28,6 @@ scenario = 'ChangeML'
         6 = 'MT_surv_Noise'
         7 = 'MT_surv_Mammals'
 
-    [input_data.pressure_survey_sheets]
-        0 = 'PSQ'
-        1 = 'PS_surv_Benthic'
-        2 = 'PS_surv_Birds'
-        3 = 'PS_surv_Fish_Migratory'
-        4 = 'PS_surv_Fish_Coastal'
-        5 = 'PS_surv_Fish_Commercial'
-        6 = 'PS_surv_HZ'
-        7 = 'PS_surv_Mammals'
-
     [input_data.general_input_sheets]
         case = 'ActMeas'
         postprocess = 'ActPres'
@@ -61,8 +51,4 @@ scenario = 'ChangeML'
         0 = 'MTEQ'
         1 = 'MT_survey_1'
         2 = 'MT_survey_2'
-
-    [test_data.pressure_survey_sheets]
-        0 = 'PSQ'
-        1 = 'PS_survey_1'
 

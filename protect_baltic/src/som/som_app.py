@@ -59,7 +59,7 @@ def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
     #
 
     file_name = config['input_data']['pressure_state_input']
-    pressure_contributions, thresholds = process_pressure_survey_data(file_name, config['input_data']['pressure_survey_sheets'])
+    pressure_contributions, thresholds = process_pressure_survey_data(file_name)
 
     #
     # measure / pressure / activity / state links

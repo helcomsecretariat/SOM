@@ -55,7 +55,6 @@ def run(is_test: bool = False):
         
         # convert sheet name string keys to integers in config
         config['input_data']['measure_survey_sheets'] = {int(key): config['input_data']['measure_survey_sheets'][key] for key in config['input_data']['measure_survey_sheets']}
-        config['input_data']['pressure_survey_sheets'] = {int(key): config['input_data']['pressure_survey_sheets'][key] for key in config['input_data']['pressure_survey_sheets']}
     except Exception as e:
         print('Could not load config file!')
         exception_traceback(e)
