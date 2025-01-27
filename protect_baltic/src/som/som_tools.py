@@ -20,7 +20,7 @@ def get_expert_ids(df: pd.DataFrame) -> list:
     return df.filter(regex='^(100|[1-9]?[0-9])$').columns
 
 
-def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> pd.DataFrame:
+def process_measure_survey_data(file_name: str) -> pd.DataFrame:
     """
     This method reads input from the excel file containing data about measure reduction efficiencies 
     on activities, pressures and states.
@@ -41,21 +41,22 @@ def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> 
     # read information sheet from input Excel file
     #
 
-    mteq = pd.read_excel(io=file_name, sheet_name=sheet_names[0])
+    data = pd.read_excel(io=file_name, sheet_name=None, header=None)
+    sheet_names = list(data.keys())
+
+    mteq = data[sheet_names[0]]
+    mteq.columns = mteq.iloc[0].values
+    mteq = mteq[1:]
 
     measure_survey_data = {}
-    for id, sheet in enumerate(sheet_names.values()):
-        # skip if information sheet
-        if id == 0:
-            continue
-        # read data sheet from input Excel file, set header to None to include top row in data
-        measure_survey_data[id] = pd.read_excel(io=file_name, sheet_name=sheet, header=None)
+    for id in range(1, len(sheet_names)):
+        measure_survey_data[id] = data[sheet_names[id]]
     
     #
     # preprocess values
     #
 
-    mteq['State'] = [x.split(';') if type(x) == str else x for x in mteq['State']]
+    mteq.loc[:, 'State'] = [x.split(';') if type(x) == str else x for x in mteq['State']]
 
     #
     # create new dataframe
@@ -105,7 +106,7 @@ def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> 
             # in MTEQ sheet, find all expert weight columns, get the values for the current row, set empty cells to 1
             expert_cols = [True if 'exp' in col.lower() else False for col in survey_info.columns]
             expert_weights = survey_info.loc[:, expert_cols].iloc[row]
-            expert_weights.fillna(1, inplace=True)
+            expert_weights = expert_weights.astype(float).fillna(1).astype(int) # convert to float first so fillna() works without warning
             
             data = measure_survey_data[survey_id].loc[1:, start:end]    # select current question answers
             data[end+1] = expert_weights  # create column for expert weights

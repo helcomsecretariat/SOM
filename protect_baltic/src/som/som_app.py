@@ -52,7 +52,7 @@ def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
     #
 
     file_name = config['input_data']['measure_effect_input']
-    measure_effects = process_measure_survey_data(file_name, config['input_data']['measure_survey_sheets'])
+    measure_effects = process_measure_survey_data(file_name)
 
     #
     # pressure survey data (combined pressure contributions and GES threshold)

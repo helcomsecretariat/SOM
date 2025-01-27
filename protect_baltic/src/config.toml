@@ -16,18 +16,6 @@ scenario = 'ChangeML'
     measure_effect_input = 'C:/Users/camilo/Documents/SOM/protect_baltic/src/data/measureEffInput.xlsx'
     pressure_state_input = 'C:/Users/camilo/Documents/SOM/protect_baltic/src/data/pressStateInput.xlsx'
 
-    # sheet indexes and names in input files
-    # indexes are converted to integers
-    [input_data.measure_survey_sheets]
-        0 = 'MTEQ'
-        1 = 'MT_surv_Benthic'
-        2 = 'MT_surv_Birds'
-        3 = 'MT_surv_Fish'
-        4 = 'MT_surv_HZ'
-        5 = 'MT_surv_NIS'
-        6 = 'MT_surv_Noise'
-        7 = 'MT_surv_Mammals'
-
     [input_data.general_input_sheets]
         case = 'ActMeas'
         postprocess = 'ActPres'
@@ -46,9 +34,4 @@ scenario = 'ChangeML'
     general_input = 'C:/Users/camilo/Documents/SOM/protect_baltic/src/data/exampleData.xlsx'
     measure_effect_input = 'C:/Users/camilo/Documents/SOM/protect_baltic/src/data/exampleEffect.xlsx'
     pressure_state_input = 'C:/Users/camilo/Documents/SOM/protect_baltic/src/data/examplePressureState.xlsx'
-
-    [test_data.measure_survey_sheets]
-        0 = 'MTEQ'
-        1 = 'MT_survey_1'
-        2 = 'MT_survey_2'
 
