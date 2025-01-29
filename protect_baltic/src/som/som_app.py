@@ -278,6 +278,16 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
                 if contribution_sum > 1:
                     data['activity_contributions'].loc[mask, 'value'] = relevant_contributions['value'] / contribution_sum
 
+    # make sure pressure contributions don't exceed 100 %
+    for area in areas:
+        for s_i, s in total_pressure_load_levels.iterrows():
+            mask = (data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID'])
+            relevant_contributions = data['pressure_contributions'].loc[mask, :]
+            if len(relevant_contributions) > 0:
+                contribution_sum = relevant_contributions['average'].sum()
+                if contribution_sum > 1:
+                    data['pressure_contributions'].loc[mask, 'average'] = relevant_contributions['average'] / contribution_sum
+
     #
     # simulation loop
     #
@@ -293,7 +303,6 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
         #
 
         # TODO: check if overlaps should be done on a per area basis
-        # TODO: make sure pressure reductions don't exceed 100 %
 
         # activity contributions
         for area in areas: # for each area
@@ -351,16 +360,19 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
                     total_pressure_load_levels.at[s_i, area] = total_pressure_load_levels.at[s_i, area] * (1 - reduction)
         
         # pressure contributions
-        pressure_contributions = data['pressure_contributions']
         for area in areas:
             a_i = pressure_levels.columns.get_loc(area)
             for s_i, s in total_pressure_load_levels.iterrows():
-                relevant_pressures = pressure_contributions.loc[pressure_contributions['State'] == s['ID'], :]
+                relevant_pressures = data['pressure_contributions'].loc[data['pressure_contributions']['State'] == s['ID'], :]
                 for p_i, p in relevant_pressures.iterrows():
                     row_i = pressure_levels.loc[pressure_levels['ID'] == p['pressure']].index[0]
                     reduction = 1 - pressure_levels.iloc[row_i, a_i]    # reduction = 100 % - the part that is left of the pressure
                     contribution = p['average']
                     total_pressure_load_levels.at[s_i, area] = total_pressure_load_levels.at[s_i, area] * (1 - reduction * contribution)
+                    # normalize pressure contributions to reflect pressure reduction
+                    norm_mask = (data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID'])
+                    relevant_contributions = data['pressure_contributions'].loc[norm_mask, 'average']
+                    data['pressure_contributions'].loc[norm_mask, 'average'] = relevant_contributions / (1 - reduction * contribution)
         
         # compare state reduction to GES threshold
         thresholds = data['thresholds']
@@ -377,12 +389,6 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
                 for col in cols:
                     state_ges[col].iloc[s_i, a_i] = row.loc[:, col].values[0]
         
-        #
-        # Next time step updates
-        #
-
-        # TODO: update activity contributions, according to which contributions that got reduced
-
     data.update({
         'pressure_levels': pressure_levels, 
         'total_pressure_load_levels': total_pressure_load_levels, 
