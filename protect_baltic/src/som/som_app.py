@@ -246,7 +246,7 @@ def build_cases(cases: pd.DataFrame, links: pd.DataFrame) -> pd.DataFrame:
     return cases
 
 
-def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame) -> pd.DataFrame:
+def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps: int = 1) -> pd.DataFrame:
     """
     Simulate the reduction in activities and pressures caused by measures and 
     return the change observed in state. 
@@ -254,105 +254,138 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame) -> pd.Data
     cases = data['cases']
     areas = cases['area_id'].unique()
 
-    # create new dataframes for pressures and states each, one column per area_id
-    # the value of each cell is the reduction in the pressure for that area
+    # create dataframes to store changes in pressure and state, one column per area_id
     # NOTE: the DataFrames are created on one line to avoid PerformanceWarning
-    pressure_change = pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
-    state_change = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
 
-    #
-    # pressure reductions
-    #
+    # represents the amount of the pressure ('ID' column) that is left
+    # 1 = unchanged pressure, 0 = no pressure left
+    pressure_levels = pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
+    # represents the amount of the total pressure load that is left affecting the given state ('ID' column)
+    # 1 = unchanged pressure load, 0 = no pressure load left affecting the state
+    total_pressure_load_levels = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
+    # stores the change in individual pressures from activity reductions between simulation rounds
+    pressure_changes = pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(0.0)
+    # stores the change in total pressure loads from pressure reductions between simulation rounds
+    total_pressure_load_changes = pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(0.0)
 
-    # TODO: check if overlaps should be done on a per area basis
-    # TODO: make sure pressure reductions don't exceed 100 %
-
-    # activity contributions
-    for area in areas: # for each area
-        c = cases.loc[cases['area_id'] == area, :]  # select cases for current area
-        for p_i, p in pressure_change.iterrows():
-            relevant_measures = c.loc[c['pressure'] == p['ID'], :]
-            for m_i, m in relevant_measures.iterrows(): # for each measure implementation affecting the current pressure in the current area
-                mask = (links['measure'] == m['measure']) & (links['activity'] == m['activity']) & (links['pressure'] == m['pressure']) & (links['state'] == m['state'])
-                row = links.loc[mask, :]    # find the reduction of the current measure implementation
-                if len(row) == 0:
-                    continue    # skip measure if data on the effect is not known
-                assert len(row) == 1
-                red = row['reduction'].values[0]
-                multiplier = row['multiplier'].values[0]
-                for mod in ['coverage', 'implementation']:
-                    multiplier = multiplier * m[mod]
-                reduction = red * multiplier
-                # if activity is 0 (= straight to pressure), contribution will be 1
-                if m['activity'] == 0:
-                    contribution = 1
-                # if activity is not in contribution list, contribution will be 0
-                mask = (data['activity_contributions']['Activity'] == m['activity']) & (data['activity_contributions']['Pressure'] == m['pressure']) & (data['activity_contributions']['area_id'] == area)
-                contribution = data['activity_contributions'].loc[mask, 'value']
-                if len(contribution) == 0:
-                    contribution = 0
-                else:
-                    contribution = contribution.values[0]
-                pressure_change.at[p_i, area] = pressure_change.at[p_i, area] * (1 - reduction * contribution)
-
-    #
-    # state reductions
-    #
-
-    # straight to state measures
+    # make sure activity contributions don't exceed 100 % 
     for area in areas:
-        c = cases.loc[cases['area_id'] == area, :]
-        for s_i, s in state_change.iterrows():
-            relevant_measures = c.loc[c['state'] == s['ID'], :]
-            for m_i, m in relevant_measures.iterrows():
-                mask = (links['measure'] == m['measure']) & (links['activity'] == m['activity']) & (links['pressure'] == m['pressure']) & (links['state'] == m['state'])
-                row = links.loc[mask, :]
-                if len(row) == 0:
-                    continue
-                else:
+        for p_i, p in pressure_levels.iterrows():
+            mask = (data['activity_contributions']['area_id'] == area) & (data['activity_contributions']['Pressure'] == p['ID'])
+            relevant_contributions = data['activity_contributions'].loc[mask, :]
+            if len(relevant_contributions) > 0:
+                contribution_sum = relevant_contributions['value'].sum()
+                if contribution_sum > 1:
+                    data['activity_contributions'].loc[mask, 'value'] = relevant_contributions['value'] / contribution_sum
+
+    #
+    # simulation loop
+    #
+
+    for time_step in range(time_steps):
+
+        # save previous time step levels before new reductions
+        previous_pressure_levels = pressure_levels
+        previous_total_pressure_load_levels = total_pressure_load_levels
+
+        #
+        # pressure reductions
+        #
+
+        # TODO: check if overlaps should be done on a per area basis
+        # TODO: make sure pressure reductions don't exceed 100 %
+
+        # activity contributions
+        for area in areas: # for each area
+            c = cases.loc[cases['area_id'] == area, :]  # select cases for current area
+            for p_i, p in pressure_levels.iterrows():
+                relevant_measures = c.loc[c['pressure'] == p['ID'], :]
+                for m_i, m in relevant_measures.iterrows(): # for each measure implementation affecting the current pressure in the current area
+                    mask = (links['measure'] == m['measure']) & (links['activity'] == m['activity']) & (links['pressure'] == m['pressure']) & (links['state'] == m['state'])
+                    row = links.loc[mask, :]    # find the reduction of the current measure implementation
+                    if len(row) == 0:
+                        continue    # skip measure if data on the effect is not known
+                    assert len(row) == 1
                     red = row['reduction'].values[0]
                     multiplier = row['multiplier'].values[0]
-                for mod in ['coverage', 'implementation']:
-                    multiplier = multiplier * m[mod]
-                reduction = red * multiplier
-                state_change.at[s_i, area] = state_change.at[s_i, area] * (1 - reduction)
-    
-    # pressure contributions
-    pressure_contributions = data['pressure_contributions']
-    for area in areas:
-        a_i = pressure_change.columns.get_loc(area)
-        for s_i, s in state_change.iterrows():
-            relevant_pressures = pressure_contributions.loc[pressure_contributions['State'] == s['ID'], :]
-            for p_i, p in relevant_pressures.iterrows():
-                row_i = pressure_change.loc[pressure_change['ID'] == p['pressure']].index[0]
-                reduction = 1 - pressure_change.iloc[row_i, a_i]    # reduction = 100 % - the part that is left of the pressure
-                contribution = p['average']
-                state_change.at[s_i, area] = state_change.at[s_i, area] * (1 - reduction * contribution)
-    
-    # compare state reduction to GES threshold
-    thresholds = data['thresholds']
-    cols = ['PR', '10', '25', '50']
-    state_ges = {}
-    for col in cols:
-        state_ges[col] = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
-    for area in areas:
-        a_i = state_change.columns.get_loc(area)
-        for s_i, s in state_change.iterrows():
-            row = thresholds.loc[(thresholds['State'] == s['ID']) & (thresholds['area_id'] == area), cols]
-            if len(row) == 0:
-                continue
-            for col in cols:
-                state_ges[col].iloc[s_i, a_i] = row.loc[:, col].values[0]
-    
-    #
-    # Next time step updates
-    #
+                    for mod in ['coverage', 'implementation']:
+                        multiplier = multiplier * m[mod]
+                    reduction = red * multiplier
+                    # if activity is 0 (= straight to pressure), contribution will be 1
+                    if m['activity'] == 0:
+                        contribution = 1
+                    # if activity is not in contribution list, contribution will be 0
+                    mask = (data['activity_contributions']['Activity'] == m['activity']) & (data['activity_contributions']['Pressure'] == m['pressure']) & (data['activity_contributions']['area_id'] == area)
+                    contribution = data['activity_contributions'].loc[mask, 'value']
+                    if len(contribution) == 0:
+                        contribution = 0
+                    else:
+                        contribution = contribution.values[0]
+                    # reduce pressure
+                    pressure_levels.at[p_i, area] = pressure_levels.at[p_i, area] * (1 - reduction * contribution)
+                    # normalize activity contributions to reflect pressure reduction
+                    norm_mask = (data['activity_contributions']['area_id'] == area) & (data['activity_contributions']['Pressure'] == p['ID'])
+                    relevant_contributions = data['activity_contributions'].loc[norm_mask, 'value']
+                    data['activity_contributions'].loc[norm_mask, 'value'] = relevant_contributions / (1 - reduction * contribution)
 
-    # TODO: update activity contributions, according to which contributions that got reduced
+        #
+        # state reductions
+        #
+
+        # straight to state measures
+        for area in areas:
+            c = cases.loc[cases['area_id'] == area, :]
+            for s_i, s in total_pressure_load_levels.iterrows():
+                relevant_measures = c.loc[c['state'] == s['ID'], :]
+                for m_i, m in relevant_measures.iterrows():
+                    mask = (links['measure'] == m['measure']) & (links['activity'] == m['activity']) & (links['pressure'] == m['pressure']) & (links['state'] == m['state'])
+                    row = links.loc[mask, :]
+                    if len(row) == 0:
+                        continue
+                    else:
+                        red = row['reduction'].values[0]
+                        multiplier = row['multiplier'].values[0]
+                    for mod in ['coverage', 'implementation']:
+                        multiplier = multiplier * m[mod]
+                    reduction = red * multiplier
+                    total_pressure_load_levels.at[s_i, area] = total_pressure_load_levels.at[s_i, area] * (1 - reduction)
+        
+        # pressure contributions
+        pressure_contributions = data['pressure_contributions']
+        for area in areas:
+            a_i = pressure_levels.columns.get_loc(area)
+            for s_i, s in total_pressure_load_levels.iterrows():
+                relevant_pressures = pressure_contributions.loc[pressure_contributions['State'] == s['ID'], :]
+                for p_i, p in relevant_pressures.iterrows():
+                    row_i = pressure_levels.loc[pressure_levels['ID'] == p['pressure']].index[0]
+                    reduction = 1 - pressure_levels.iloc[row_i, a_i]    # reduction = 100 % - the part that is left of the pressure
+                    contribution = p['average']
+                    total_pressure_load_levels.at[s_i, area] = total_pressure_load_levels.at[s_i, area] * (1 - reduction * contribution)
+        
+        # compare state reduction to GES threshold
+        thresholds = data['thresholds']
+        cols = ['PR', '10', '25', '50']
+        state_ges = {}
+        for col in cols:
+            state_ges[col] = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
+        for area in areas:
+            a_i = total_pressure_load_levels.columns.get_loc(area)
+            for s_i, s in total_pressure_load_levels.iterrows():
+                row = thresholds.loc[(thresholds['State'] == s['ID']) & (thresholds['area_id'] == area), cols]
+                if len(row) == 0:
+                    continue
+                for col in cols:
+                    state_ges[col].iloc[s_i, a_i] = row.loc[:, col].values[0]
+        
+        #
+        # Next time step updates
+        #
+
+        # TODO: update activity contributions, according to which contributions that got reduced
 
     data.update({
-        'pressure_change': pressure_change, 
-        'state_change': state_change, 
+        'pressure_levels': pressure_levels, 
+        'total_pressure_load_levels': total_pressure_load_levels, 
         'state_ges': state_ges
     })
 
