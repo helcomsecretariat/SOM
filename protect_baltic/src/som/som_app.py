@@ -263,10 +263,6 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
     # represents the amount of the total pressure load that is left affecting the given state ('ID' column)
     # 1 = unchanged pressure load, 0 = no pressure load left affecting the state
     total_pressure_load_levels = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
-    # stores the change in individual pressures from activity reductions between simulation rounds
-    pressure_changes = pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(0.0)
-    # stores the change in total pressure loads from pressure reductions between simulation rounds
-    total_pressure_load_changes = pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(0.0)
 
     # make sure activity contributions don't exceed 100 % 
     for area in areas:
@@ -293,10 +289,6 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
     #
 
     for time_step in range(time_steps):
-
-        # save previous time step levels before new reductions
-        previous_pressure_levels = pressure_levels
-        previous_total_pressure_load_levels = total_pressure_load_levels
 
         #
         # pressure reductions
