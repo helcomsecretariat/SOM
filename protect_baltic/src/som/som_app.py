@@ -140,28 +140,6 @@ def build_links(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
     links['reduction'] = links['probability'].apply(get_pick)
     links = links.drop(columns=['probability'])
 
-    # initialize multiplier column
-    links['multiplier'] = np.ones(len(msdf))
-
-    #
-    # Overlaps (measure-measure interaction)
-    #
-
-    measure_ids = links['measure'].unique()
-    overlaps = data['overlaps']
-    for id in measure_ids:
-        rows = overlaps.loc[overlaps['Overlapping'] == id, :]
-        for i, row in rows.iterrows():
-            overlapping_id = row['Overlapping']
-            overlapped_id = row['Overlapped']
-            pressure_id = row['Pressure']
-            activity_id = row['Activity']
-            multiplier = row['Multiplier']
-            query = (links['measure'] == overlapped_id) & (links['pressure'] == pressure_id)
-            if activity_id != 0:
-                query = query & (links['activity'] == activity_id)
-            links.loc[query, 'multiplier'] = links.loc[query, 'multiplier'] * multiplier
-
     return links
 
 
@@ -294,24 +272,24 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
         # pressure reductions
         #
 
-        # TODO: check if overlaps should be done on a per area basis
-
         # activity contributions
         for area in areas: # for each area
             c = cases.loc[cases['area_id'] == area, :]  # select cases for current area
             for p_i, p in pressure_levels.iterrows():
                 relevant_measures = c.loc[c['pressure'] == p['ID'], :]
+                relevant_overlaps = data['overlaps'].loc[data['overlaps']['Pressure'] == p['ID'], :]
                 for m_i, m in relevant_measures.iterrows(): # for each measure implementation affecting the current pressure in the current area
                     mask = (links['measure'] == m['measure']) & (links['activity'] == m['activity']) & (links['pressure'] == m['pressure']) & (links['state'] == m['state'])
                     row = links.loc[mask, :]    # find the reduction of the current measure implementation
                     if len(row) == 0:
                         continue    # skip measure if data on the effect is not known
                     assert len(row) == 1
-                    red = row['reduction'].values[0]
-                    multiplier = row['multiplier'].values[0]
+                    reduction = row['reduction'].values[0]
                     for mod in ['coverage', 'implementation']:
-                        multiplier = multiplier * m[mod]
-                    reduction = red * multiplier
+                        reduction = reduction * m[mod]
+                    # overlaps (measure-measure interaction)
+                    for o_i, o in relevant_overlaps.loc[(relevant_overlaps['Overlapped'] == m['measure']) & (relevant_overlaps['Activity'] == m['activity']), :].iterrows():
+                        reduction = reduction * o['Multiplier']
                     # if activity is 0 (= straight to pressure), contribution will be 1
                     if m['activity'] == 0:
                         contribution = 1
@@ -343,12 +321,11 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
                     row = links.loc[mask, :]
                     if len(row) == 0:
                         continue
-                    else:
-                        red = row['reduction'].values[0]
-                        multiplier = row['multiplier'].values[0]
+                    reduction = row['reduction'].values[0]
                     for mod in ['coverage', 'implementation']:
-                        multiplier = multiplier * m[mod]
-                    reduction = red * multiplier
+                        reduction = reduction * m[mod]
+                    for o_i, o in relevant_overlaps.loc[(relevant_overlaps['Overlapped'] == m['measure']) & (relevant_overlaps['Activity'] == m['activity']) & (relevant_overlaps['Pressure'] == m['pressure']), :].iterrows():
+                        reduction = reduction * o['Multiplier']
                     total_pressure_load_levels.at[s_i, area] = total_pressure_load_levels.at[s_i, area] * (1 - reduction)
         
         # pressure contributions
