@@ -92,7 +92,7 @@ def run(is_test: bool = False):
         if not os.path.exists(os.path.dirname(filename)):
             os.makedirs(os.path.dirname(filename), exist_ok=True)
         with pd.ExcelWriter(filename) as writer:
-            data['pressure_levels'].to_excel(writer, sheet_name='PressureLevels')
+            data['pressure_levels'].to_excel(writer, sheet_name='PressureLevels', index=False)
             data['total_pressure_load_levels'].to_excel(writer, sheet_name='TotalPressureLoadLevels')
             data['state_ges']['PR'].to_excel(writer, sheet_name='GapGES')
 

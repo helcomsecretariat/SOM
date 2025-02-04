@@ -25,7 +25,7 @@ def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
     Returns:
         measure_survey_df (DataFrame): contains the measure survey data of expert panels
         pressure_survey_df (DataFrame): contains the pressure survey data of expert panels
-        data (dict): 
+        data (dict): container for general data dataframes
             'measure' (DataFrame):
                 'ID': unique measure identifier
                 'measure': name / description column
@@ -41,11 +41,11 @@ def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
             'measure_effects' (DataFrame): measure effects on activities / pressures / states
             'pressure_contributions' (DataFrame): pressure contributions to states
             'thresholds' (DataFrame): changes in states required to meet specific target thresholds
-            'domain'
             'cases'
             'activity_contributions'
             'overlaps'
             'development_scenarios'
+            'subpressures'
     """
     #
     # measure survey data
@@ -103,6 +103,14 @@ def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
     sheet_name = config['input_data']['general_input_sheets']['development_scenarios']
     development_scenarios = read_development_scenarios(file_name=file_name, sheet_name=sheet_name)
 
+    #
+    # read subpressures links
+    #
+
+    file_name = config['input_data']['general_input']
+    sheet_name = config['input_data']['general_input_sheets']['subpressures']
+    subpressures = read_subpressures(file_name=file_name, sheet_name=sheet_name)
+
     data.update({
         'measure_effects': measure_effects, 
         'pressure_contributions': pressure_contributions, 
@@ -110,7 +118,8 @@ def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
         'cases': cases, 
         'activity_contributions': activity_contributions, 
         'overlaps': overlaps, 
-        'development_scenarios': development_scenarios
+        'development_scenarios': development_scenarios, 
+        'subpressures': subpressures
     })
 
     data = link_area_ids(data)
@@ -328,6 +337,20 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
                         reduction = reduction * o['Multiplier']
                     total_pressure_load_levels.at[s_i, area] = total_pressure_load_levels.at[s_i, area] * (1 - reduction)
         
+        # subpressures
+        for area in areas:
+            a_i = pressure_levels.columns.get_loc(area)
+            for s_i, s in total_pressure_load_levels.iterrows():
+                relevant_subpressures = data['subpressures'].loc[data['subpressures']['State'] == s['ID'], :]
+                for p_i, p in relevant_subpressures.iterrows():   # go through each reduced pressure
+                    row_reduced = pressure_levels.loc[pressure_levels['ID'] == p['Reduced pressure']]
+                    row_reduced_i = row_reduced.index[0]
+                    reduction = 1 - pressure_levels.iloc[row_reduced_i, a_i]    # reduction = 100 % - the part that is left of the pressure
+                    row_state = pressure_levels.loc[pressure_levels['ID'] == p['State pressure']]
+                    row_state_i = row_state.index[0]
+                    multiplier = p['Multiplier']
+                    pressure_levels.at[row_state_i, area] = pressure_levels.at[row_state_i, area] * (1 - reduction * multiplier)
+
         # pressure contributions
         for area in areas:
             a_i = pressure_levels.columns.get_loc(area)

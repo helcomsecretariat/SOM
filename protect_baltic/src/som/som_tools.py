@@ -10,7 +10,6 @@ url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
 import numpy as np
 import pandas as pd
 import warnings     # for suppressing deprecated warnings
-import os
 import matplotlib.pyplot as plt
 
 def get_expert_ids(df: pd.DataFrame) -> list:
@@ -721,6 +720,40 @@ def read_overlaps(file_name: str, sheet_name: str) -> pd.DataFrame:
         overlaps[category] = overlaps[category].astype(int)
 
     return overlaps
+
+
+def read_subpressures(file_name: str, sheet_name: str) -> pd.DataFrame:
+    """
+    Reads input data of subpressures links to state pressures
+    """
+    subpressures = pd.read_excel(file_name, sheet_name=sheet_name)
+
+    for col in ['Reduced pressure', 'State pressure', 'State']:
+        # separate ids grouped together in sheet on the same row with ';' into separate rows
+        subpressures[col] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in subpressures[col]]
+        subpressures = subpressures.explode(col)
+        # change types of split values from str to int
+        subpressures[col] = subpressures[col].astype(int)
+
+    for col in subpressures.columns:
+        if col not in ['Reduced pressure', 'State pressure', 'State', 'Equivalence']:
+            subpressures = subpressures.drop(columns=[col])
+    
+    subpressures = subpressures.reset_index(drop=True)
+
+    def assign_multiplier(equivalence):
+        if equivalence <= 1:
+            return equivalence
+        elif equivalence == 2:
+            return 0
+        elif equivalence == 3:
+            return 0
+        else:
+            return 0
+
+    subpressures['Multiplier'] = subpressures['Equivalence'].apply(assign_multiplier)
+
+    return subpressures
 
 
 def pert_dist(peak, low, high, size) -> np.ndarray:
