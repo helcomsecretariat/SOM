@@ -337,19 +337,19 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
                         reduction = reduction * o['Multiplier']
                     total_pressure_load_levels.at[s_i, area] = total_pressure_load_levels.at[s_i, area] * (1 - reduction)
         
-        # subpressures
-        for area in areas:
-            a_i = pressure_levels.columns.get_loc(area)
-            for s_i, s in total_pressure_load_levels.iterrows():
-                relevant_subpressures = data['subpressures'].loc[data['subpressures']['State'] == s['ID'], :]
-                for p_i, p in relevant_subpressures.iterrows():   # go through each reduced pressure
-                    row_reduced = pressure_levels.loc[pressure_levels['ID'] == p['Reduced pressure']]
-                    row_reduced_i = row_reduced.index[0]
-                    reduction = 1 - pressure_levels.iloc[row_reduced_i, a_i]    # reduction = 100 % - the part that is left of the pressure
-                    row_state = pressure_levels.loc[pressure_levels['ID'] == p['State pressure']]
-                    row_state_i = row_state.index[0]
-                    multiplier = p['Multiplier']
-                    pressure_levels.at[row_state_i, area] = pressure_levels.at[row_state_i, area] * (1 - reduction * multiplier)
+        # # subpressures
+        # for area in areas:
+        #     a_i = pressure_levels.columns.get_loc(area)
+        #     for s_i, s in total_pressure_load_levels.iterrows():
+        #         relevant_subpressures = data['subpressures'].loc[data['subpressures']['State'] == s['ID'], :]
+        #         for p_i, p in relevant_subpressures.iterrows():   # go through each reduced pressure
+        #             row_reduced = pressure_levels.loc[pressure_levels['ID'] == p['Reduced pressure']]
+        #             row_reduced_i = row_reduced.index[0]
+        #             reduction = 1 - pressure_levels.iloc[row_reduced_i, a_i]    # reduction = 100 % - the part that is left of the pressure
+        #             row_state = pressure_levels.loc[pressure_levels['ID'] == p['State pressure']]
+        #             row_state_i = row_state.index[0]
+        #             multiplier = p['Multiplier']
+        #             pressure_levels.at[row_state_i, area] = pressure_levels.at[row_state_i, area] * (1 - reduction * multiplier)
 
         # pressure contributions
         for area in areas:
@@ -357,9 +357,18 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
             for s_i, s in total_pressure_load_levels.iterrows():
                 relevant_pressures = data['pressure_contributions'].loc[data['pressure_contributions']['State'] == s['ID'], :]
                 for p_i, p in relevant_pressures.iterrows():
+                    # main pressure reduction
                     row_i = pressure_levels.loc[pressure_levels['ID'] == p['pressure']].index[0]
                     reduction = 1 - pressure_levels.iloc[row_i, a_i]    # reduction = 100 % - the part that is left of the pressure
                     contribution = p['average']
+                    # subpressures
+                    relevant_subpressures = data['subpressures'].loc[(data['subpressures']['State'] == s['ID']) & (data['subpressures']['State pressure'] == p['pressure']), :]
+                    for sp_i, sp in relevant_subpressures.iterrows():
+                        sp_row_i = pressure_levels.loc[pressure_levels['ID'] == sp['Reduced pressure']].index[0]
+                        multiplier = sp['Multiplier']
+                        red = 1 - pressure_levels.iloc[sp_row_i, a_i]    # reduction = 100 % - the part that is left of the pressure
+                        reduction = reduction + multiplier * red
+                    assert reduction <= 1
                     total_pressure_load_levels.at[s_i, area] = total_pressure_load_levels.at[s_i, area] * (1 - reduction * contribution)
                     # normalize pressure contributions to reflect pressure reduction
                     norm_mask = (data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID'])
