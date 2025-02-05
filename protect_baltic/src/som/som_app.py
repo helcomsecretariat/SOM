@@ -369,7 +369,7 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
     # total reduction observed in total pressure loads
     for area in areas:
         for s_i, s in total_pressure_load_levels.iterrows():
-            total_pressure_load_reductions.at[s_i, area] = 1 - total_pressure_load_levels
+            total_pressure_load_reductions.at[s_i, area] = 1 - total_pressure_load_levels.at[s_i, area]
 
     # GES thresholds
     cols = ['PR', '10', '25', '50']
