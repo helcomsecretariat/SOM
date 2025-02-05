@@ -93,8 +93,9 @@ def run(is_test: bool = False):
             os.makedirs(os.path.dirname(filename), exist_ok=True)
         with pd.ExcelWriter(filename) as writer:
             data['pressure_levels'].to_excel(writer, sheet_name='PressureLevels', index=False)
-            data['total_pressure_load_levels'].to_excel(writer, sheet_name='TotalPressureLoadLevels')
-            data['state_ges']['PR'].to_excel(writer, sheet_name='GapGES')
+            data['total_pressure_load_levels'].to_excel(writer, sheet_name='TPLLevels', index=False)
+            data['total_pressure_load_reductions'].to_excel(writer, sheet_name='TPLReductions', index=False)
+            data['thresholds']['PR'].to_excel(writer, sheet_name='RequiredReductionsForGES', index=False)
 
     except Exception as e:
         exception_traceback(e)

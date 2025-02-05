@@ -251,6 +251,11 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
     # 1 = unchanged pressure load, 0 = no pressure load left affecting the state
     total_pressure_load_levels = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
 
+    # represents the reduction observed in the pressure ('ID' column)
+    pressure_reductions = pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(0.0)
+    # represents the reduction observed in the total pressure load ('ID' column)
+    total_pressure_load_reductions = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(0.0)
+
     # make sure activity contributions don't exceed 100 % 
     for area in areas:
         for p_i, p in pressure_levels.iterrows():
@@ -317,7 +322,7 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
                     data['activity_contributions'].loc[norm_mask, 'value'] = relevant_contributions / (1 - reduction * contribution)
 
         #
-        # state reductions
+        # total pressure load reductions
         #
 
         # straight to state measures
@@ -337,20 +342,6 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
                         reduction = reduction * o['Multiplier']
                     total_pressure_load_levels.at[s_i, area] = total_pressure_load_levels.at[s_i, area] * (1 - reduction)
         
-        # # subpressures
-        # for area in areas:
-        #     a_i = pressure_levels.columns.get_loc(area)
-        #     for s_i, s in total_pressure_load_levels.iterrows():
-        #         relevant_subpressures = data['subpressures'].loc[data['subpressures']['State'] == s['ID'], :]
-        #         for p_i, p in relevant_subpressures.iterrows():   # go through each reduced pressure
-        #             row_reduced = pressure_levels.loc[pressure_levels['ID'] == p['Reduced pressure']]
-        #             row_reduced_i = row_reduced.index[0]
-        #             reduction = 1 - pressure_levels.iloc[row_reduced_i, a_i]    # reduction = 100 % - the part that is left of the pressure
-        #             row_state = pressure_levels.loc[pressure_levels['ID'] == p['State pressure']]
-        #             row_state_i = row_state.index[0]
-        #             multiplier = p['Multiplier']
-        #             pressure_levels.at[row_state_i, area] = pressure_levels.at[row_state_i, area] * (1 - reduction * multiplier)
-
         # pressure contributions
         for area in areas:
             a_i = pressure_levels.columns.get_loc(area)
@@ -374,26 +365,31 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
                     norm_mask = (data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID'])
                     relevant_contributions = data['pressure_contributions'].loc[norm_mask, 'average']
                     data['pressure_contributions'].loc[norm_mask, 'average'] = relevant_contributions / (1 - reduction * contribution)
-        
-        # compare state reduction to GES threshold
-        thresholds = data['thresholds']
-        cols = ['PR', '10', '25', '50']
-        state_ges = {}
-        for col in cols:
-            state_ges[col] = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
-        for area in areas:
-            a_i = total_pressure_load_levels.columns.get_loc(area)
-            for s_i, s in total_pressure_load_levels.iterrows():
-                row = thresholds.loc[(thresholds['State'] == s['ID']) & (thresholds['area_id'] == area), cols]
-                if len(row) == 0:
-                    continue
-                for col in cols:
-                    state_ges[col].iloc[s_i, a_i] = row.loc[:, col].values[0]
-        
+    
+    # total reduction observed in total pressure loads
+    for area in areas:
+        for s_i, s in total_pressure_load_levels.iterrows():
+            total_pressure_load_reductions.at[s_i, area] = 1 - total_pressure_load_levels
+
+    # GES thresholds
+    cols = ['PR', '10', '25', '50']
+    thresholds = {}
+    for col in cols:
+        thresholds[col] = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist())
+    for area in areas:
+        a_i = total_pressure_load_levels.columns.get_loc(area)
+        for s_i, s in total_pressure_load_levels.iterrows():
+            row = data['thresholds'].loc[(data['thresholds']['State'] == s['ID']) & (data['thresholds']['area_id'] == area), cols]
+            if len(row) == 0:
+                continue
+            for col in cols:
+                thresholds[col].iloc[s_i, a_i] = row.loc[:, col].values[0]
+    
     data.update({
         'pressure_levels': pressure_levels, 
         'total_pressure_load_levels': total_pressure_load_levels, 
-        'state_ges': state_ges
+        'total_pressure_load_reductions': total_pressure_load_reductions, 
+        'thresholds': thresholds
     })
 
     return data
