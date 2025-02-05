@@ -9,38 +9,102 @@ url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
 
 # main package script
 
+import toml
 import som.som_app as som_app
 from utilities import Timer, exception_traceback
+import os
+import pickle
+import pandas as pd
+import sys
 
-def run():
 
+def p_save(data: object, path: str):
+    """
+    Saves the given data as a pickle object
+    """
+    with open(path, 'wb') as f:
+        pickle.dump(data, f)
+
+
+def p_load(path: str):
+    """
+    Loads pickle data
+    """
+    with open(path, 'rb') as f:
+        data = pickle.load(f)
+    return data
+
+
+def run(is_test: bool = False):
+
+    timer = Timer()
+    print('\nInitiating program.')
+
+    #
+    # read configuration file
+    #
     try:
-        # Process survey data and read general input
-        object_data = som_app.process_input_data()
-        measure_survey_df = object_data['measure_effects']
-        pressure_survey_df = object_data['pressure_contributions']
+        config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'config.toml')
+        with open(config_file, 'r') as f:
+            config = toml.load(f)
+            # if test_run, swap input files
+            if is_test:
+                for key in config['input_data'].keys():
+                    if key in config['test_data'].keys():
+                        config['input_data'][key] = config['test_data'][key]
+    except Exception as e:
+        print('Could not load config file!')
+        exception_traceback(e)
+        return
 
-        # Create links between core components
-        links = som_app.build_links(object_data)
+    #
+    # do stuff
+    #
+    try:
+        data_path = 'data.p'
+        links_path = 'links.p'
+        if config['pickle'] and os.path.exists(data_path) and os.path.exists(links_path):
+            # load pickled data
+            data = p_load(data_path)
+            links = p_load(links_path)
+        else:
+            # Process survey data and read general input
+            data = som_app.process_input_data(config)
+            # Create links between core components
+            links = som_app.build_links(data)
+            if config['use_scenario']:
+                # Update activity contributions to scenario values
+                data['activity_contributions'] = som_app.build_scenario(data, config['scenario'])
+            # Create cases
+            data['cases'] = som_app.build_cases(data['cases'], links)
+            
+        if config['pickle']:
+            # save the data as pickle objects
+            p_save(data, data_path)
+            p_save(links, links_path)
 
-        # Create cases
-        state_ges = som_app.build_cases(links, object_data)
+        data = som_app.build_changes(data, links)
 
-        print(state_ges['PR'])
+        #
+        # export results
+        #
+        filename = config['export_path']
+        if not os.path.exists(os.path.dirname(filename)):
+            os.makedirs(os.path.dirname(filename), exist_ok=True)
+        with pd.ExcelWriter(filename) as writer:
+            data['pressure_levels'].to_excel(writer, sheet_name='PressureLevels', index=False)
+            data['total_pressure_load_levels'].to_excel(writer, sheet_name='TPLLevels', index=False)
+            data['total_pressure_load_reductions'].to_excel(writer, sheet_name='TPLReductions', index=False)
+            data['thresholds']['PR'].to_excel(writer, sheet_name='RequiredReductionsForGES', index=False)
+
     except Exception as e:
         exception_traceback(e)
     
+    print(f'\nProgram terminated after {timer.get_hhmmss()}')
+
     return
 
-    # Build core object model and initialize core object instances
-    measure_df = som_app.build_core_object_model(measure_survey_df, pressure_survey_df, object_data)
-
-    # Build second object layer model and initialize second object layer instances
-    countrybasin_df = som_app.build_second_object_layer(measure_df=measure_df, object_data=object_data)
-
-    # Post-process object layers by setting values based on general input
-    countrybasin_df = som_app.postprocess_object_layers(countrybasin_df=countrybasin_df, object_data=object_data)
-
 if __name__ == "__main__":
-    run()
+    is_test = '-test' in sys.argv or '-t' in sys.argv
+    run(is_test=is_test)
 

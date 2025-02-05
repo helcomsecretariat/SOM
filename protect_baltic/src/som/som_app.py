@@ -9,24 +9,23 @@ url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
 
 from copy import deepcopy
 
-import os
 import numpy as np
 import pandas as pd
-import toml
 
-from som.som_tools import process_measure_survey_data, process_pressure_survey_data
-from som.som_tools import read_core_object_descriptions, read_domain_input, read_case_input, read_activity_contributions, read_overlaps, read_development_scenarios, get_pick
-from som.som_classes import Measure, Activity, Pressure, ActivityPressure, State, CountryBasin, Case
+from som.som_tools import *
 from utilities import Timer, exception_traceback
 
-def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
+def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     Reads in data and processes to usable form.
+
+    Arguments:
+        config (dict): dictionary loaded from configuration file
 
     Returns:
         measure_survey_df (DataFrame): contains the measure survey data of expert panels
         pressure_survey_df (DataFrame): contains the pressure survey data of expert panels
-        object_data (dict): 
+        data (dict): container for general data dataframes
             'measure' (DataFrame):
                 'ID': unique measure identifier
                 'measure': name / description column
@@ -42,37 +41,25 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
             'measure_effects' (DataFrame): measure effects on activities / pressures / states
             'pressure_contributions' (DataFrame): pressure contributions to states
             'thresholds' (DataFrame): changes in states required to meet specific target thresholds
-            'domain'
             'cases'
             'activity_contributions'
             'overlaps'
             'development_scenarios'
+            'subpressures'
     """
-    #
-    # read configuration file
-    #
-    config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'configuration.toml')
-    with open(config_file, 'r') as f:
-        config = toml.load(f)
-    
-    # convert sheet name string keys to integers in config
-    config['measure_survey_sheets'] = {int(key): config['measure_survey_sheets'][key] for key in config['measure_survey_sheets']}
-    config['pressure_survey_sheets'] = {int(key): config['pressure_survey_sheets'][key] for key in config['pressure_survey_sheets']}
-
     #
     # measure survey data
     #
 
-    # read survey data from excel file
-    file_name = config['input_files']['measure_effect_input']
-    measure_effects = process_measure_survey_data(file_name, config['measure_survey_sheets'])
+    file_name = config['input_data']['measure_effect_input']
+    measure_effects = process_measure_survey_data(file_name)
 
     #
     # pressure survey data (combined pressure contributions and GES threshold)
     #
 
-    file_name = config['input_files']['pressure_state_input']
-    pressure_contributions, thresholds = process_pressure_survey_data(file_name, config['pressure_survey_sheets'])
+    file_name = config['input_data']['pressure_state_input']
+    pressure_contributions, thresholds = process_pressure_survey_data(file_name)
 
     #
     # measure / pressure / activity / state links
@@ -80,417 +67,77 @@ def process_input_data() -> tuple[pd.DataFrame, pd.DataFrame]:
 
     # read core object descriptions
     # i.e. ids for measures, activities, pressures and states
-    file_name = config['input_files']['general_input']
-    id_sheets = config['general_input_sheets']['ID']
-    object_data = read_core_object_descriptions(file_name=file_name, id_sheets=id_sheets)
-
-    # read calculation domain descriptions
-    # i.e. ids for countries, basins and percentage of basin area by each country
-    file_name = config['input_files']['general_input']
-    id_sheets = config['general_input_sheets']['domain']
-    domain_data = read_domain_input(file_name=file_name, 
-                                    id_sheets = id_sheets, 
-                                    countries_exclude=config['domain_settings']['countries_exclude'], 
-                                    basins_exclude=config['domain_settings']['basins_exclude'])
+    file_name = config['input_data']['general_input']
+    id_sheets = config['input_data']['general_input_sheets']['ID']
+    data = read_ids(file_name=file_name, id_sheets=id_sheets)
 
     #
     # read case input
     #
 
-    file_name = config['input_files']['general_input']
-    sheet_name = config['general_input_sheets']['case']
-    cases = read_case_input(file_name=file_name, sheet_name=sheet_name)
+    file_name = config['input_data']['general_input']
+    sheet_name = config['input_data']['general_input_sheets']['case']
+    cases = read_cases(file_name=file_name, sheet_name=sheet_name)
 
     #
     # read activity contribution data
     #
 
-    file_name = config['input_files']['general_input']
-    sheet_name = config['general_input_sheets']['postprocess']
+    file_name = config['input_data']['general_input']
+    sheet_name = config['input_data']['general_input_sheets']['postprocess']
     activity_contributions = read_activity_contributions(file_name=file_name, sheet_name=sheet_name)
 
     #
     # read overlap data
     #
 
-    file_name = config['input_files']['general_input']
-    sheet_name = config['general_input_sheets']['overlaps']
+    file_name = config['input_data']['general_input']
+    sheet_name = config['input_data']['general_input_sheets']['overlaps']
     overlaps = read_overlaps(file_name=file_name, sheet_name=sheet_name)
 
     #
     # read activity development scenario data
     #
 
-    file_name = config['input_files']['general_input']
-    sheet_name = config['general_input_sheets']['development_scenarios']
+    file_name = config['input_data']['general_input']
+    sheet_name = config['input_data']['general_input_sheets']['development_scenarios']
     development_scenarios = read_development_scenarios(file_name=file_name, sheet_name=sheet_name)
 
-    object_data.update({
+    #
+    # read subpressures links
+    #
+
+    file_name = config['input_data']['general_input']
+    sheet_name = config['input_data']['general_input_sheets']['subpressures']
+    subpressures = read_subpressures(file_name=file_name, sheet_name=sheet_name)
+
+    data.update({
         'measure_effects': measure_effects, 
         'pressure_contributions': pressure_contributions, 
         'thresholds': thresholds, 
-        'domain': domain_data, 
         'cases': cases, 
         'activity_contributions': activity_contributions, 
         'overlaps': overlaps, 
-        'development_scenarios': development_scenarios
+        'development_scenarios': development_scenarios, 
+        'subpressures': subpressures
     })
 
-    return object_data
+    data = link_area_ids(data)
+
+    return data
 
 
-def build_core_object_model(msdf: pd.DataFrame, psdf: pd.DataFrame, object_data: dict[str, dict]) -> pd.DataFrame:
+def build_links(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """
-    Builds and initializes core object model.
+    Builds links.
 
     Arguments:
-        msdf (DataFrame): processed measure survey results
-        psdf (DataFrame): processed pressure survey results
-        object_data (dict): dictionary that contains following data: measure, activity, pressure, and state
-
-    Returns:
-        measure_df (DataFrame): 
-    """
-    # verify that there are no duplicate links
-    assert len(msdf[msdf.duplicated(['measure', 'activity', 'pressure', 'state'])]) == 0
-
-    #
-    # Create activity objects
-    #
-    activities = {}
-    activity_ids = msdf['activity'].unique()  # find unique activity ids
-    for id in activity_ids:
-        if id == 0:
-            continue    # skip 0 index activities
-        # divide id by multiplier to get actual id
-        name = object_data['activity'].loc[object_data['activity']['ID']==id]['activity'].values[0]
-        a = Activity(name=name, id=id)
-        activities.update({id: a})
-
-    #
-    # Create pressure objects
-    #
-    pressures = {}
-    pressure_ids = msdf['pressure'].unique()  # find unique pressure ids
-    for id in pressure_ids:
-        if id == 0:
-            continue    # skip 0 index pressures
-        name = object_data['pressure'].loc[object_data['pressure']['ID']==id]['pressure'].values[0]
-        p = Pressure(name=name, id=id)
-        pressures.update({id: p})
-
-    #
-    # Create state objects
-    #
-    states = {}
-    state_ids = msdf['state'].unique()  # find unique state ids
-    for id in state_ids:
-        if id == 0:
-            continue    # skip 0 index states
-        name = object_data['state'].loc[object_data['state']['ID']==id]['state'].values[0]
-        s = State(name=name, id=id)
-        states.update({id: s})
-
-    #
-    # Create measure objects
-    #
-    measures = {}
-    measure_ids = msdf['measure'].unique()     # find unique measure ids
-    for id in measure_ids:
-        if id == 0:
-            continue    # skip 0 index measures
-        name = object_data['measure'].loc[object_data['measure']['ID']==id]['measure'].values[0]
-        m = Measure(name=name, id=id)
-        measures.update({id: m})
-
-    #
-    # Create activity-pressure links
-    #
-    activitypressure_instances = {}
-    for num in msdf.index:  # for every row in the survey data
-
-        # get the ids of the row
-        measure_id = msdf['measure'].loc[num]
-        activity_id = msdf['activity'].loc[num]
-        pressure_id = msdf['pressure'].loc[num]
-        # create the link to the measure
-        if activity_id == 0 or pressure_id == 0:    # if the measure affects a state
-            state_id = msdf['state'].loc[num]
-            if state_id == 0:
-                continue    # skip 0 index states
-            measures[measure_id].add_state(states[state_id])
-        else:
-            ap = ActivityPressure(activity=activities[activity_id], pressure=pressures[pressure_id])
-            if ap.id not in list(activitypressure_instances.keys()):
-                activitypressure_instances.update({ap.id: ap})
-            # link to ap from dict, so that there is only one object being linked
-            measures[measure_id].activity_pressure = activitypressure_instances[ap.id]
-    
-        # set probability distribution
-        measures[measure_id].expected_distribution = msdf['cumulative probability'].loc[num]
-
-    # Rearrange initialized core objects in DataFrame
-    # and make linkages between core objects
-    measure_df = pd.DataFrame.from_dict({
-        'instance': measures.values()
-    })
-
-    # ID:s are calculated so that they can be tracked
-    measure_df['measure id'] = [x.id for x in measure_df['instance']]
-    measure_df['activity-pressure id'] = [x.activity_pressure.id if x.activity_pressure != None else np.nan for x in measure_df['instance']]    
-    measure_df['activity id'] = [int(x.activity_pressure.activity.id) if x.activity_pressure != None else np.nan for x in measure_df['instance']]
-    measure_df['pressure id'] = [int(x.activity_pressure.pressure.id) if x.activity_pressure != None else np.nan for x in measure_df['instance']]
-
-    # Going through core objects and setting initial values
-    # ActPres sheet values are still missing!
-
-    for num in measure_df.index:
-
-        m = measure_df.loc[num, 'instance']
-
-        # measures have activity-pressure pairs or states
-        if m.states:
-            continue
-
-        # TODO: the section below is wrong, go through Pressure and ActivityPressure classes and fix
-
-        # setting expected value first on measure instance
-        # multiplicating on activity-pressure instance based on measure instance
-        # setting pressure reduction value in pressure instance  
-        elif m.activity_pressure:
-            ap = m.activity_pressure
-            p = ap.pressure
-
-            ap.expected = ap.expected * m.effect
-            p.pressure_reduction = m.effect
-
-        else:
-            raise AttributeError("Measure instance is missing Activity-Pressure pair or State instances.")
-
-    return measure_df
-
-
-def build_second_object_layer(measure_df, object_data):
-    """
-    CountryBasins have their own set of Core objects. Core objects are trimmed to Cases
-
-    - go through each row (raw case) in ActMeas sheet
-    -> each case have basin-country combination
-    -> each case have measure that is applied to basin-country combination
-    ->fetch correct Measure instances
-    ->fetch correct CountryBasin instances
-    
-    - initialize Case objects
-    
-    -> set correct Measure instance to CountryBasin
-    -> set correct Measure instance to Case
-    -> set Case instance to CountryBasin
-
-    Note: One Measure is applied only once to one CountryBasin
-    Note: case_id = cases[ID] * 100'000'000 + measure_id
-
-    Arguments:
-        measure_df (DataFrame): contains core object instances
-        object_data (dict): dictionary that contains following data: domain
-    """
-    countries = object_data['domain']['country']
-    basins = object_data['domain']['basin']
-    countries_by_basins = object_data['domain']['countries_by_basins']
-
-    instances = {}
-
-    for country in countries['country']:
-        country_id = countries[countries['country'] == country].index[0]
-    
-        for basin in basins['basin']:
-            basin_id = basins[basins['basin'] == basin].index[0]
-       
-            basin_fraction = countries_by_basins.loc[(countries_by_basins.index == country_id), basin_id].values[0]
-
-            if basin_fraction <= 0:
-                continue
-
-            countrybasin_id = (basin_id, country_id)
-            countrybasin_name = f"{country} ({country_id}) and {basin} ({basin_id})"
-
-            cb = CountryBasin(id=countrybasin_id, name=countrybasin_name)
-            cb.basin_fraction = basin_fraction
-
-            instances.update({countrybasin_id: cb})
-
-    # Rearrange CountryBasin objects to DataFrame
-    countrybasin_df = pd.DataFrame.from_dict({
-        'instance': instances.values()
-    })
-
-    countrybasin_df['country-basin id'] = [x.id for x in countrybasin_df['instance']]
-    countrybasin_df['basin id'] = [int(x.id[0]) for x in countrybasin_df['instance']]
-    countrybasin_df['country id'] = [int(x.id[1]) for x in countrybasin_df['instance']]
-
-    cases = object_data['cases']
-    cases_num = cases.loc[:, 'ID'].unique()
-
-    linkages = object_data['linkages']
-
-    for c_num in cases_num:
-
-        # In each case there is only one measure type
-        measure_num = cases['measure'].loc[cases['ID'] == c_num].unique()[0]
-        
-        # choose measures from a dataframe
-        measures = measure_df.loc[measure_df['measure id'] == measure_num * 10000]
-
-        countrybasins = cases['area_id'].loc[cases['ID'] == c_num]
-
-        for cb_id in countrybasins.values:
-
-            # This takes out special cases that should be handle separately
-            if cb_id < 1000:
-                continue
-
-            # Skipping those countrybasin_id:s that does not exist
-            if not countrybasin_df['country-basin id'].isin([cb_id]).any():
-                continue
-
-            # Taking countrybasin instance
-            cb = countrybasin_df.loc[countrybasin_df['country-basin id'] == cb_id, 'instance']
-
-            if len(cb) > 1:
-                raise ValueError("Found more than one country-basin pair!")
-                
-            cb = cb.values[0]
-            
-            # Add measure with right activity-pressure association to list in countrybasin instance
-            # take a measure from linkages
-            # fetch relevant activities from linkages
-            # fetch relevant pressures from linkages
-                
-            # Now adds all measures with activity-pressure pairs
-
-            case_id = c_num * 10000
-            case = Case(id=case_id)
-
-            for measure in measures['instance']:
-                m_id = measure.id
-                m_num = int(m_id / 10000)
-                
-                relevants = linkages[linkages['MT'] == m_num]
-
-                a_num = relevants['Activities']
-                p_num = relevants['Pressure']
-
-                if ~a_num.isna().any() or ~p_num.isna().any():
-                    ap_id = a_num.astype(int) * 10000 + p_num.astype(int)
-                    
-                    for id in ap_id:
-
-                        if id == measure.activity_pressure.id:
-
-                            # each countrybasin have they own measure that might have different activity-pressure due to 
-                            # differences in biogeochemical or physical conditions
-                            measure_copy = deepcopy(measure)
-
-                            cb.measures = measure_copy
-                            case.measures = measure_copy
-
-            cb.cases = case
-
-    return countrybasin_df
-
-
-def postprocess_object_layers(countrybasin_df, object_data):
-    """
-    Post-process core objects based on geographical position (country-basin objects)
-
-    Arguments:
-        countrybasin_df (DataFrame): contains country-basin instances
-        object_data (dict): dictionary that contains following data: postprocessing
-    """
-
-    act_to_press = object_data['postprocessing']
-    
-    # Prepare countrybasin_df
-    # each row has individual activity-pressure pairs arranged by country-basins.
-    countrybasin_df['activity-pressure id'] = [[int(m.activity_pressure.id) for m in cb.measures] for cb in countrybasin_df['instance'].values]
-    countrybasin_df = countrybasin_df.explode('activity-pressure id')
-    countrybasin_df['activity id'] = (countrybasin_df['activity-pressure id'] / 10000).astype('int') * 10000
-    countrybasin_df['activity'] = (countrybasin_df['activity-pressure id'] / 10000).astype('int')
-    countrybasin_df['pressure'] = countrybasin_df['activity-pressure id'] - countrybasin_df['activity id']
-
-
-    # Go through all basin values in act_to_press
-    for i, basin in enumerate(act_to_press['Basins'].values):
-
-        # find activity and pressure in that act_to_press row of basin
-        activity = act_to_press['Activity'].iloc[i]
-        pressure = act_to_press['Pressure'].iloc[i]
-
-        ap_id = activity * 10000 + pressure
-
-        expected = np.array(act_to_press['expected'].iloc[i]) / 100.0
-        minimum = np.array(act_to_press['minimum'].iloc[i]) / 100.0
-        maximum = np.array(act_to_press['maximum'].iloc[i]) / 100.0
-
-        # case if applied to all basins
-        if basin == '0':
-
-            # find country-basin instances from countrybasin_df 
-            # containing correct activity-pressure pair from act_to_press
-            instances = countrybasin_df.loc[(countrybasin_df['activity'] == activity) & (countrybasin_df['pressure'] == pressure), 'instance']
-
-            # all found basin instances
-            for cb in instances:
-
-                # measures that are in the specific country-basin instances
-                for m in cb.measures:
-
-                    # if measure is linked to right activity-pressure pair, set values act_to_press
-                    if m.activity_pressure.id == ap_id:
-
-                        m.activity_pressure.expected = expected
-                        m.activity_pressure.min_expected = minimum
-                        m.activity_pressure.max_expected = maximum
-
-        # case if applied only one basin
-        else:
-
-            # find country-basin instances from countrybasin_df 
-            # containing correct activity-pressure pair from act_to_press
-            instances = countrybasin_df.loc[
-                (countrybasin_df['activity'] == activity) &
-                (countrybasin_df['pressure'] == pressure) & 
-                (countrybasin_df['basin id'] == int(basin)*1000), 'instance']
-
-            # all found basin instances
-            for cb in instances:
-                
-                # measures that are in the specific country-basin instances
-                for m in cb.measures:
-
-                    # if measure is linked to right activity-pressure pair, set values from act_to_press
-                    if m.activity_pressure.id == ap_id:
-
-                        m.activity_pressure.expected = expected
-                        m.activity_pressure.min_expected = minimum
-                        m.activity_pressure.max_expected = maximum
-
-    countrybasin_df = countrybasin_df.loc[:, ['instance', 'country-basin id', 'basin id', 'country id']].drop_duplicates()
-
-    return countrybasin_df
-
-
-def build_links(object_data: dict[str, pd.DataFrame]) -> pd.DataFrame:
-    """
-    Builds and initializes core object model.
-
-    Arguments:
-        object_data (dict):
+        data (dict):
 
     Returns:
         links (DataFrame) = Measure-Activity-Pressure-State reduction table
     """
-    msdf = object_data['measure_effects']
-    psdf = object_data['pressure_contributions']
+    msdf = data['measure_effects']
 
     # verify that there are no duplicate links
     assert len(msdf[msdf.duplicated(['measure', 'activity', 'pressure', 'state'])]) == 0
@@ -499,43 +146,57 @@ def build_links(object_data: dict[str, pd.DataFrame]) -> pd.DataFrame:
     links = pd.DataFrame(msdf)
 
     # get picks from cumulative distribution
-    links['reduction'] = links['cumulative probability'].apply(get_pick)
-    links = links.drop(columns=['cumulative probability'])
-
-    # initialize multiplier column
-    links['multiplier'] = np.ones(len(msdf))
-
-    #
-    # Overlaps (measure-measure interaction)
-    #
-
-    measure_ids = links['measure'].unique()
-    overlaps = object_data['overlaps']
-    for id in measure_ids:
-        rows = overlaps.loc[overlaps['Overlapping'] == id, :]
-        for i, row in rows.iterrows():
-            overlapping_id = row['Overlapping']
-            overlapped_id = row['Overlapped']
-            pressure_id = row['Pressure']
-            activity_id = row['Activity']
-            multiplier = row['Multiplier']
-            query = (links['measure'] == overlapped_id) & (links['pressure'] == pressure_id)
-            if activity_id != 0:
-                query = query & (links['activity'] == activity_id)
-            links.loc[query, 'multiplier'] = links.loc[query, 'multiplier'] * multiplier
+    links['reduction'] = links['probability'].apply(get_pick)
+    links = links.drop(columns=['probability'])
 
     return links
 
 
-def build_cases(links: pd.DataFrame, object_data: dict[str, pd.DataFrame]) -> pd.DataFrame:
+def build_scenario(data: dict[str, pd.DataFrame], scenario: str) -> pd.DataFrame:
+    """
+    Build scenario
+    """
+    act_to_press = data['activity_contributions']
+    dev_scen = data['development_scenarios']
+
+    # for each pressure, save the total contribution of activities for later normalization
+    actual_sum = {}
+    for pressure_id in act_to_press['Pressure'].unique():
+        actual_sum[pressure_id] = {}
+        activities = act_to_press.loc[act_to_press['Pressure'] == pressure_id, :]
+        for area in activities['area_id'].unique():
+            actual_sum[pressure_id][area] = activities.loc[activities['area_id'] == area, 'value'].sum()
+    
+    # multiply activities by scenario multiplier
+    def get_scenario(activity_id):
+        multiplier = dev_scen.loc[dev_scen['Activity'] == activity_id, scenario]
+        if len(multiplier) == 0:
+            return 1
+        multiplier = multiplier.values[0]
+        return multiplier
+    act_to_press['value'] = act_to_press['value'] * act_to_press['Activity'].apply(get_scenario)
+
+    # normalize
+    normalize_factor = {}
+    for pressure_id in act_to_press['Pressure'].unique():
+        normalize_factor[pressure_id] = {}
+        activities = act_to_press.loc[act_to_press['Pressure'] == pressure_id, :]
+        for area in activities['area_id'].unique():
+            scenario_sum = activities.loc[activities['area_id'] == area, 'value'].sum()
+            normalize_factor[pressure_id][area] = 1 + scenario_sum - actual_sum[pressure_id][area]
+
+    def normalize(value, pressure_id, area_id):
+        return value * normalize_factor[pressure_id][area_id]
+
+    act_to_press['value'] = act_to_press.apply(lambda x: normalize(x['value'], x['Pressure'], x['area_id']), axis=1)
+    
+    return act_to_press
+
+
+def build_cases(cases: pd.DataFrame, links: pd.DataFrame) -> pd.DataFrame:
     """
     Builds cases.
     """
-    
-    # identify and go through each case individually
-    cases = object_data['cases']
-    areas = cases['area_id'].unique()
-
     # replace all zeros (0) in activity / pressure / state columns with full list of values
     # filter those lists to only include relevant IDs (from links)
     # finally explode to only have single IDs per row
@@ -551,103 +212,187 @@ def build_cases(links: pd.DataFrame, object_data: dict[str, pd.DataFrame]) -> pd
             cases.at[i, col] = maps_links[col].unique().tolist() if row[col] == 0 else row[col]
     for col in cols:
         cases = cases.explode(col)
+    
+    cases = cases.reset_index(drop=True)
 
     # filter out links that don't have associated reduction
-    m = cases['activity'].isin(links['measure']).astype(int)
-    a = cases['activity'].isin(links['activity']).astype(int)
-    p = cases['pressure'].isin(links['pressure']).astype(int)
-    s = cases['state'].isin(links['state']).astype(int)
+    m = cases['measure'].isin(links['measure'])
+    a = cases['activity'].isin(links['activity'])
+    p = cases['pressure'].isin(links['pressure'])
+    s = cases['state'].isin(links['state'])
     existing_links = (m & a & p & s)
     cases = cases.loc[existing_links, :]
 
     cases = cases.reset_index(drop=True)
 
-    # create new dataframes for pressures and states each, one column per area_id
-    # the value of each cell is the reduction in the pressure for that area
+    # remove duplicate measures in areas, measure with highest coverage and implementation is chosen
+    cases = cases.sort_values(by=['coverage', 'implementation'], ascending=[False, False])
+    cases = cases.drop_duplicates(subset=['measure', 'activity', 'pressure', 'state', 'area_id'], keep='first')
+    cases = cases.reset_index(drop=True)
+
+    return cases
+
+
+def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps: int = 1) -> pd.DataFrame:
+    """
+    Simulate the reduction in activities and pressures caused by measures and 
+    return the change observed in state. 
+    """
+    cases = data['cases']
+    areas = cases['area_id'].unique()
+
+    # create dataframes to store changes in pressure and state, one column per area_id
     # NOTE: the DataFrames are created on one line to avoid PerformanceWarning
-    pressure_change = pd.DataFrame(object_data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
-    state_change = pd.DataFrame(object_data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
 
-    # TODO: add development over time here
-    # so that it multiplies with the pressure change
+    # represents the amount of the pressure ('ID' column) that is left
+    # 1 = unchanged pressure, 0 = no pressure left
+    pressure_levels = pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
+    # represents the amount of the total pressure load that is left affecting the given state ('ID' column)
+    # 1 = unchanged pressure load, 0 = no pressure load left affecting the state
+    total_pressure_load_levels = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
 
-    # TODO: for each area
-    # for each pressure
-    # for each measure from cases
-    # subtract activity-pressure reduction from links (multiplied with dev and press. contribution)
+    # represents the reduction observed in the pressure ('ID' column)
+    pressure_reductions = pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(0.0)
+    # represents the reduction observed in the total pressure load ('ID' column)
+    total_pressure_load_reductions = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(0.0)
 
-    # go through each case individually
+    # make sure activity contributions don't exceed 100 % 
     for area in areas:
-        c = cases.loc[cases['area_id'] == area, :]  # select cases for current area
-        for p_i, p in pressure_change.iterrows():
-            relevant_measures = c.loc[c['pressure'] == p['ID'], :]
-            for m_i, m in relevant_measures.iterrows():
-                mask = (links['measure'] == m['measure']) & (links['activity'] == m['activity']) & (links['pressure'] == m['pressure']) & (links['state'] == m['state'])
-                red = links.loc[mask, 'reduction'].values[0]
-                multiplier = links.loc[mask, 'multiplier'].values[0]
-                for mod in ['coverage', 'implementation']:
-                    multiplier = multiplier * m[mod]
-                reduction = red * multiplier
-                # if activity is 0 (= straight to pressure), contribution will be 1
-                if m['activity'] == 0:
-                    contribution = 1
-                # if activity is not in contribution list, contribution will be 0
-                mask = (object_data['activity_contributions']['Activity'] == m['activity']) & (object_data['activity_contributions']['Pressure'] == m['pressure'])
-                contribution = object_data['activity_contributions'].loc[mask, 'value']
-                if len(contribution) == 0:
-                    contribution = 0
-                else:
-                    contribution = contribution.values[0]
-                pressure_change.at[p_i, area] = pressure_change.at[p_i, area] - reduction * contribution
+        for p_i, p in pressure_levels.iterrows():
+            mask = (data['activity_contributions']['area_id'] == area) & (data['activity_contributions']['Pressure'] == p['ID'])
+            relevant_contributions = data['activity_contributions'].loc[mask, :]
+            if len(relevant_contributions) > 0:
+                contribution_sum = relevant_contributions['value'].sum()
+                if contribution_sum > 1:
+                    data['activity_contributions'].loc[mask, 'value'] = relevant_contributions['value'] / contribution_sum
 
-    # TODO: for each area
-    # for each state
-    # for each measure from cases
-    # subtract state reduction
-    # also, subtract reduction seen in pressure multiplied with corresponding pressure contribution
-
-    # straight to state measures
+    # make sure pressure contributions don't exceed 100 %
     for area in areas:
-        c = cases.loc[cases['area_id'] == area, :]
-        for s_i, s in state_change.iterrows():
-            relevant_measures = c.loc[c['state'] == s['ID'], :]
-            for m_i, m in relevant_measures.iterrows():
-                mask = (links['measure'] == m['measure']) & (links['activity'] == m['activity']) & (links['pressure'] == m['pressure']) & (links['state'] == m['state'])
-                red = links.loc[mask, 'reduction'].values[0]
-                multiplier = links.loc[mask, 'multiplier'].values[0]
-                for mod in ['coverage', 'implementation']:
-                    multiplier = multiplier * m[mod]
-                reduction = red * multiplier
-                state_change.at[s_i, area] = state_change.at[s_i, area] - reduction
+        for s_i, s in total_pressure_load_levels.iterrows():
+            mask = (data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID'])
+            relevant_contributions = data['pressure_contributions'].loc[mask, :]
+            if len(relevant_contributions) > 0:
+                contribution_sum = relevant_contributions['average'].sum()
+                if contribution_sum > 1:
+                    data['pressure_contributions'].loc[mask, 'average'] = relevant_contributions['average'] / contribution_sum
+
+    #
+    # simulation loop
+    #
+
+    for time_step in range(time_steps):
+
+        #
+        # pressure reductions
+        #
+
+        # activity contributions
+        for area in areas: # for each area
+            c = cases.loc[cases['area_id'] == area, :]  # select cases for current area
+            for p_i, p in pressure_levels.iterrows():
+                relevant_measures = c.loc[c['pressure'] == p['ID'], :]
+                relevant_overlaps = data['overlaps'].loc[data['overlaps']['Pressure'] == p['ID'], :]
+                for m_i, m in relevant_measures.iterrows(): # for each measure implementation affecting the current pressure in the current area
+                    mask = (links['measure'] == m['measure']) & (links['activity'] == m['activity']) & (links['pressure'] == m['pressure']) & (links['state'] == m['state'])
+                    row = links.loc[mask, :]    # find the reduction of the current measure implementation
+                    if len(row) == 0:
+                        continue    # skip measure if data on the effect is not known
+                    assert len(row) == 1
+                    reduction = row['reduction'].values[0]
+                    for mod in ['coverage', 'implementation']:
+                        reduction = reduction * m[mod]
+                    # overlaps (measure-measure interaction)
+                    for o_i, o in relevant_overlaps.loc[(relevant_overlaps['Overlapped'] == m['measure']) & (relevant_overlaps['Activity'] == m['activity']), :].iterrows():
+                        reduction = reduction * o['Multiplier']
+                    # if activity is 0 (= straight to pressure), contribution will be 1
+                    if m['activity'] == 0:
+                        contribution = 1
+                    # if activity is not in contribution list, contribution will be 0
+                    mask = (data['activity_contributions']['Activity'] == m['activity']) & (data['activity_contributions']['Pressure'] == m['pressure']) & (data['activity_contributions']['area_id'] == area)
+                    contribution = data['activity_contributions'].loc[mask, 'value']
+                    if len(contribution) == 0:
+                        contribution = 0
+                    else:
+                        contribution = contribution.values[0]
+                    # reduce pressure
+                    pressure_levels.at[p_i, area] = pressure_levels.at[p_i, area] * (1 - reduction * contribution)
+                    # normalize activity contributions to reflect pressure reduction
+                    norm_mask = (data['activity_contributions']['area_id'] == area) & (data['activity_contributions']['Pressure'] == p['ID'])
+                    relevant_contributions = data['activity_contributions'].loc[norm_mask, 'value']
+                    data['activity_contributions'].loc[norm_mask, 'value'] = relevant_contributions / (1 - reduction * contribution)
+
+        #
+        # total pressure load reductions
+        #
+
+        # straight to state measures
+        for area in areas:
+            c = cases.loc[cases['area_id'] == area, :]
+            for s_i, s in total_pressure_load_levels.iterrows():
+                relevant_measures = c.loc[c['state'] == s['ID'], :]
+                for m_i, m in relevant_measures.iterrows():
+                    mask = (links['measure'] == m['measure']) & (links['activity'] == m['activity']) & (links['pressure'] == m['pressure']) & (links['state'] == m['state'])
+                    row = links.loc[mask, :]
+                    if len(row) == 0:
+                        continue
+                    reduction = row['reduction'].values[0]
+                    for mod in ['coverage', 'implementation']:
+                        reduction = reduction * m[mod]
+                    for o_i, o in relevant_overlaps.loc[(relevant_overlaps['Overlapped'] == m['measure']) & (relevant_overlaps['Activity'] == m['activity']) & (relevant_overlaps['Pressure'] == m['pressure']), :].iterrows():
+                        reduction = reduction * o['Multiplier']
+                    total_pressure_load_levels.at[s_i, area] = total_pressure_load_levels.at[s_i, area] * (1 - reduction)
+        
+        # pressure contributions
+        for area in areas:
+            a_i = pressure_levels.columns.get_loc(area)
+            for s_i, s in total_pressure_load_levels.iterrows():
+                relevant_pressures = data['pressure_contributions'].loc[data['pressure_contributions']['State'] == s['ID'], :]
+                for p_i, p in relevant_pressures.iterrows():
+                    # main pressure reduction
+                    row_i = pressure_levels.loc[pressure_levels['ID'] == p['pressure']].index[0]
+                    reduction = 1 - pressure_levels.iloc[row_i, a_i]    # reduction = 100 % - the part that is left of the pressure
+                    contribution = p['average']
+                    # subpressures
+                    relevant_subpressures = data['subpressures'].loc[(data['subpressures']['State'] == s['ID']) & (data['subpressures']['State pressure'] == p['pressure']), :]
+                    for sp_i, sp in relevant_subpressures.iterrows():
+                        sp_row_i = pressure_levels.loc[pressure_levels['ID'] == sp['Reduced pressure']].index[0]
+                        multiplier = sp['Multiplier']
+                        red = 1 - pressure_levels.iloc[sp_row_i, a_i]    # reduction = 100 % - the part that is left of the pressure
+                        reduction = reduction + multiplier * red
+                    assert reduction <= 1
+                    total_pressure_load_levels.at[s_i, area] = total_pressure_load_levels.at[s_i, area] * (1 - reduction * contribution)
+                    # normalize pressure contributions to reflect pressure reduction
+                    norm_mask = (data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID'])
+                    relevant_contributions = data['pressure_contributions'].loc[norm_mask, 'average']
+                    data['pressure_contributions'].loc[norm_mask, 'average'] = relevant_contributions / (1 - reduction * contribution)
     
-    # pressure contributions
-    pressure_contributions = object_data['pressure_contributions']
+    # total reduction observed in total pressure loads
     for area in areas:
-        a_i = pressure_change.columns.get_loc(area)
-        for s_i, s in state_change.iterrows():
-            relevant_pressures = pressure_contributions.loc[pressure_contributions['State'] == s['ID'], :]
-            for p_i, p in relevant_pressures.iterrows():
-                row_i = pressure_change.loc[pressure_change['ID'] == p['pressure']].index[0]
-                reduction = pressure_change.iloc[row_i, a_i]
-                contribution = p['average']
-                state_change.at[s_i, area] = state_change.at[s_i, area] - contribution * reduction
-    
-    # compare state reduction to GES threshold
-    thresholds = object_data['thresholds']
+        for s_i, s in total_pressure_load_levels.iterrows():
+            total_pressure_load_reductions.at[s_i, area] = 1 - total_pressure_load_levels
+
+    # GES thresholds
     cols = ['PR', '10', '25', '50']
-    state_ges = {}
+    thresholds = {}
     for col in cols:
-        state_ges[col] = pd.DataFrame(object_data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
+        thresholds[col] = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist())
     for area in areas:
-        a_i = state_change.columns.get_loc(area)
-        for s_i, s in state_change.iterrows():
-            row = thresholds.loc[(thresholds['State'] == s['ID']) & (thresholds['area_id'] == area), cols]
+        a_i = total_pressure_load_levels.columns.get_loc(area)
+        for s_i, s in total_pressure_load_levels.iterrows():
+            row = data['thresholds'].loc[(data['thresholds']['State'] == s['ID']) & (data['thresholds']['area_id'] == area), cols]
             if len(row) == 0:
                 continue
             for col in cols:
-                state_ges[col].iloc[s_i, a_i] = row.loc[:, col].values[0]
+                thresholds[col].iloc[s_i, a_i] = row.loc[:, col].values[0]
+    
+    data.update({
+        'pressure_levels': pressure_levels, 
+        'total_pressure_load_levels': total_pressure_load_levels, 
+        'total_pressure_load_reductions': total_pressure_load_reductions, 
+        'thresholds': thresholds
+    })
 
-    return state_ges
+    return data
 
 
 #EOF

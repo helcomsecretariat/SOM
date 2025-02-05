@@ -10,6 +10,7 @@ url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
 import numpy as np
 import pandas as pd
 import warnings     # for suppressing deprecated warnings
+import matplotlib.pyplot as plt
 
 def get_expert_ids(df: pd.DataFrame) -> list:
     '''
@@ -18,7 +19,7 @@ def get_expert_ids(df: pd.DataFrame) -> list:
     return df.filter(regex='^(100|[1-9]?[0-9])$').columns
 
 
-def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> pd.DataFrame:
+def process_measure_survey_data(file_name: str) -> pd.DataFrame:
     """
     This method reads input from the excel file containing data about measure reduction efficiencies 
     on activities, pressures and states.
@@ -29,43 +30,39 @@ def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> 
 
     Returns:
         survey_df (DataFrame): processed survey data information
-            measure: measure id
-            activity: activity id
-            pressure: pressure id
-            state: state id (if defined, [nan] if no state)
-            cumulative probability: cum. prob. distribution represented as list
+            measure (int): measure id
+            activity (int): activity id
+            pressure (int): pressure id
+            state (int): state id (if defined, [nan] if no state)
+            cumulative probability (list[float]): cum. prob. distribution represented as list
     """
     #
     # read information sheet from input Excel file
     #
-    mteq = pd.read_excel(io=file_name, sheet_name=sheet_names[0])
+
+    data = pd.read_excel(io=file_name, sheet_name=None, header=None)
+    sheet_names = list(data.keys())
+
+    mteq = data[sheet_names[0]]
+    mteq.columns = mteq.iloc[0].values
+    mteq = mteq[1:]
 
     measure_survey_data = {}
-    for id, sheet in enumerate(sheet_names.values()):
-        # skip if information sheet
-        if id == 0:
-            continue
-        # read data sheet from input Excel file, set header to None to include top row in data
-        measure_survey_data[id] = pd.read_excel(io=file_name, sheet_name=sheet, header=None)
+    for id in range(1, len(sheet_names)):
+        measure_survey_data[id] = data[sheet_names[id]]
     
-    """
-    Return:
-        survey_df (DataFrame): survey data information
-            survey_id: unique id for each questionnaire / survey
-            title: type of value ('expected value' / 'variance' / 'max effectiveness' / 'expert weights')
-            block: id for each set of questions within each survey, unique across all surveys
-            measure: measure id of the question
-            activity: activity id of the question
-            pressure: pressure id of the question
-            state: state id (if defined) of the question ([nan] if no state)
-            1...n (=expert ids): answer value for each expert (NaN if no answer)
-    """
+    #
     # preprocess values
-    mteq['Direct_to_state'] = [x.split(';') if type(x) == str else x for x in mteq['Direct_to_state']]
+    #
 
+    mteq.loc[:, 'State'] = [x.split(';') if type(x) == str else x for x in mteq['State']]
+
+    #
     # create new dataframe
+    #
+
     cols = ['survey_id', 'title', 'block', 'measure', 'activity', 'pressure', 'state']
-    survey_df = pd.DataFrame(columns=cols)  # create new DataFrame
+    survey_df = pd.DataFrame(columns=cols)
 
     block_number = 0    # represents the survey block
 
@@ -77,42 +74,38 @@ def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> 
         end = 0     # represents last column index of the question set
         for row, amt in enumerate(survey_info['AMT']):  # for each set of questions (row in MTEQ)
             
-            end = end + (2 * amt + 1)     # end column for data
-            start = end - (2 * amt)     # start column for data
+            end = end + (2 * amt + 1)     # end column index for data
+            start = end - (2 * amt)     # start column index for data
             
+            # create list to describe the data on each row
             titles = ['expected value', 'variance'] * amt
             titles.append('max effectiveness')
             titles.append('expert weights')
 
-            measures = measure_survey_data[survey_id].iloc[0, start:end].tolist() # select current question column names as measure ids
-            measures.append(np.nan) # append NaN for max effectiveness (ME)
-            measures.append(np.nan )   # append NaN for expert weights
+            # select current question column names as measure ids
+            measures = measure_survey_data[survey_id].iloc[0, start:end].tolist()
+            measures.append(np.nan)
+            measures.append(np.nan)
 
-            activity_id = survey_info['Activity'].iloc[row] # select current row Activity
-            activities = [activity_id] * amt * 2
-            activities.append(np.nan)
-            activities.append(np.nan)
+            # create lists to hold ids and format each row as a list
+            ids = {}
+            for category in ['Activity', 'Pressure', 'State']:
+                category_ids = survey_info[category].iloc[row]
+                if isinstance(category_ids, str):
+                    ids[category] = [[int(x) for x in category_ids.split(';') if x != '']] * amt * 2
+                elif isinstance(category_ids, list):
+                    ids[category] = [[int(x) for x in category_ids if x != '']] * amt * 2
+                elif isinstance(category_ids, float) or isinstance(category_ids, int):
+                    ids[category] = [[category_ids if not np.isnan(category_ids) else np.nan]] * amt * 2
+                else:
+                    ids[category] = [category_ids] * amt * 2
+                ids[category].append(np.nan)
+                ids[category].append(np.nan)
 
-            pressure_id = survey_info['Pressure'].iloc[row] # select current row Pressure
-            pressures = [pressure_id] * amt * 2
-            pressures.append(np.nan)
-            pressures.append(np.nan)
-
-            direct_ids = survey_info['Direct_to_state'].iloc[row]   # select current row state
-            if isinstance(direct_ids, str):
-                directs = [[int(x) for x in direct_ids.split(';') if x != '']] * amt * 2
-            elif isinstance(direct_ids, list):
-                directs = [[int(x) for x in direct_ids if x != '']] * amt * 2
-            elif isinstance(direct_ids, float) or isinstance(direct_ids, int):
-                directs = [[direct_ids if not np.isnan(direct_ids) else np.nan]] * amt * 2
-            else:
-                directs = [direct_ids] * amt * 2
-            directs.append(np.nan)
-            directs.append(np.nan)
-
-            expert_cols = [True if 'exp' in col.lower() else False for col in survey_info.columns]  # find all expert columns
-            expert_weights = survey_info.loc[:, expert_cols].iloc[row]  # select expert weight values
-            expert_weights.fillna(1, inplace=True)  # replace NaN values in weights with ones
+            # in MTEQ sheet, find all expert weight columns, get the values for the current row, set empty cells to 1
+            expert_cols = [True if 'exp' in col.lower() else False for col in survey_info.columns]
+            expert_weights = survey_info.loc[:, expert_cols].iloc[row]
+            expert_weights = expert_weights.astype(float).fillna(1).astype(int) # convert to float first so fillna() works without warning
             
             data = measure_survey_data[survey_id].loc[1:, start:end]    # select current question answers
             data[end+1] = expert_weights  # create column for expert weights
@@ -125,9 +118,9 @@ def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> 
             data['title'] = titles
             data['block'] = [block_number] * len(data)  # new column with block_number for every row
             data['measure'] = measures
-            data['activity'] = activities
-            data['pressure'] = pressures
-            data['state'] = directs
+            data['activity'] = ids['Activity']
+            data['pressure'] = ids['Pressure']
+            data['state'] = ids['State']
 
             with warnings.catch_warnings(action='ignore'):
                 survey_df = pd.concat([survey_df, data], ignore_index=True, sort=False)
@@ -232,38 +225,11 @@ def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> 
             survey_df.loc[i, expert_ids] = row_values
 
     #
-    # Update measure and activity ids
-    #
-
-    # id_multiplier = 10000
-
-    # # multiply every measure and activity id with the multiplier
-    # survey_df['measure'] = survey_df['measure'] * id_multiplier
-    # survey_df['activity'] = survey_df['activity'] * id_multiplier
-
-    # measure_ids = survey_df['measure'].unique() # identify unique measure ids
-    # measure_ids = measure_ids[~pd.isnull(measure_ids)]  # remove null value ids
-
-    # for m_id in measure_ids:    # for every measure
-    #     measures = survey_df.loc[(survey_df['measure'] == m_id) & (survey_df['title'] == 'expected value')]   # select expected value rows for current measure
-    #     indices = measures.index.values # select indices
-        
-    #     if len(measures) > 1:   # if there are more than one row for each measure
-    #         for num, id in enumerate(measures['measure']):  # for each measure
-    #             new_id = id + (num + 1)  # the new id is the old one + the current counter + 1
-    #             index = indices[num]    # select the index of the current measure row
-    #             # set new measure id for both expected value and variance rows
-    #             survey_df.loc[index, 'measure'] = new_id
-    #             survey_df.loc[index+1, 'measure'] = new_id
-    #             survey_df.loc[index+2, 'measure'] = new_id
-    #             survey_df.loc[index+3, 'measure'] = new_id
-
-    #
     # Calculate probability distributions
     #
 
     # add a new column for the probability
-    survey_df['cumulative probability'] = pd.Series([np.nan] * len(survey_df), dtype='object')
+    survey_df['probability'] = pd.Series([np.nan] * len(survey_df), dtype='object')
 
     # access expert answer columns, separate rows by type of answer
     expecteds = survey_df[expert_ids].loc[survey_df['title'] == 'expected value']
@@ -285,7 +251,7 @@ def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> 
                                   upper_boundaries=u, 
                                   weights=w)
         
-        survey_df.at[num, 'cumulative probability'] = prob_dist
+        survey_df.at[num, 'probability'] = prob_dist
 
     #
     # Remove rows and columns that are not needed anymore
@@ -297,11 +263,12 @@ def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> 
     survey_df = survey_df.drop(columns=['survey_id', 'title', 'block'])
 
     #
-    # Split states into separate rows, and finally reset index
+    # Split activity / pressure / state lists into separate rows, and reset index
     #
 
-    survey_df = survey_df.explode(column='state')
-    survey_df = survey_df.reset_index(drop=True)
+    for col in ['activity', 'pressure', 'state']:
+        survey_df = survey_df.explode(column=col)
+        survey_df = survey_df.reset_index(drop=True)
 
     #
     # Replace nan values with zeros and convert columns to integers
@@ -315,7 +282,7 @@ def process_measure_survey_data(file_name: str, sheet_names: dict[int, str]) -> 
     return survey_df
 
 
-def process_pressure_survey_data(file_name: str, sheet_names: dict[int, str]) -> tuple[pd.DataFrame, pd.DataFrame]:
+def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     This method reads input from the excel file containing data about pressure contributions to states 
     and the changes in state required to reach required thresholds of improvement.
@@ -340,42 +307,50 @@ def process_pressure_survey_data(file_name: str, sheet_names: dict[int, str]) ->
             50: reduction in state required to reach 50 % improvement
     """
     #
+    # set parameter values
+    #
+
+    expert_number = 6   # max number of experts per question
+    threshold_cols = ['PR', '10', '25', '50']   # target thresholds (PR=GES)
+
+    #
     # read information sheet from input Excel file
     #
 
-    psq = pd.read_excel(io=file_name, sheet_name=sheet_names[0])
+    data = pd.read_excel(io=file_name, sheet_name=None)
+    sheet_names = list(data.keys())
+
+    psq = data[sheet_names[0]]
 
     pressure_survey_data = {}
-    for id, sheet in enumerate(sheet_names.values()):
-        # skip if information sheet
-        if id == 0:
-            continue
-        # read data sheet from input Excel file, set header to None to include top row in data
-        pressure_survey_data[id] = pd.read_excel(io=file_name, sheet_name=sheet, header=None)
+    for id in range(1, len(sheet_names)):
+        pressure_survey_data[id] = data[sheet_names[id]]
     
+    #
     # preprocess values
+    #
+
     psq['Basins'] = [x.split(';') if type(x) == str else x for x in psq['Basins']]
     psq['Countries'] = [x.split(';') if type(x) == str else x for x in psq['Countries']]
 
     # add question id column
     psq['question_id'] = list(range(len(psq)))
 
+    #
     # create new dataframe
+    #
+
     survey_df = pd.DataFrame(columns=['survey_id', 'question_id', 'State', 'Basins', 'Countries', 'GES known', 'Weight'])
     
     # survey columns from which to take data
     cols = ['Expert']
-    cols += [x + str(i+1) for x in ['P', 'S'] for i in range(6)]    # up to 6 different pressures related to state, and their significance
-    cols += [x + y for x in ['MIN', 'MAX', 'ML'] for y in ['PR', '10', '25', '50']]     # required pressure reduction to reach GES (if known) or X % improvement in state
+    cols += [x + str(i+1) for x in ['P', 'S'] for i in range(expert_number)]    # up to expert_number different pressures related to state, and their significance
+    cols += [x + y for x in ['MIN', 'MAX', 'ML'] for y in threshold_cols]     # required pressure reduction to reach GES (if known) or X % improvement in state
 
     start = 0    # keep track of where to access data in psq
 
     # for every survey sheet
     for survey_id in pressure_survey_data:
-
-        # set first row as header
-        pressure_survey_data[survey_id].columns = pressure_survey_data[survey_id].iloc[0].values
-        pressure_survey_data[survey_id].drop(index=0, axis=0, inplace=True)
 
         # identify amount of experts in survey
         expert_ids = pressure_survey_data[survey_id]['Expert'].unique()
@@ -425,22 +400,10 @@ def process_pressure_survey_data(file_name: str, sheet_names: dict[int, str]) ->
 
         # increase counter
         start += questions
-    
-    # survey_df (DataFrame): survey data information
-    #     survey_id: unique id for each questionnaire / survey
-    #     question_id: unique id for each question across questionnaires
-    #     State: state id
-    #     Basins: basin id
-    #     GES known: 0 or 1, is the GES threshold known
-    #     Weight: amount of experts participating in answer
-    #     Expert: expert id
-    #     PX: pressure id of pressure X
-    #     SX: significance of pressure X
-    #     MIN, MAX, ML: minimum, maximum, most likely pressure reduction required to reach GES, 10, 25 and 50 % improvement
 
     # create new dataframe for merged rows
     cols = ['survey_id', 'question_id', 'State', 'Basins', 'Countries', 'GES known']
-    new_df = pd.DataFrame(columns=cols+['Pressures', 'Averages', 'Uncertainties']+['PR', '10', '25', '50'])
+    new_df = pd.DataFrame(columns=cols+['Pressures', 'Averages', 'Uncertainties']+threshold_cols)
     # remove empty elements from Basins and Countries, and convert ids to integers
     survey_df['Basins'] = survey_df['Basins'].apply(lambda x: [int(basin) for basin in x if basin != ''])
     survey_df['Countries'] = survey_df['Countries'].apply(lambda x: [int(country) for country in x if country != ''])
@@ -454,8 +417,8 @@ def process_pressure_survey_data(file_name: str, sheet_names: dict[int, str]) ->
         # pressure contributions and uncertainties
         #
         # select pressures and significances, and find non nan values
-        pressures = data[['P'+str(x+1) for x in range(6)]].to_numpy().astype(float)
-        significances = data[['S'+str(x+1) for x in range(6)]].to_numpy().astype(float)
+        pressures = data[['P'+str(x+1) for x in range(expert_number)]].to_numpy().astype(float)
+        significances = data[['S'+str(x+1) for x in range(expert_number)]].to_numpy().astype(float)
         mask = ~np.isnan(pressures)
         # weigh significancs by amount of participating experts
         w = data[['Weight']].to_numpy().astype(float)
@@ -487,7 +450,7 @@ def process_pressure_survey_data(file_name: str, sheet_names: dict[int, str]) ->
         # probability distributions for pressure reductions
         #
         reductions = {}
-        for r in ['PR', '10', '25', '50']:
+        for r in threshold_cols:
             # get min, max and ml data
             r_min = data['MIN'+r].to_numpy().astype(float)
             r_max = data['MAX'+r].to_numpy().astype(float)
@@ -502,21 +465,21 @@ def process_pressure_survey_data(file_name: str, sheet_names: dict[int, str]) ->
         data = survey_df[cols].loc[survey_df['question_id'] == question].reset_index(drop=True).iloc[0]
         data = pd.DataFrame([data])
         # initialize new columns
-        for c in ['Pressures', 'Averages', 'Uncertainties']+['PR', '10', '25', '50']:
+        for c in ['Pressures', 'Averages', 'Uncertainties']+threshold_cols:
             data[c] = np.nan
             data[c] = data[c].astype(object)
         # change data type to allow for lists
         data.at[0, 'Pressures'] = pressures
         data.at[0, 'Averages'] = average
         data.at[0, 'Uncertainties'] = stddev
-        for r in ['PR', '10', '25', '50']:
+        for r in threshold_cols:
             data.at[0, r] = reductions[r]
         with warnings.catch_warnings(action='ignore'):
             new_df = pd.concat([new_df, data], ignore_index=True, sort=False)
     #
     # get probability from distribution for each of the thresholds
     #
-    for col in ['PR', '10', '25', '50']:
+    for col in threshold_cols:
         new_df[col] = new_df[col].apply(lambda x: get_pick(x) if not np.any(np.isnan(x)) else np.nan)
     #
     # explode basin and country columns and create area_id
@@ -539,9 +502,8 @@ def process_pressure_survey_data(file_name: str, sheet_names: dict[int, str]) ->
     #
     # remove rows with missing data (no pressure or no thresholds)
     #
-    new_df = new_df.loc[~new_df['pressure'].isna(), :]
-    mask = (new_df['PR'].isna()) & (new_df['10'].isna()) & (new_df['25'].isna()) & (new_df['50'].isna())
-    new_df = new_df.loc[~mask, :]
+    new_df = new_df.loc[new_df['pressure'].notna(), :]
+    new_df = new_df[new_df[threshold_cols].notna().any(axis=1)]
     new_df = new_df.reset_index(drop=True)
     #
     # make sure pressure ids are integers, remove unnecessary columns
@@ -552,12 +514,12 @@ def process_pressure_survey_data(file_name: str, sheet_names: dict[int, str]) ->
     # split new_df into two dataframes, one for pressure contributions and one for thresholds
     #
     pressure_contributions = pd.DataFrame(new_df.loc[:, ['State', 'pressure', 'area_id', 'average', 'uncertainty']])
-    thresholds = pd.DataFrame(new_df.loc[:, ['State', 'area_id', 'PR', '10', '25', '50']]).drop_duplicates(subset=['State', 'area_id'], keep='first').reset_index(drop=True)
+    thresholds = pd.DataFrame(new_df.loc[:, ['State', 'area_id'] + threshold_cols]).drop_duplicates(subset=['State', 'area_id'], keep='first').reset_index(drop=True)
 
     return pressure_contributions, thresholds
 
 
-def read_core_object_descriptions(file_name: str, id_sheets: dict) -> dict[str, dict]:
+def read_ids(file_name: str, id_sheets: dict) -> dict[str, dict]:
     """
     Reads in model object descriptions from general input files
 
@@ -566,7 +528,7 @@ def read_core_object_descriptions(file_name: str, id_sheets: dict) -> dict[str, 
         id_sheets (dict): should have structure {'measure': sheet_name, 'activity': sheet_name, ...}
 
     Returns:
-        object_data (dict): dictionary containing measure, activity, pressure and state ids and descriptions in separate sub-dictionaries
+        object_data (dict): dictionary containing measure, activity, pressure and state ids and descriptions in separate dataframes
     """
     # create dicts for each category
     object_data = {}
@@ -582,63 +544,10 @@ def read_core_object_descriptions(file_name: str, id_sheets: dict) -> dict[str, 
         df['ID'] = df['ID'].astype(int)
         object_data[category] = df
         
-        # # convert to dict
-        # obj_dict = {}
-        # [obj_dict.update({id: name}) if isinstance(name, str) else obj_dict.update({id: None}) for id, name in zip(df['ID'], df[category])]
-        # object_data[category] = obj_dict
-
     return object_data
 
 
-def read_domain_input(file_name: str, id_sheets: dict, countries_exclude: list[str], basins_exclude: list[str]) -> dict[str, pd.DataFrame]:
-    """
-    Reads in calculation domain descriptions
-
-    Arguments:
-        file_name (str): source excel file name containing country, basin and country-basin sheets
-        id_sheets (dict): dict containing sheet names
-        countries_exclude (list): list of countries to exclude
-        basins_exclude (list): list of basins to exclude
-    
-    Returns:
-        domain (dict): {
-            countries_by_basins (DataFrame): area fractions of basins (column) per country (row)
-            countries (DataFrame): country ids
-            basins (DataFrame): basin ids
-        }
-    """
-    # create dicts for each category
-    domain = {}
-    for category in id_sheets:
-        # read excel sheet into dataframe
-        df = pd.read_excel(io=file_name, sheet_name=id_sheets[category])
-        # remove rows where id is nan or empty string
-        df = df.dropna(subset=['ID'])
-        df = df[df['ID'] != '']
-        # convert id column to integer (if not already)
-        df['ID'] = df['ID'].astype(int)
-        domain[category] = df
-    
-    # process data
-    for category in domain:
-        if category == 'countries_by_basins':
-            # remove excluded countries
-            domain[category] = domain[category][np.isin(domain[category]['ID'], domain['country'].index)]
-            # remove excluded basins (+ ID column)
-            domain[category] = domain[category].drop(columns=[x for x in domain[category].columns if x not in domain['basin'].index])
-        if category == 'country':
-            # remove rows to be excluded
-            domain[category] = domain[category][~np.isin(domain[category][category], countries_exclude)]
-            domain[category] = domain[category].set_index('ID')
-        if category == 'basin':
-            # remove rows to be excluded
-            domain[category] = domain[category][~np.isin(domain[category][category], basins_exclude)]
-            domain[category] = domain[category].set_index('ID')
-
-    return domain
-
-
-def read_case_input(file_name: str, sheet_name: str) -> pd.DataFrame:
+def read_cases(file_name: str, sheet_name: str) -> pd.DataFrame:
     """
     Reading in and processing data for cases. Each row represents one case. 
     
@@ -665,14 +574,43 @@ def read_case_input(file_name: str, sheet_name: str) -> pd.DataFrame:
     for col in ['coverage', 'implementation']:
         cases[col] = cases[col].astype(float)
 
-    cases = cases.reset_index()
+    cases = cases.reset_index(drop=True)
 
     # create new column 'area_id' to link basins and countries, and create the unique ids
     cases['area_id'] = None
     for i, row in cases.iterrows():
         cases.at[i, 'area_id'] = (row['basin'], row['country'])
+    
+    cases = cases.drop(columns=['basin', 'country'])
 
     return cases
+
+
+def link_area_ids(data: dict[str, pd.DataFrame]):
+    """
+    Links area ids in the area dataframe to the (basin, country) tuples of the data and updates 
+    area_id fields in the data to use actual area ids from the area dataframe.
+    """
+    # create area_id column
+    data['area']['area_id'] = None
+    for i, row in data['area'].iterrows():
+        data['area'].at[i, 'area_id'] = (row['basin'], row['country'])
+    def find_area_id(area_id):
+        new_id = data['area'].loc[data['area']['area_id'] == area_id, 'ID']
+        assert len(new_id.values) == 1
+        new_id = new_id.values[0]
+        return new_id
+    for category in data.keys():
+        if type(data[category]) == pd.DataFrame and category != 'area':
+            if 'area_id' in data[category].columns:
+                # filter out non-existent areas
+                mask = data[category]['area_id'].isin(data['area']['area_id'])
+                data[category] = data[category].loc[mask, :]
+                data[category] = data[category].reset_index(drop=True)
+                # change all other columns using area_id to use actual id
+                data[category]['area_id'] = data[category]['area_id'].apply(find_area_id)
+
+    return data
 
 
 def read_activity_contributions(file_name: str, sheet_name: str) -> pd.DataFrame:
@@ -680,7 +618,9 @@ def read_activity_contributions(file_name: str, sheet_name: str) -> pd.DataFrame
     Reads input data of activities to pressures in Baltic Sea basins. 
 
     Arguments:
-        file_name (str): name of source excel file name containing 'ActPres' sheet
+        file_name (str): name of source excel file name
+        sheet_name (str): name of excel sheet
+        areas (DataFrame): table to link countries/basins with area ids
 
     Returns:
         act_to_press (DataFrame): dataframe containing mappings between activities and pressures
@@ -688,33 +628,30 @@ def read_activity_contributions(file_name: str, sheet_name: str) -> pd.DataFrame
     act_to_press = pd.read_excel(file_name, sheet_name=sheet_name)
 
     # read all most likely, min and max column values into lists in new columns
-    for col, regex_str in zip(['expected', 'minimum', 'maximum'], ['Ml[1-6]', 'Min[1-6]', 'Max[1-6]']):
+    for col, regex_str in zip(['expected', 'minimum', 'maximum'], ['ML[1-6]', 'Min[1-6]', 'Max[1-6]']):
         act_to_press[col] = act_to_press.filter(regex=regex_str).values.tolist()
 
     # remove all most likely, min and max columns
-    for regex_str in ['Ml[1-6]', 'Min[1-6]', 'Max[1-6]']:
+    for regex_str in ['ML[1-6]', 'Min[1-6]', 'Max[1-6]']:
         act_to_press.drop(act_to_press.filter(regex=regex_str).columns, axis=1, inplace=True)
 
-    # separate basins grouped together in sheet on the same row with ';' into separate rows
-    act_to_press['Basins'] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in act_to_press['Basins']]
-    act_to_press = act_to_press.explode('Basins')
-
-    # process each column
-    for category in ['Activity', 'Pressure', 'Basins']:
-        # split each id merged with ';', the column value becomes a list (unless it is already integer)
-        act_to_press[category] = [[y for y in x.split(';') if y != ''] if type(x) == str else x for x in act_to_press[category]]
-        # find empty column value lists, replace with nan
-        f = lambda x: np.nan if type(x) == list and len(x) == 0 else x
-        act_to_press[category] = [f(x) for x in act_to_press[category]]
-        # explode column lists into separate rows
+    # separate valuesgrouped together in sheet on the same row with ';' into separate rows
+    for category in ['Activity', 'Pressure', 'Basin', 'Country']:
+        act_to_press[category] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in act_to_press[category]]
         act_to_press = act_to_press.explode(category)
-        # convert non-nan values to int
-        act_to_press.loc[act_to_press[category].notna(), category] = act_to_press.loc[act_to_press[category].notna(), category].astype(int)
+        act_to_press[category] = act_to_press[category].astype(int)
+    act_to_press = act_to_press.reset_index(drop=True)
+
+    # create area_id column
+    act_to_press['area_id'] = None
+    for i, row in act_to_press.iterrows():
+        act_to_press.at[i, 'area_id'] = (row['Basin'], row['Country'])
+    act_to_press = act_to_press.drop(columns=['Basin', 'Country'])
 
     act_to_press = act_to_press.reset_index(drop=True)
 
     # calculate probability distributions
-    act_to_press['cumulative probability'] = pd.Series([np.nan] * len(act_to_press), dtype='object')
+    act_to_press['probability'] = pd.Series([np.nan] * len(act_to_press), dtype='object')
     for num in act_to_press.index:
         # convert expert answers to array
         expected = np.array(list(act_to_press.loc[num, ['expected']])).flatten()
@@ -726,11 +663,11 @@ def read_activity_contributions(file_name: str, sheet_name: str) -> pd.DataFrame
         upper[np.isnan(upper)] = expected[np.isnan(upper)]
         # get probability distribution
         prob_dist = get_prob_dist(expected, lower, upper, weights)
-        act_to_press.at[num, 'cumulative probability'] = prob_dist
+        act_to_press.at[num, 'probability'] = prob_dist
 
-    act_to_press = act_to_press.drop(columns=['expected', 'minimum', 'maximum'])
+    act_to_press['value'] = act_to_press['probability'].apply(get_pick)
 
-    act_to_press['value'] = act_to_press['cumulative probability'].apply(get_pick)
+    act_to_press = act_to_press.drop(columns=['expected', 'minimum', 'maximum', 'probability'])
 
     return act_to_press
 
@@ -749,10 +686,17 @@ def read_development_scenarios(file_name: str, sheet_name: str) -> pd.DataFrame:
     development_scenarios = pd.read_excel(file_name, sheet_name=sheet_name)
 
     # replace nan values with 0, assuming that no value means no change
-    for category in ['Scenario BAU', 'Scenario low change', 'Scenario most likely change', 'Scenario high change']:
+    for category in ['BAU', 'ChangeMin', 'ChangeML', 'ChangeMax']:
         development_scenarios.loc[np.isnan(development_scenarios[category]), category] = 0
+        development_scenarios[category] = development_scenarios[category].astype(float)
     
     development_scenarios['Activity'] = development_scenarios['Activity'].astype(int)
+
+    development_scenarios = development_scenarios.drop(columns=['Activity Description'])
+
+    # change values from percentual change to multiplier type by adding 1
+    for category in ['BAU', 'ChangeMin', 'ChangeML', 'ChangeMax']:
+        development_scenarios[category] = development_scenarios[category] + 1
 
     return development_scenarios
 
@@ -776,6 +720,40 @@ def read_overlaps(file_name: str, sheet_name: str) -> pd.DataFrame:
         overlaps[category] = overlaps[category].astype(int)
 
     return overlaps
+
+
+def read_subpressures(file_name: str, sheet_name: str) -> pd.DataFrame:
+    """
+    Reads input data of subpressures links to state pressures
+    """
+    subpressures = pd.read_excel(file_name, sheet_name=sheet_name)
+
+    for col in ['Reduced pressure', 'State pressure', 'State']:
+        # separate ids grouped together in sheet on the same row with ';' into separate rows
+        subpressures[col] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in subpressures[col]]
+        subpressures = subpressures.explode(col)
+        # change types of split values from str to int
+        subpressures[col] = subpressures[col].astype(int)
+
+    for col in subpressures.columns:
+        if col not in ['Reduced pressure', 'State pressure', 'State', 'Equivalence']:
+            subpressures = subpressures.drop(columns=[col])
+    
+    subpressures = subpressures.reset_index(drop=True)
+
+    def assign_multiplier(equivalence):
+        if equivalence <= 1:
+            return equivalence
+        elif equivalence == 2:
+            return 0
+        elif equivalence == 3:
+            return 0
+        else:
+            return 0
+
+    subpressures['Multiplier'] = subpressures['Equivalence'].apply(assign_multiplier)
+
+    return subpressures
 
 
 def pert_dist(peak, low, high, size) -> np.ndarray:
@@ -830,7 +808,7 @@ def get_prob_dist(expecteds: np.ndarray,
     # create a PERT distribution for each expert
     # from each distribution, draw a large number of picks
     # pool the picks together
-    number_of_picks = 200
+    number_of_picks = 5000
     picks = []
     for i in range(len(expecteds)):
         peak = expecteds[i]
@@ -845,31 +823,59 @@ def get_prob_dist(expecteds: np.ndarray,
     # return nan if no distributions (= no expert answers)
     if len(picks) == 0:
         return np.nan
-    
-    # fit picks to discrete distribution
-    # the distribution has 100 elements
-    # every element at index i represents the probability of a value below i percent
-    picks = np.array(picks)
-    disc_dist = np.zeros(shape=100)
-    for i in range(disc_dist.size):
-        disc_dist[i] = np.sum(picks < i) / picks.size
+        
+    # create final probability distribution
+    picks = np.array(picks) / 100.0   # convert percentages to fractions
+    prob_dist = get_dist_from_picks(picks)
+    cum_dist = np.cumsum(prob_dist) # cumulative distribution, not used
 
-    return disc_dist
+    return prob_dist
 
 
-def get_pick(dist) -> float:
+def get_pick(dist: np.ndarray) -> float:
+    """
+    Makes a random pick within [0, 1] weighted by the given discrete distribution.
+    """
     if dist is not None:
-        weights = np.zeros(dist.shape)
-        for i in range(1, weights.size):
-            weights[i] = dist[i] - dist[i-1]
-        pick = np.random.random() * np.sum(weights)
-        for k, val in enumerate(weights):
-            if pick < val:
-                break
-            pick -= val
+        step = 1 / (dist.size - 1)
+        a = np.arange(0, 1 + step, step)
+        pick = np.random.choice(a, p=dist)
         return pick
     else:
         return np.nan
 
+
+def get_dist_from_picks(picks: np.ndarray) -> np.ndarray:
+    """
+    Takes an array of picks and returns the probability distribution for each percentage unit. Picks need to be fractions in [0, 1].
+    """
+    picks = np.round(picks, decimals=2)
+    unique, count = np.unique(picks, return_counts=True)
+    dist = np.zeros(shape=101)  # probability distribution, each element represents a percentage from 0 - 100 %
+    # for each percentage, set its value to its frequency in the picks
+    for i in range(dist.size):
+        for k in range(unique.size):
+            if i / 100.0 == unique[k]:
+                dist[i] = count[k]
+    dist = dist / dist.sum()    # normalize frequencies to sum up to 1
+    return dist
+
+
+def plot_dist(dist):
+    """
+    Plot the given distribution
+    """
+    # plot distribution
+    y_vals = dist
+    step = 1 / y_vals.size
+    x_vals = np.arange(0, 1, step)
+    plt.plot(x_vals, y_vals)
+    # verify that get_pick works
+    picks = np.array([get_pick(dist) for i in range(5000)])
+    y_vals = get_dist_from_picks(picks)
+    step = 1 / y_vals.size
+    x_vals = np.arange(0, 1, step)
+    plt.plot(x_vals, y_vals)
+    plt.show()
 
 #EOF
