@@ -13,7 +13,7 @@ import numpy as np
 import pandas as pd
 
 from som.som_tools import *
-from utilities import Timer, exception_traceback
+from utilities import *
 
 def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
@@ -121,8 +121,6 @@ def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
         'development_scenarios': development_scenarios, 
         'subpressures': subpressures
     })
-
-    data = link_area_ids(data)
 
     return data
 
@@ -265,6 +263,7 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
                 contribution_sum = relevant_contributions['value'].sum()
                 if contribution_sum > 1:
                     data['activity_contributions'].loc[mask, 'value'] = relevant_contributions['value'] / contribution_sum
+            assert data['activity_contributions'].loc[mask, 'value'].sum() <= 1
 
     # make sure pressure contributions don't exceed 100 %
     for area in areas:
@@ -275,6 +274,7 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
                 contribution_sum = relevant_contributions['average'].sum()
                 if contribution_sum > 1:
                     data['pressure_contributions'].loc[mask, 'average'] = relevant_contributions['average'] / contribution_sum
+            assert data['pressure_contributions'].loc[mask, 'average'].sum() <= 1
 
     #
     # simulation loop

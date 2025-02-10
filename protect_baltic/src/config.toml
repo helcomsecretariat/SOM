@@ -7,7 +7,7 @@ export_path = 'C:/Users/camilo/Documents/SOM/protect_baltic/src/data/results.xls
 pickle = false
 
 # scenario used for calculations
-use_scenario = true
+use_scenario = false
 scenario = 'ChangeML'
 
 # excel input files

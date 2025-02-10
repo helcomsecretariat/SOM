@@ -297,7 +297,7 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
             pressure: pressure id
             area_id: area id
             average: average contribution of pressure
-            uncertainty: standard deveiation of pressure contribution
+            uncertainty: standard deviation of pressure contribution
         thresholds (DataFrame):
             State: state id
             area_id: area id
@@ -330,8 +330,7 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
     # preprocess values
     #
 
-    psq['Basins'] = [x.split(';') if type(x) == str else x for x in psq['Basins']]
-    psq['Countries'] = [x.split(';') if type(x) == str else x for x in psq['Countries']]
+    psq['area_id'] = [x.split(';') if type(x) == str else x for x in psq['area_id']]
 
     # add question id column
     psq['question_id'] = list(range(len(psq)))
@@ -340,7 +339,7 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
     # create new dataframe
     #
 
-    survey_df = pd.DataFrame(columns=['survey_id', 'question_id', 'State', 'Basins', 'Countries', 'GES known', 'Weight'])
+    survey_df = pd.DataFrame(columns=['survey_id', 'question_id', 'State', 'area_id', 'GES known', 'Weight'])
     
     # survey columns from which to take data
     cols = ['Expert']
@@ -357,11 +356,10 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
         # identify amount of questions in survey
         questions = np.sum(pressure_survey_data[survey_id]['Expert'] == expert_ids[0])
 
-        # use number of questions to get state, basins and GES known
+        # use number of questions to get state, area and GES known
         question_id = psq['question_id'].iloc[start:start+questions].reset_index(drop=True)
         state = psq['State'].iloc[start:start+questions].reset_index(drop=True)
-        basins = psq['Basins'].iloc[start:start+questions].reset_index(drop=True)
-        countries = psq['Countries'].iloc[start:start+questions].reset_index(drop=True)
+        areas = psq['area_id'].iloc[start:start+questions].reset_index(drop=True)
         ges_known = psq['GES known'].iloc[start:start+questions].reset_index(drop=True)
 
         # find all expert weight columns and values
@@ -380,12 +378,11 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
 
             survey_answers += len(data)
             
-            # set survey id, state, basins and GES known for data
+            # set survey id, state, area and GES known for data
             data['survey_id'] = survey_id
             data['question_id'] = question_id
             data['State'] = state
-            data['Basins'] = basins
-            data['Countries'] = countries
+            data['area_id'] = areas
             data['GES known'] = ges_known
 
             # set expert weights
@@ -402,11 +399,10 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
         start += questions
 
     # create new dataframe for merged rows
-    cols = ['survey_id', 'question_id', 'State', 'Basins', 'Countries', 'GES known']
+    cols = ['survey_id', 'question_id', 'State', 'area_id', 'GES known']
     new_df = pd.DataFrame(columns=cols+['Pressures', 'Averages', 'Uncertainties']+threshold_cols)
-    # remove empty elements from Basins and Countries, and convert ids to integers
-    survey_df['Basins'] = survey_df['Basins'].apply(lambda x: [int(basin) for basin in x if basin != ''])
-    survey_df['Countries'] = survey_df['Countries'].apply(lambda x: [int(country) for country in x if country != ''])
+    # remove empty elements from areas, and convert ids to integers
+    survey_df['area_id'] = survey_df['area_id'].apply(lambda x: [int(area) for area in x if area != ''])
     # identify all unique questions
     questions = survey_df['question_id'].unique()
     # process each state
@@ -482,15 +478,10 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
     for col in threshold_cols:
         new_df[col] = new_df[col].apply(lambda x: get_pick(x) if not np.any(np.isnan(x)) else np.nan)
     #
-    # explode basin and country columns and create area_id
+    # explode area_id
     #
-    for col in ['Basins', 'Countries']:
-        new_df = new_df.explode(col)
+    new_df = new_df.explode('area_id')
     new_df = new_df.reset_index(drop=True)
-    new_df['area_id'] = None
-    for i, row in new_df.iterrows():
-        new_df.at[i, 'area_id'] = (row['Basins'], row['Countries'])
-    new_df = new_df.drop(columns=['Basins', 'Countries'])
     #
     # split pressures into separate rows
     #
@@ -564,7 +555,7 @@ def read_cases(file_name: str, sheet_name: str) -> pd.DataFrame:
 
     assert len(cases[cases.duplicated(['ID'])]) == 0
 
-    for col in ['activity', 'pressure', 'state', 'basin', 'country']:
+    for col in ['activity', 'pressure', 'state', 'area_id']:
         # separate ids grouped together in sheet on the same row with ';' into separate rows
         cases[col] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in cases[col]]
         cases = cases.explode(col)
@@ -576,51 +567,16 @@ def read_cases(file_name: str, sheet_name: str) -> pd.DataFrame:
 
     cases = cases.reset_index(drop=True)
 
-    # create new column 'area_id' to link basins and countries, and create the unique ids
-    cases['area_id'] = None
-    for i, row in cases.iterrows():
-        cases.at[i, 'area_id'] = (row['basin'], row['country'])
-    
-    cases = cases.drop(columns=['basin', 'country'])
-
     return cases
-
-
-def link_area_ids(data: dict[str, pd.DataFrame]):
-    """
-    Links area ids in the area dataframe to the (basin, country) tuples of the data and updates 
-    area_id fields in the data to use actual area ids from the area dataframe.
-    """
-    # create area_id column
-    data['area']['area_id'] = None
-    for i, row in data['area'].iterrows():
-        data['area'].at[i, 'area_id'] = (row['basin'], row['country'])
-    def find_area_id(area_id):
-        new_id = data['area'].loc[data['area']['area_id'] == area_id, 'ID']
-        assert len(new_id.values) == 1
-        new_id = new_id.values[0]
-        return new_id
-    for category in data.keys():
-        if type(data[category]) == pd.DataFrame and category != 'area':
-            if 'area_id' in data[category].columns:
-                # filter out non-existent areas
-                mask = data[category]['area_id'].isin(data['area']['area_id'])
-                data[category] = data[category].loc[mask, :]
-                data[category] = data[category].reset_index(drop=True)
-                # change all other columns using area_id to use actual id
-                data[category]['area_id'] = data[category]['area_id'].apply(find_area_id)
-
-    return data
 
 
 def read_activity_contributions(file_name: str, sheet_name: str) -> pd.DataFrame:
     """
-    Reads input data of activities to pressures in Baltic Sea basins. 
+    Reads input data of activities to pressures in areas. 
 
     Arguments:
         file_name (str): name of source excel file name
         sheet_name (str): name of excel sheet
-        areas (DataFrame): table to link countries/basins with area ids
 
     Returns:
         act_to_press (DataFrame): dataframe containing mappings between activities and pressures
@@ -635,19 +591,11 @@ def read_activity_contributions(file_name: str, sheet_name: str) -> pd.DataFrame
     for regex_str in ['ML[1-6]', 'Min[1-6]', 'Max[1-6]']:
         act_to_press.drop(act_to_press.filter(regex=regex_str).columns, axis=1, inplace=True)
 
-    # separate valuesgrouped together in sheet on the same row with ';' into separate rows
-    for category in ['Activity', 'Pressure', 'Basin', 'Country']:
+    # separate values grouped together in sheet on the same row with ';' into separate rows
+    for category in ['Activity', 'Pressure', 'area_id']:
         act_to_press[category] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in act_to_press[category]]
         act_to_press = act_to_press.explode(category)
         act_to_press[category] = act_to_press[category].astype(int)
-    act_to_press = act_to_press.reset_index(drop=True)
-
-    # create area_id column
-    act_to_press['area_id'] = None
-    for i, row in act_to_press.iterrows():
-        act_to_press.at[i, 'area_id'] = (row['Basin'], row['Country'])
-    act_to_press = act_to_press.drop(columns=['Basin', 'Country'])
-
     act_to_press = act_to_press.reset_index(drop=True)
 
     # calculate probability distributions
