@@ -3,12 +3,13 @@
 # export path
 export_path = 'C:/Users/camilo/Documents/SOM/protect_baltic/src/data/results.xlsx'
 
-# load already processed input data from pickle files
-pickle = false
-
 # scenario used for calculations
 use_scenario = false
 scenario = 'ChangeML'
+
+# randomness setup
+use_random_seed = true
+random_seed = 10022025
 
 # excel input files
 [input_data]

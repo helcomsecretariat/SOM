@@ -231,11 +231,14 @@ def build_cases(cases: pd.DataFrame, links: pd.DataFrame) -> pd.DataFrame:
     return cases
 
 
-def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps: int = 1) -> pd.DataFrame:
+def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps: int = 1, warnings = False) -> pd.DataFrame:
     """
     Simulate the reduction in activities and pressures caused by measures and 
     return the change observed in state. 
     """
+    # this variable is used in assertions where float number error might affect comparisons
+    allowed_error = 0.00001     
+
     cases = data['cases']
     areas = cases['area_id'].unique()
 
@@ -254,7 +257,7 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
     # represents the reduction observed in the total pressure load ('ID' column)
     total_pressure_load_reductions = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(0.0)
 
-    # make sure activity contributions don't exceed 100 % 
+    # make sure activity contributions don't exceed 100 %
     for area in areas:
         for p_i, p in pressure_levels.iterrows():
             mask = (data['activity_contributions']['area_id'] == area) & (data['activity_contributions']['Pressure'] == p['ID'])
@@ -263,7 +266,8 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
                 contribution_sum = relevant_contributions['value'].sum()
                 if contribution_sum > 1:
                     data['activity_contributions'].loc[mask, 'value'] = relevant_contributions['value'] / contribution_sum
-            assert data['activity_contributions'].loc[mask, 'value'].sum() <= 1
+            try: assert data['activity_contributions'].loc[mask, 'value'].sum() <= 1 + allowed_error
+            except Exception as e: fail_with_message(f'Failed on area {area}, pressure {p["ID"]} with contribution sum {data['activity_contributions'].loc[mask, 'value'].sum()}', e)
 
     # make sure pressure contributions don't exceed 100 %
     for area in areas:
@@ -274,7 +278,8 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
                 contribution_sum = relevant_contributions['average'].sum()
                 if contribution_sum > 1:
                     data['pressure_contributions'].loc[mask, 'average'] = relevant_contributions['average'] / contribution_sum
-            assert data['pressure_contributions'].loc[mask, 'average'].sum() <= 1
+            try: assert data['pressure_contributions'].loc[mask, 'average'].sum() <= 1 + allowed_error
+            except Exception as e: fail_with_message(f'Failed on area {area}, state {s["ID"]} with contribution sum {data['pressure_contributions'].loc[mask, 'average'].sum()}', e)
 
     #
     # simulation loop
@@ -287,39 +292,59 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
         #
 
         # activity contributions
-        for area in areas: # for each area
+        for area in areas:
             c = cases.loc[cases['area_id'] == area, :]  # select cases for current area
             for p_i, p in pressure_levels.iterrows():
-                relevant_measures = c.loc[c['pressure'] == p['ID'], :]
-                relevant_overlaps = data['overlaps'].loc[data['overlaps']['Pressure'] == p['ID'], :]
-                for m_i, m in relevant_measures.iterrows(): # for each measure implementation affecting the current pressure in the current area
+                relevant_measures = c.loc[c['pressure'] == p['ID'], :]  # select all measures affecting the current pressure in the current area
+                relevant_overlaps = data['overlaps'].loc[data['overlaps']['Pressure'] == p['ID'], :]    # select all overlaps affecting current pressure
+                for m_i, m in relevant_measures.iterrows():
+                    #
+                    # get measure effect (= reduction), and apply modifiers
+                    #
                     mask = (links['measure'] == m['measure']) & (links['activity'] == m['activity']) & (links['pressure'] == m['pressure']) & (links['state'] == m['state'])
                     row = links.loc[mask, :]    # find the reduction of the current measure implementation
                     if len(row) == 0:
+                        if warnings: print(f'WARNING! Effect of measure {m["measure"]} on activity {m["activity"]} and pressure {m["pressure"]} not known! Measure {m["measure"]} will be skipped in area {area}.')
                         continue    # skip measure if data on the effect is not known
-                    assert len(row) == 1
+                    try: assert len(row) == 1
+                    except Exception as e: fail_with_message(f'ERROR! Multiple instances of measure {m["measure"]} effect on activity {m["activity"]} and pressure {m["pressure"]} given in input data!', e)
                     reduction = row['reduction'].values[0]
                     for mod in ['coverage', 'implementation']:
                         reduction = reduction * m[mod]
+                    #
                     # overlaps (measure-measure interaction)
+                    #
                     for o_i, o in relevant_overlaps.loc[(relevant_overlaps['Overlapped'] == m['measure']) & (relevant_overlaps['Activity'] == m['activity']), :].iterrows():
                         reduction = reduction * o['Multiplier']
-                    # if activity is 0 (= straight to pressure), contribution will be 1
+                    #
+                    # contribution
+                    #
                     if m['activity'] == 0:
-                        contribution = 1
-                    # if activity is not in contribution list, contribution will be 0
-                    mask = (data['activity_contributions']['Activity'] == m['activity']) & (data['activity_contributions']['Pressure'] == m['pressure']) & (data['activity_contributions']['area_id'] == area)
-                    contribution = data['activity_contributions'].loc[mask, 'value']
-                    if len(contribution) == 0:
-                        contribution = 0
+                        contribution = 1    # if activity is 0 (= straight to pressure), contribution will be 1
                     else:
-                        contribution = contribution.values[0]
+                        cont_mask = (data['activity_contributions']['Activity'] == m['activity']) & (data['activity_contributions']['Pressure'] == m['pressure']) & (data['activity_contributions']['area_id'] == area)
+                        contribution = data['activity_contributions'].loc[cont_mask, 'value']
+                        if len(contribution) == 0:
+                            if warnings: print(f'WARNING! Contribution of activity {m["activity"]} to pressure {m["pressure"]} not known! Measure {m["measure"]} will be skipped in area {area}.')
+                            continue    # skip measure if activity is not in contribution list
+                        else:
+                            try: assert len(contribution) == 1
+                            except Exception as e: fail_with_message(f'ERROR! Multiple instances of activity {m["activity"]} contribution on pressure {m["pressure"]} given in input data!', e)
+                            contribution = contribution.values[0]
+                    #
                     # reduce pressure
+                    #
                     pressure_levels.at[p_i, area] = pressure_levels.at[p_i, area] * (1 - reduction * contribution)
+                    if pressure_levels.at[p_i, area] < 0:
+                        print(f'area {area}, pressure {p["ID"]} => level = {pressure_levels.at[p_i, area]}, red = {reduction}, cont = {contribution}')
+                    #
                     # normalize activity contributions to reflect pressure reduction
-                    norm_mask = (data['activity_contributions']['area_id'] == area) & (data['activity_contributions']['Pressure'] == p['ID'])
-                    relevant_contributions = data['activity_contributions'].loc[norm_mask, 'value']
-                    data['activity_contributions'].loc[norm_mask, 'value'] = relevant_contributions / (1 - reduction * contribution)
+                    #
+                    if abs(1 - contribution) > allowed_error and contribution != 0:     # only normalize if there is change in contributions
+                        data['activity_contributions'].loc[cont_mask, 'value'] = contribution * (1 - reduction)   # reduce the current contribution before normalizing
+                        norm_mask = (data['activity_contributions']['area_id'] == area) & (data['activity_contributions']['Pressure'] == p['ID'])
+                        relevant_contributions = data['activity_contributions'].loc[norm_mask, 'value']
+                        data['activity_contributions'].loc[norm_mask, 'value'] = relevant_contributions / (1 - reduction * contribution)
 
         #
         # total pressure load reductions
@@ -327,10 +352,13 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
 
         # straight to state measures
         for area in areas:
-            c = cases.loc[cases['area_id'] == area, :]
+            c = cases.loc[cases['area_id'] == area, :]  # select cases for current area
             for s_i, s in total_pressure_load_levels.iterrows():
-                relevant_measures = c.loc[c['state'] == s['ID'], :]
+                relevant_measures = c.loc[c['state'] == s['ID'], :] # select all measures affecting current state in current the area
                 for m_i, m in relevant_measures.iterrows():
+                    #
+                    # get measure effect (= reduction), and apply modifiers
+                    #
                     mask = (links['measure'] == m['measure']) & (links['activity'] == m['activity']) & (links['pressure'] == m['pressure']) & (links['state'] == m['state'])
                     row = links.loc[mask, :]
                     if len(row) == 0:
@@ -338,33 +366,52 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
                     reduction = row['reduction'].values[0]
                     for mod in ['coverage', 'implementation']:
                         reduction = reduction * m[mod]
+                    #
+                    # overlaps (measure-measure interaction)
+                    #
                     for o_i, o in relevant_overlaps.loc[(relevant_overlaps['Overlapped'] == m['measure']) & (relevant_overlaps['Activity'] == m['activity']) & (relevant_overlaps['Pressure'] == m['pressure']), :].iterrows():
                         reduction = reduction * o['Multiplier']
+                    #
+                    # reduce pressure
+                    #
                     total_pressure_load_levels.at[s_i, area] = total_pressure_load_levels.at[s_i, area] * (1 - reduction)
         
+
         # pressure contributions
         for area in areas:
             a_i = pressure_levels.columns.get_loc(area)
             for s_i, s in total_pressure_load_levels.iterrows():
-                relevant_pressures = data['pressure_contributions'].loc[data['pressure_contributions']['State'] == s['ID'], :]
+                relevant_pressures = data['pressure_contributions'].loc[(data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID']), :]  # select contributions of pressures affecting current state in current area
                 for p_i, p in relevant_pressures.iterrows():
+                    #
                     # main pressure reduction
+                    #
                     row_i = pressure_levels.loc[pressure_levels['ID'] == p['pressure']].index[0]
                     reduction = 1 - pressure_levels.iloc[row_i, a_i]    # reduction = 100 % - the part that is left of the pressure
                     contribution = p['average']
+                    #
                     # subpressures
+                    #
                     relevant_subpressures = data['subpressures'].loc[(data['subpressures']['State'] == s['ID']) & (data['subpressures']['State pressure'] == p['pressure']), :]
                     for sp_i, sp in relevant_subpressures.iterrows():
                         sp_row_i = pressure_levels.loc[pressure_levels['ID'] == sp['Reduced pressure']].index[0]
                         multiplier = sp['Multiplier']
                         red = 1 - pressure_levels.iloc[sp_row_i, a_i]    # reduction = 100 % - the part that is left of the pressure
                         reduction = reduction + multiplier * red
-                    assert reduction <= 1
+                    try: assert reduction <= 1 + allowed_error
+                    except Exception as e: fail_with_message(f'Failed on area {area}, state {s["ID"]}, pressure {p["pressure"]} with reduction {reduction}', e)
+                    #
+                    # reduce total pressure load
+                    #
                     total_pressure_load_levels.at[s_i, area] = total_pressure_load_levels.at[s_i, area] * (1 - reduction * contribution)
+                    #
                     # normalize pressure contributions to reflect pressure reduction
-                    norm_mask = (data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID'])
-                    relevant_contributions = data['pressure_contributions'].loc[norm_mask, 'average']
-                    data['pressure_contributions'].loc[norm_mask, 'average'] = relevant_contributions / (1 - reduction * contribution)
+                    #
+                    if abs(1 - contribution) > allowed_error and contribution != 0:     # only normalize if there is change in contributions
+                        data['pressure_contributions'].loc[(data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID']) & (data['pressure_contributions']['pressure'] == p['pressure']), 'average'] = contribution * (1 - reduction)   # reduce the current contribution before normalizing
+                        norm_mask = (data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID'])
+                        relevant_contributions = data['pressure_contributions'].loc[norm_mask, 'average']
+                        data['pressure_contributions'].loc[norm_mask, 'average'] = relevant_contributions / (1 - reduction * contribution)
     
     # total reduction observed in total pressure loads
     for area in areas:
