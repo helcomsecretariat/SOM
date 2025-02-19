@@ -21,7 +21,7 @@ import sys
 def run(is_test: bool = False):
 
     timer = Timer()
-    print('\nInitiating program.')
+    print('\nInitiating program...\n')
 
     #
     # read configuration file
@@ -44,21 +44,32 @@ def run(is_test: bool = False):
     try:
         if config['use_random_seed']:
             np.random.seed(config['random_seed'])
+        
         # Process survey data and read general input
+        print('Loading input data...')
         data = som_app.process_input_data(config)
+
         # Create links between core components
+        print('Building links between Measures, Activities, Pressures and States...')
         data = som_app.build_links(data)
+
         if config['use_scenario']:
             # Update activity contributions to scenario values
+            print('Applying activity development scenario...')
             data['activity_contributions'] = som_app.build_scenario(data, config['scenario'])
+        
         # Create cases
+        print('Building cases...')
         data = som_app.build_cases(data)
+
         # Run model
+        print('Calculating changes in environment...')
         data = som_app.build_changes(data)
 
         #
         # export results
         #
+        print('Exporting results...')
         filename = config['export_path']
         if not os.path.exists(os.path.dirname(filename)):
             os.makedirs(os.path.dirname(filename), exist_ok=True)
