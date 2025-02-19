@@ -147,6 +147,12 @@ def build_links(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
     data['measure_effects'] = links
     
     #
+    # activity contributions
+    #
+
+    data['activity_contributions']['contribution'] = data['activity_contributions']['contribution'].apply(get_pick)
+
+    #
     # pressure contributions
     #
 
@@ -207,7 +213,7 @@ def build_scenario(data: dict[str, pd.DataFrame], scenario: str) -> pd.DataFrame
         actual_sum[pressure_id] = {}
         activities = act_to_press.loc[act_to_press['Pressure'] == pressure_id, :]
         for area in activities['area_id'].unique():
-            actual_sum[pressure_id][area] = activities.loc[activities['area_id'] == area, 'value'].sum()
+            actual_sum[pressure_id][area] = activities.loc[activities['area_id'] == area, 'contribution'].sum()
     
     # multiply activities by scenario multiplier
     def get_scenario(activity_id):
@@ -216,7 +222,7 @@ def build_scenario(data: dict[str, pd.DataFrame], scenario: str) -> pd.DataFrame
             return 1
         multiplier = multiplier.values[0]
         return multiplier
-    act_to_press['value'] = act_to_press['value'] * act_to_press['Activity'].apply(get_scenario)
+    act_to_press['contribution'] = act_to_press['contribution'] * act_to_press['Activity'].apply(get_scenario)
 
     # normalize
     normalize_factor = {}
@@ -224,13 +230,13 @@ def build_scenario(data: dict[str, pd.DataFrame], scenario: str) -> pd.DataFrame
         normalize_factor[pressure_id] = {}
         activities = act_to_press.loc[act_to_press['Pressure'] == pressure_id, :]
         for area in activities['area_id'].unique():
-            scenario_sum = activities.loc[activities['area_id'] == area, 'value'].sum()
+            scenario_sum = activities.loc[activities['area_id'] == area, 'contribution'].sum()
             normalize_factor[pressure_id][area] = 1 + scenario_sum - actual_sum[pressure_id][area]
 
     def normalize(value, pressure_id, area_id):
         return value * normalize_factor[pressure_id][area_id]
 
-    act_to_press['value'] = act_to_press.apply(lambda x: normalize(x['value'], x['Pressure'], x['area_id']), axis=1)
+    act_to_press['contribution'] = act_to_press.apply(lambda x: normalize(x['contribution'], x['Pressure'], x['area_id']), axis=1)
     
     return act_to_press
 
@@ -312,11 +318,11 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
             mask = (data['activity_contributions']['area_id'] == area) & (data['activity_contributions']['Pressure'] == p['ID'])
             relevant_contributions = data['activity_contributions'].loc[mask, :]
             if len(relevant_contributions) > 0:
-                contribution_sum = relevant_contributions['value'].sum()
+                contribution_sum = relevant_contributions['contribution'].sum()
                 if contribution_sum > 1:
-                    data['activity_contributions'].loc[mask, 'value'] = relevant_contributions['value'] / contribution_sum
-            try: assert data['activity_contributions'].loc[mask, 'value'].sum() <= 1 + allowed_error
-            except Exception as e: fail_with_message(f'Failed to verify that activity contributions do not exceed 100 % for area {area}, pressure {p["ID"]} with contribution sum {data['activity_contributions'].loc[mask, 'value'].sum()}', e)
+                    data['activity_contributions'].loc[mask, 'contribution'] = relevant_contributions['contribution'] / contribution_sum
+            try: assert data['activity_contributions'].loc[mask, 'contribution'].sum() <= 1 + allowed_error
+            except Exception as e: fail_with_message(f'Failed to verify that activity contributions do not exceed 100 % for area {area}, pressure {p["ID"]} with contribution sum {data['activity_contributions'].loc[mask, 'contribution'].sum()}', e)
 
     # make sure pressure contributions don't exceed 100 %
     for area in areas:
@@ -372,7 +378,7 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
                         contribution = 1    # if activity is 0 (= straight to pressure), contribution will be 1
                     else:
                         cont_mask = (data['activity_contributions']['Activity'] == m['activity']) & (data['activity_contributions']['Pressure'] == m['pressure']) & (data['activity_contributions']['area_id'] == area)
-                        contribution = data['activity_contributions'].loc[cont_mask, 'value']
+                        contribution = data['activity_contributions'].loc[cont_mask, 'contribution']
                         if len(contribution) == 0:
                             if warnings: print(f'WARNING! Contribution of activity {m["activity"]} to pressure {m["pressure"]} not known! Measure {m["measure"]} will be skipped in area {area}.')
                             continue    # skip measure if activity is not in contribution list
@@ -390,10 +396,10 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
                     # normalize activity contributions to reflect pressure reduction
                     #
                     if abs(1 - contribution) > allowed_error and contribution != 0:     # only normalize if there is change in contributions
-                        data['activity_contributions'].loc[cont_mask, 'value'] = contribution * (1 - reduction)   # reduce the current contribution before normalizing
+                        data['activity_contributions'].loc[cont_mask, 'contribution'] = contribution * (1 - reduction)   # reduce the current contribution before normalizing
                         norm_mask = (data['activity_contributions']['area_id'] == area) & (data['activity_contributions']['Pressure'] == p['ID'])
-                        relevant_contributions = data['activity_contributions'].loc[norm_mask, 'value']
-                        data['activity_contributions'].loc[norm_mask, 'value'] = relevant_contributions / (1 - reduction * contribution)
+                        relevant_contributions = data['activity_contributions'].loc[norm_mask, 'contribution']
+                        data['activity_contributions'].loc[norm_mask, 'contribution'] = relevant_contributions / (1 - reduction * contribution)
 
         #
         # total pressure load reductions

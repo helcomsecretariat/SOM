@@ -596,7 +596,7 @@ def read_activity_contributions(file_name: str, sheet_name: str) -> pd.DataFrame
     act_to_press = act_to_press.reset_index(drop=True)
 
     # calculate probability distributions
-    act_to_press['probability'] = pd.Series([np.nan] * len(act_to_press), dtype='object')
+    act_to_press['contribution'] = pd.Series([np.nan] * len(act_to_press), dtype='object')
     for num in act_to_press.index:
         # convert expert answers to array
         expected = np.array(list(act_to_press.loc[num, ['expected']])).flatten()
@@ -607,12 +607,9 @@ def read_activity_contributions(file_name: str, sheet_name: str) -> pd.DataFrame
         lower[np.isnan(lower)] = expected[np.isnan(lower)]
         upper[np.isnan(upper)] = expected[np.isnan(upper)]
         # get probability distribution
-        prob_dist = get_prob_dist(expected, lower, upper, weights)
-        act_to_press.at[num, 'probability'] = prob_dist
+        act_to_press.at[num, 'contribution'] = get_prob_dist(expected, lower, upper, weights)
 
-    act_to_press['value'] = act_to_press['probability'].apply(get_pick)
-
-    act_to_press = act_to_press.drop(columns=['expected', 'minimum', 'maximum', 'probability'])
+    act_to_press = act_to_press.drop(columns=['expected', 'minimum', 'maximum'])
 
     return act_to_press
 
