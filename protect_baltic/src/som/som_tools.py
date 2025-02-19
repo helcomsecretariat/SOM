@@ -400,7 +400,7 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
 
     # create new dataframe for merged rows
     cols = ['survey_id', 'question_id', 'State', 'area_id', 'GES known']
-    new_df = pd.DataFrame(columns=cols+['Pressures', 'Averages', 'Uncertainties']+threshold_cols)
+    new_df = pd.DataFrame(columns=cols+['Pressures', 'Contribution']+threshold_cols)
     # remove empty elements from areas, and convert ids to integers
     survey_df['area_id'] = survey_df['area_id'].apply(lambda x: [int(area) for area in x if area != ''])
     # identify all unique questions
@@ -416,7 +416,7 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
         pressures = data[['P'+str(x+1) for x in range(expert_number)]].to_numpy().astype(float)
         significances = data[['S'+str(x+1) for x in range(expert_number)]].to_numpy().astype(float)
         mask = ~np.isnan(pressures)
-        # weigh significancs by amount of participating experts
+        # weigh significances by amount of participating experts
         w = data[['Weight']].to_numpy().astype(float)
         significances = significances * w
         # go through each expert answer and calculate weights
@@ -430,20 +430,28 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
         # using weights, calculate contributions and uncertainties
         average = {p: np.mean(weights[p]) for p in weights}
         stddev = {p: np.std(weights[p]) for p in weights}
-        # scale contributions and uncertainties so contributions sum up to 100 %
-        factor = np.sum([average[p] for p in average])
-        average = {p: average[p] / factor for p in average}
-        stddev = {p: stddev[p] / factor for p in stddev}
-        # round values
-        decimals = 4
-        average = {p: np.round(average[p], decimals) for p in average}
-        stddev = {p: np.round(stddev[p], decimals) for p in stddev}
+        # create probability distributions
+        minimum, maximum = {}, {}
+        for p in average:
+            if average[p] - stddev[p] > 0:
+                if average[p] + stddev[p] > 1:
+                    minimum[p] = 1.0 - stddev[p] * 2
+                    maximum[p] = 1.0
+                else:
+                    minimum[p] = average[p] - stddev[p]
+                    maximum[p] = average[p] + stddev[p]
+            else:
+                minimum[p] = 0.0
+                maximum[p] = stddev[p] * 2
+        average = {p: np.array([average[p] * 100]) for p in average}
+        minimum = {p: np.array([minimum[p] * 100]) for p in minimum}
+        maximum = {p: np.array([maximum[p] * 100]) for p in maximum}
+        contribution = {p: get_prob_dist(average[p], minimum[p], maximum[p], np.ones(len(average[p]))) for p in average}
         # convert to lists
         pressures = list(average.keys())
-        average = [average[p] for p in pressures]
-        stddev = [stddev[p] for p in pressures]
+        contribution = [contribution[p] for p in pressures]
         #
-        # probability distributions for pressure reductions
+        # probability distributions for GES thresholds
         #
         reductions = {}
         for r in threshold_cols:
@@ -461,35 +469,24 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
         data = survey_df[cols].loc[survey_df['question_id'] == question].reset_index(drop=True).iloc[0]
         data = pd.DataFrame([data])
         # initialize new columns
-        for c in ['Pressures', 'Averages', 'Uncertainties']+threshold_cols:
+        for c in ['Pressures', 'Contribution']+threshold_cols:
             data[c] = np.nan
             data[c] = data[c].astype(object)
         # change data type to allow for lists
         data.at[0, 'Pressures'] = pressures
-        data.at[0, 'Averages'] = average
-        data.at[0, 'Uncertainties'] = stddev
+        data.at[0, 'Contribution'] = contribution
         for r in threshold_cols:
             data.at[0, r] = reductions[r]
         with warnings.catch_warnings(action='ignore'):
             new_df = pd.concat([new_df, data], ignore_index=True, sort=False)
     #
-    # get probability from distribution for each of the thresholds
-    #
-    for col in threshold_cols:
-        new_df[col] = new_df[col].apply(lambda x: get_pick(x) if not np.any(np.isnan(x)) else np.nan)
-    #
-    # explode area_id
-    #
-    new_df = new_df.explode('area_id')
-    new_df = new_df.reset_index(drop=True)
-    #
     # split pressures into separate rows
     #
-    new_df = new_df.assign(pressure=[list(zip(*row)) for row in zip(new_df['Pressures'], new_df['Averages'], new_df['Uncertainties'])])
+    new_df = new_df.assign(pressure=[list(zip(*row)) for row in zip(new_df['Pressures'], new_df['Contribution'])])
     new_df = new_df.explode('pressure')
     new_df = new_df.reset_index(drop=True)
-    new_df = new_df.drop(columns=['Pressures', 'Averages', 'Uncertainties'])
-    new_df[['pressure', 'average', 'uncertainty']] = pd.DataFrame(new_df['pressure'].tolist())
+    new_df = new_df.drop(columns=['Pressures', 'Contribution'])
+    new_df[['pressure', 'contribution']] = pd.DataFrame(new_df['pressure'].tolist())
     #
     # remove rows with missing data (no pressure or no thresholds)
     #
@@ -504,8 +501,8 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
     #
     # split new_df into two dataframes, one for pressure contributions and one for thresholds
     #
-    pressure_contributions = pd.DataFrame(new_df.loc[:, ['State', 'pressure', 'area_id', 'average', 'uncertainty']])
-    thresholds = pd.DataFrame(new_df.loc[:, ['State', 'area_id'] + threshold_cols]).drop_duplicates(subset=['State', 'area_id'], keep='first').reset_index(drop=True)
+    pressure_contributions = pd.DataFrame(new_df.loc[:, ['State', 'pressure', 'area_id', 'contribution']])
+    thresholds = pd.DataFrame(new_df.loc[:, ['State', 'area_id'] + threshold_cols])
 
     return pressure_contributions, thresholds
 
@@ -726,7 +723,7 @@ def get_prob_dist(expecteds: np.ndarray,
                   upper_boundaries: np.ndarray, 
                   weights: np.ndarray) -> np.ndarray:
     '''
-    Returns a cumulative probability distribution. All arguments should be 1D arrays.
+    Returns a cumulative probability distribution. All arguments should be 1D arrays with percentage as unit.
     '''
     # verify that all arrays have the same size
     assert expecteds.size == lower_boundaries.size == upper_boundaries.size == weights.size

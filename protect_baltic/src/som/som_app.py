@@ -127,27 +127,71 @@ def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
 
 def build_links(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """
-    Builds links.
-
-    Arguments:
-        data (dict):
-
-    Returns:
-        links (DataFrame) = Measure-Activity-Pressure-State reduction table
+    Build links by picking random samples using probability distributions.
     """
-    msdf = data['measure_effects']
+    #
+    # measure effects
+    #
 
     # verify that there are no duplicate links
-    assert len(msdf[msdf.duplicated(['measure', 'activity', 'pressure', 'state'])]) == 0
+    try: assert len(data['measure_effects'][data['measure_effects'].duplicated(['measure', 'activity', 'pressure', 'state'])]) == 0
+    except Exception as e: fail_with_message(f'Duplicate measure effects in input data!', e)
 
     # create a new dataframe for links
-    links = pd.DataFrame(msdf)
+    links = pd.DataFrame(data['measure_effects'])
 
     # get picks from cumulative distribution
     links['reduction'] = links['probability'].apply(get_pick)
     links = links.drop(columns=['probability'])
 
-    return links
+    data['measure_effects'] = links
+    
+    #
+    # pressure contributions
+    #
+
+    # get picks from cumulative distribution
+    data['pressure_contributions']['contribution'] = data['pressure_contributions']['contribution'].apply(lambda x: get_pick(x) if not np.any(np.isnan(x)) else np.nan)
+    
+    # split areas into separate rows
+    data['pressure_contributions'] = data['pressure_contributions'].explode('area_id')
+    data['pressure_contributions'] = data['pressure_contributions'].reset_index(drop=True)
+
+    data['pressure_contributions'] = data['pressure_contributions'].drop_duplicates(subset=['State', 'pressure', 'area_id'], keep='first').reset_index(drop=True)
+
+    # verify that there are no duplicate links
+    try: assert len(data['pressure_contributions'][data['pressure_contributions'].duplicated(['State', 'pressure', 'area_id'])]) == 0
+    except Exception as e: fail_with_message(f'Duplicate pressure contributions in input data!', e)
+    
+    # make sure pressure contributions for each state / area are 100 %
+    for area in data['area']['ID']:
+        for state in data['state']['ID']:
+            mask = (data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == state)
+            relevant_contributions = data['pressure_contributions'].loc[mask, :]
+            if len(relevant_contributions) > 0:
+                data['pressure_contributions'].loc[mask, 'contribution'] = relevant_contributions['contribution'] / relevant_contributions['contribution'].sum()
+
+    #
+    # thresholds
+    #
+
+    threshold_cols = ['PR', '10', '25', '50']   # target thresholds (PR=GES)
+
+    # get picks from cumulative distribution
+    for col in threshold_cols:
+        data['thresholds'][col] = data['thresholds'][col].apply(lambda x: get_pick(x) if not np.any(np.isnan(x)) else np.nan)
+
+    # split areas into separate rows
+    data['thresholds'] = data['thresholds'].explode('area_id')
+    data['thresholds'] = data['thresholds'].reset_index(drop=True)
+
+    data['thresholds'] = data['thresholds'].drop_duplicates(subset=['State', 'area_id'], keep='first').reset_index(drop=True)
+
+    # verify that there are no duplicate links
+    try: assert len(data['thresholds'][data['thresholds'].duplicated(['State', 'area_id'])]) == 0
+    except Exception as e: fail_with_message(f'Duplicate GES targets in input data!', e)
+
+    return data
 
 
 def build_scenario(data: dict[str, pd.DataFrame], scenario: str) -> pd.DataFrame:
@@ -191,10 +235,12 @@ def build_scenario(data: dict[str, pd.DataFrame], scenario: str) -> pd.DataFrame
     return act_to_press
 
 
-def build_cases(cases: pd.DataFrame, links: pd.DataFrame) -> pd.DataFrame:
+def build_cases(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
     """
     Builds cases.
     """
+    cases = data['cases']
+    links = data['measure_effects']
     # replace all zeros (0) in activity / pressure / state columns with full list of values
     # filter those lists to only include relevant IDs (from links)
     # finally explode to only have single IDs per row
@@ -228,10 +274,12 @@ def build_cases(cases: pd.DataFrame, links: pd.DataFrame) -> pd.DataFrame:
     cases = cases.drop_duplicates(subset=['measure', 'activity', 'pressure', 'state', 'area_id'], keep='first')
     cases = cases.reset_index(drop=True)
 
-    return cases
+    data['cases'] = cases
+
+    return data
 
 
-def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps: int = 1, warnings = False) -> pd.DataFrame:
+def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings = False) -> pd.DataFrame:
     """
     Simulate the reduction in activities and pressures caused by measures and 
     return the change observed in state. 
@@ -240,6 +288,7 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
     allowed_error = 0.00001     
 
     cases = data['cases']
+    links = data['measure_effects']
     areas = cases['area_id'].unique()
 
     # create dataframes to store changes in pressure and state, one column per area_id
@@ -267,7 +316,7 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
                 if contribution_sum > 1:
                     data['activity_contributions'].loc[mask, 'value'] = relevant_contributions['value'] / contribution_sum
             try: assert data['activity_contributions'].loc[mask, 'value'].sum() <= 1 + allowed_error
-            except Exception as e: fail_with_message(f'Failed on area {area}, pressure {p["ID"]} with contribution sum {data['activity_contributions'].loc[mask, 'value'].sum()}', e)
+            except Exception as e: fail_with_message(f'Failed to verify that activity contributions do not exceed 100 % for area {area}, pressure {p["ID"]} with contribution sum {data['activity_contributions'].loc[mask, 'value'].sum()}', e)
 
     # make sure pressure contributions don't exceed 100 %
     for area in areas:
@@ -275,11 +324,11 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
             mask = (data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID'])
             relevant_contributions = data['pressure_contributions'].loc[mask, :]
             if len(relevant_contributions) > 0:
-                contribution_sum = relevant_contributions['average'].sum()
+                contribution_sum = relevant_contributions['contribution'].sum()
                 if contribution_sum > 1:
-                    data['pressure_contributions'].loc[mask, 'average'] = relevant_contributions['average'] / contribution_sum
-            try: assert data['pressure_contributions'].loc[mask, 'average'].sum() <= 1 + allowed_error
-            except Exception as e: fail_with_message(f'Failed on area {area}, state {s["ID"]} with contribution sum {data['pressure_contributions'].loc[mask, 'average'].sum()}', e)
+                    data['pressure_contributions'].loc[mask, 'contribution'] = relevant_contributions['contribution'] / contribution_sum
+            try: assert data['pressure_contributions'].loc[mask, 'contribution'].sum() <= 1 + allowed_error
+            except Exception as e: fail_with_message(f'Failed to verify that pressure contributions do not exceed 100 % for area {area}, state {s["ID"]} with contribution sum {data['pressure_contributions'].loc[mask, 'contribution'].sum()}', e)
 
     #
     # simulation loop
@@ -388,7 +437,7 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
                     #
                     row_i = pressure_levels.loc[pressure_levels['ID'] == p['pressure']].index[0]
                     reduction = 1 - pressure_levels.iloc[row_i, a_i]    # reduction = 100 % - the part that is left of the pressure
-                    contribution = p['average']
+                    contribution = p['contribution']
                     #
                     # subpressures
                     #
@@ -408,10 +457,10 @@ def build_changes(data: dict[str, pd.DataFrame], links: pd.DataFrame, time_steps
                     # normalize pressure contributions to reflect pressure reduction
                     #
                     if abs(1 - contribution) > allowed_error and contribution != 0:     # only normalize if there is change in contributions
-                        data['pressure_contributions'].loc[(data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID']) & (data['pressure_contributions']['pressure'] == p['pressure']), 'average'] = contribution * (1 - reduction)   # reduce the current contribution before normalizing
+                        data['pressure_contributions'].loc[(data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID']) & (data['pressure_contributions']['pressure'] == p['pressure']), 'contribution'] = contribution * (1 - reduction)   # reduce the current contribution before normalizing
                         norm_mask = (data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID'])
-                        relevant_contributions = data['pressure_contributions'].loc[norm_mask, 'average']
-                        data['pressure_contributions'].loc[norm_mask, 'average'] = relevant_contributions / (1 - reduction * contribution)
+                        relevant_contributions = data['pressure_contributions'].loc[norm_mask, 'contribution']
+                        data['pressure_contributions'].loc[norm_mask, 'contribution'] = relevant_contributions / (1 - reduction * contribution)
     
     # total reduction observed in total pressure loads
     for area in areas:

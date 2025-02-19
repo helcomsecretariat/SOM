@@ -47,14 +47,14 @@ def run(is_test: bool = False):
         # Process survey data and read general input
         data = som_app.process_input_data(config)
         # Create links between core components
-        links = som_app.build_links(data)
+        data = som_app.build_links(data)
         if config['use_scenario']:
             # Update activity contributions to scenario values
             data['activity_contributions'] = som_app.build_scenario(data, config['scenario'])
         # Create cases
-        data['cases'] = som_app.build_cases(data['cases'], links)
+        data = som_app.build_cases(data)
         # Run model
-        data = som_app.build_changes(data, links)
+        data = som_app.build_changes(data)
 
         #
         # export results
