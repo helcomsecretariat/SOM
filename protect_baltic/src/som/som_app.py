@@ -370,7 +370,8 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
                     # overlaps (measure-measure interaction)
                     #
                     for o_i, o in relevant_overlaps.loc[(relevant_overlaps['Overlapped'] == m['measure']) & (relevant_overlaps['Activity'] == m['activity']), :].iterrows():
-                        reduction = reduction * o['Multiplier']
+                        if o['Overlapping'] in relevant_measures.loc[relevant_measures['activity'] == m['activity'], 'measure'].values: # ensure the overlapping measure is also for the current activity
+                            reduction = reduction * o['Multiplier']
                     #
                     # contribution
                     #
@@ -424,7 +425,7 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
                     #
                     # overlaps (measure-measure interaction)
                     #
-                    for o_i, o in relevant_overlaps.loc[(relevant_overlaps['Overlapped'] == m['measure']) & (relevant_overlaps['Activity'] == m['activity']) & (relevant_overlaps['Pressure'] == m['pressure']), :].iterrows():
+                    for o_i, o in data['overlaps'].loc[(data['overlaps']['Overlapped'] == m['measure']) & (data['overlaps']['Activity'] == m['activity']) & (data['overlaps']['Pressure'] == m['pressure']), :].iterrows():
                         reduction = reduction * o['Multiplier']
                     #
                     # reduce pressure
