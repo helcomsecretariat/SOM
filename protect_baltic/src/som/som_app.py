@@ -426,7 +426,8 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
                     # overlaps (measure-measure interaction)
                     #
                     for o_i, o in data['overlaps'].loc[(data['overlaps']['Overlapped'] == m['measure']) & (data['overlaps']['Activity'] == m['activity']) & (data['overlaps']['Pressure'] == m['pressure']), :].iterrows():
-                        reduction = reduction * o['Multiplier']
+                        if o['Overlapping'] in relevant_measures['measure'].values:
+                            reduction = reduction * o['Multiplier']
                     #
                     # reduce pressure
                     #
