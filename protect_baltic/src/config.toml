@@ -34,7 +34,7 @@ simulations = 5
             area = 'Area ID'
 
 [test_data]
-    general_input = './data/example/exampleData.xlsx'
-    measure_effect_input = './data/example/exampleEffect.xlsx'
-    pressure_state_input = './data/example/examplePressureState.xlsx'
+    general_input = './data/exampleData.xlsx'
+    measure_effect_input = './data/exampleEffect.xlsx'
+    pressure_state_input = './data/examplePressureState.xlsx'
 
