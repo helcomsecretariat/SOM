@@ -10,7 +10,7 @@ url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
 # main package script
 
 import toml
-import som.som_app as som_app
+import som_app as som_app
 from utilities import Timer, exception_traceback, fail_with_message
 import os
 import pandas as pd
@@ -70,9 +70,9 @@ def run(is_test: bool = False):
         # export results
         #
         print('Exporting results...')
-        filename = config['export_path']
-        if not os.path.exists(os.path.dirname(filename)):
-            os.makedirs(os.path.dirname(filename), exist_ok=True)
+        filename = os.path.realpath(config['export_path'])
+        if not os.path.isdir(os.path.dirname(filename)): filename = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['export_path'])
+        if not os.path.exists(os.path.dirname(filename)): os.makedirs(os.path.dirname(filename), exist_ok=True)
         with pd.ExcelWriter(filename) as writer:
             data['pressure_levels'].to_excel(writer, sheet_name='PressureLevels', index=False)
             data['total_pressure_load_levels'].to_excel(writer, sheet_name='TPLLevels', index=False)

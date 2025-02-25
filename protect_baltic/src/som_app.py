@@ -7,12 +7,10 @@ local: 'SOM/protect_baltic/LICENSE'
 url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
 """
 
-from copy import deepcopy
-
 import numpy as np
 import pandas as pd
-
-from som.som_tools import *
+import os
+from som_tools import *
 from utilities import *
 
 def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -51,14 +49,16 @@ def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
     # measure survey data
     #
 
-    file_name = config['input_data']['measure_effect_input']
+    file_name = os.path.realpath(config['input_data']['measure_effect_input'])
+    if not os.path.isfile(file_name): file_name = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['input_data']['measure_effect_input'])
     measure_effects = process_measure_survey_data(file_name)
 
     #
     # pressure survey data (combined pressure contributions and GES threshold)
     #
 
-    file_name = config['input_data']['pressure_state_input']
+    file_name = os.path.realpath(config['input_data']['pressure_state_input'])
+    if not os.path.isfile(file_name): file_name = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['input_data']['pressure_state_input'])
     pressure_contributions, thresholds = process_pressure_survey_data(file_name)
 
     #
@@ -67,7 +67,8 @@ def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
 
     # read core object descriptions
     # i.e. ids for measures, activities, pressures and states
-    file_name = config['input_data']['general_input']
+    file_name = os.path.realpath(config['input_data']['general_input'])
+    if not os.path.isfile(file_name): file_name = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['input_data']['general_input'])
     id_sheets = config['input_data']['general_input_sheets']['ID']
     data = read_ids(file_name=file_name, id_sheets=id_sheets)
 
@@ -75,7 +76,6 @@ def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
     # read case input
     #
 
-    file_name = config['input_data']['general_input']
     sheet_name = config['input_data']['general_input_sheets']['case']
     cases = read_cases(file_name=file_name, sheet_name=sheet_name)
 
@@ -83,7 +83,6 @@ def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
     # read activity contribution data
     #
 
-    file_name = config['input_data']['general_input']
     sheet_name = config['input_data']['general_input_sheets']['postprocess']
     activity_contributions = read_activity_contributions(file_name=file_name, sheet_name=sheet_name)
 
@@ -91,7 +90,6 @@ def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
     # read overlap data
     #
 
-    file_name = config['input_data']['general_input']
     sheet_name = config['input_data']['general_input_sheets']['overlaps']
     overlaps = read_overlaps(file_name=file_name, sheet_name=sheet_name)
 
@@ -99,7 +97,6 @@ def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
     # read activity development scenario data
     #
 
-    file_name = config['input_data']['general_input']
     sheet_name = config['input_data']['general_input_sheets']['development_scenarios']
     development_scenarios = read_development_scenarios(file_name=file_name, sheet_name=sheet_name)
 
@@ -107,7 +104,6 @@ def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
     # read subpressures links
     #
 
-    file_name = config['input_data']['general_input']
     sheet_name = config['input_data']['general_input_sheets']['subpressures']
     subpressures = read_subpressures(file_name=file_name, sheet_name=sheet_name)
 
@@ -433,7 +429,6 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
                     #
                     total_pressure_load_levels.at[s_i, area] = total_pressure_load_levels.at[s_i, area] * (1 - reduction)
         
-
         # pressure contributions
         for area in areas:
             a_i = pressure_levels.columns.get_loc(area)

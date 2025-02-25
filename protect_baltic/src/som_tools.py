@@ -634,8 +634,6 @@ def read_development_scenarios(file_name: str, sheet_name: str) -> pd.DataFrame:
     
     development_scenarios['Activity'] = development_scenarios['Activity'].astype(int)
 
-    development_scenarios = development_scenarios.drop(columns=['Activity Description'])
-
     # change values from percentual change to multiplier type by adding 1
     for category in ['BAU', 'ChangeMin', 'ChangeML', 'ChangeMax']:
         development_scenarios[category] = development_scenarios[category] + 1
