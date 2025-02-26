@@ -7,13 +7,12 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools]
 package-dir = {"" = "src"}
 
-
 [project]
 name = "helcom_protect_baltic_som"
 version = "0.0.1"
 description = "A HELCOM Protect Baltic Application"
 readme = "README.md"
-authors = [{ name="Antti-Jussi Kieloaho", email="antti-jussi.kieloaho@luke.fi" }, { name="Camilo Hernández", email="camilo.hernandez@helcom.fi" }]
+authors = [{ name="Camilo Hernández", email="camilo.hernandez@helcom.fi" }]
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -26,10 +25,10 @@ dependencies = [
     "geocube >= 0.3.3", 
     "requests >= 2.31.0", 
     "toml >= 0.10.2", 
-    "openpyxl >= 3.1.2"
+    "openpyxl >= 3.1.2", 
+    "matplotlib"
 ]
-requires-python = ">=3.9"
-
+requires-python = ">=3.12"
 
 [project.urls]
 "Homepage" = "https://github.com/helcomsecretariat/SOM"
