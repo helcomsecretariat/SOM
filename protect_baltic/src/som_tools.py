@@ -297,7 +297,7 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
             pressure: pressure id
             area_id: area id
             average: average contribution of pressure
-            uncertainty: standard deveiation of pressure contribution
+            uncertainty: standard deviation of pressure contribution
         thresholds (DataFrame):
             State: state id
             area_id: area id
@@ -330,8 +330,7 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
     # preprocess values
     #
 
-    psq['Basins'] = [x.split(';') if type(x) == str else x for x in psq['Basins']]
-    psq['Countries'] = [x.split(';') if type(x) == str else x for x in psq['Countries']]
+    psq['area_id'] = [x.split(';') if type(x) == str else x for x in psq['area_id']]
 
     # add question id column
     psq['question_id'] = list(range(len(psq)))
@@ -340,7 +339,7 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
     # create new dataframe
     #
 
-    survey_df = pd.DataFrame(columns=['survey_id', 'question_id', 'State', 'Basins', 'Countries', 'GES known', 'Weight'])
+    survey_df = pd.DataFrame(columns=['survey_id', 'question_id', 'State', 'area_id', 'GES known', 'Weight'])
     
     # survey columns from which to take data
     cols = ['Expert']
@@ -357,11 +356,10 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
         # identify amount of questions in survey
         questions = np.sum(pressure_survey_data[survey_id]['Expert'] == expert_ids[0])
 
-        # use number of questions to get state, basins and GES known
+        # use number of questions to get state, area and GES known
         question_id = psq['question_id'].iloc[start:start+questions].reset_index(drop=True)
         state = psq['State'].iloc[start:start+questions].reset_index(drop=True)
-        basins = psq['Basins'].iloc[start:start+questions].reset_index(drop=True)
-        countries = psq['Countries'].iloc[start:start+questions].reset_index(drop=True)
+        areas = psq['area_id'].iloc[start:start+questions].reset_index(drop=True)
         ges_known = psq['GES known'].iloc[start:start+questions].reset_index(drop=True)
 
         # find all expert weight columns and values
@@ -380,12 +378,11 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
 
             survey_answers += len(data)
             
-            # set survey id, state, basins and GES known for data
+            # set survey id, state, area and GES known for data
             data['survey_id'] = survey_id
             data['question_id'] = question_id
             data['State'] = state
-            data['Basins'] = basins
-            data['Countries'] = countries
+            data['area_id'] = areas
             data['GES known'] = ges_known
 
             # set expert weights
@@ -402,11 +399,10 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
         start += questions
 
     # create new dataframe for merged rows
-    cols = ['survey_id', 'question_id', 'State', 'Basins', 'Countries', 'GES known']
-    new_df = pd.DataFrame(columns=cols+['Pressures', 'Averages', 'Uncertainties']+threshold_cols)
-    # remove empty elements from Basins and Countries, and convert ids to integers
-    survey_df['Basins'] = survey_df['Basins'].apply(lambda x: [int(basin) for basin in x if basin != ''])
-    survey_df['Countries'] = survey_df['Countries'].apply(lambda x: [int(country) for country in x if country != ''])
+    cols = ['survey_id', 'question_id', 'State', 'area_id', 'GES known']
+    new_df = pd.DataFrame(columns=cols+['Pressures', 'Contribution']+threshold_cols)
+    # remove empty elements from areas, and convert ids to integers
+    survey_df['area_id'] = survey_df['area_id'].apply(lambda x: [int(area) for area in x if area != ''])
     # identify all unique questions
     questions = survey_df['question_id'].unique()
     # process each state
@@ -420,7 +416,7 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
         pressures = data[['P'+str(x+1) for x in range(expert_number)]].to_numpy().astype(float)
         significances = data[['S'+str(x+1) for x in range(expert_number)]].to_numpy().astype(float)
         mask = ~np.isnan(pressures)
-        # weigh significancs by amount of participating experts
+        # weigh significances by amount of participating experts
         w = data[['Weight']].to_numpy().astype(float)
         significances = significances * w
         # go through each expert answer and calculate weights
@@ -434,20 +430,28 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
         # using weights, calculate contributions and uncertainties
         average = {p: np.mean(weights[p]) for p in weights}
         stddev = {p: np.std(weights[p]) for p in weights}
-        # scale contributions and uncertainties so contributions sum up to 100 %
-        factor = np.sum([average[p] for p in average])
-        average = {p: average[p] / factor for p in average}
-        stddev = {p: stddev[p] / factor for p in stddev}
-        # round values
-        decimals = 4
-        average = {p: np.round(average[p], decimals) for p in average}
-        stddev = {p: np.round(stddev[p], decimals) for p in stddev}
+        # create probability distributions
+        minimum, maximum = {}, {}
+        for p in average:
+            if average[p] - stddev[p] > 0:
+                if average[p] + stddev[p] > 1:
+                    minimum[p] = 1.0 - stddev[p] * 2
+                    maximum[p] = 1.0
+                else:
+                    minimum[p] = average[p] - stddev[p]
+                    maximum[p] = average[p] + stddev[p]
+            else:
+                minimum[p] = 0.0
+                maximum[p] = stddev[p] * 2
+        average = {p: np.array([average[p] * 100]) for p in average}
+        minimum = {p: np.array([minimum[p] * 100]) for p in minimum}
+        maximum = {p: np.array([maximum[p] * 100]) for p in maximum}
+        contribution = {p: get_prob_dist(average[p], minimum[p], maximum[p], np.ones(len(average[p]))) for p in average}
         # convert to lists
         pressures = list(average.keys())
-        average = [average[p] for p in pressures]
-        stddev = [stddev[p] for p in pressures]
+        contribution = [contribution[p] for p in pressures]
         #
-        # probability distributions for pressure reductions
+        # probability distributions for GES thresholds
         #
         reductions = {}
         for r in threshold_cols:
@@ -465,40 +469,24 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
         data = survey_df[cols].loc[survey_df['question_id'] == question].reset_index(drop=True).iloc[0]
         data = pd.DataFrame([data])
         # initialize new columns
-        for c in ['Pressures', 'Averages', 'Uncertainties']+threshold_cols:
+        for c in ['Pressures', 'Contribution']+threshold_cols:
             data[c] = np.nan
             data[c] = data[c].astype(object)
         # change data type to allow for lists
         data.at[0, 'Pressures'] = pressures
-        data.at[0, 'Averages'] = average
-        data.at[0, 'Uncertainties'] = stddev
+        data.at[0, 'Contribution'] = contribution
         for r in threshold_cols:
             data.at[0, r] = reductions[r]
         with warnings.catch_warnings(action='ignore'):
             new_df = pd.concat([new_df, data], ignore_index=True, sort=False)
     #
-    # get probability from distribution for each of the thresholds
-    #
-    for col in threshold_cols:
-        new_df[col] = new_df[col].apply(lambda x: get_pick(x) if not np.any(np.isnan(x)) else np.nan)
-    #
-    # explode basin and country columns and create area_id
-    #
-    for col in ['Basins', 'Countries']:
-        new_df = new_df.explode(col)
-    new_df = new_df.reset_index(drop=True)
-    new_df['area_id'] = None
-    for i, row in new_df.iterrows():
-        new_df.at[i, 'area_id'] = (row['Basins'], row['Countries'])
-    new_df = new_df.drop(columns=['Basins', 'Countries'])
-    #
     # split pressures into separate rows
     #
-    new_df = new_df.assign(pressure=[list(zip(*row)) for row in zip(new_df['Pressures'], new_df['Averages'], new_df['Uncertainties'])])
+    new_df = new_df.assign(pressure=[list(zip(*row)) for row in zip(new_df['Pressures'], new_df['Contribution'])])
     new_df = new_df.explode('pressure')
     new_df = new_df.reset_index(drop=True)
-    new_df = new_df.drop(columns=['Pressures', 'Averages', 'Uncertainties'])
-    new_df[['pressure', 'average', 'uncertainty']] = pd.DataFrame(new_df['pressure'].tolist())
+    new_df = new_df.drop(columns=['Pressures', 'Contribution'])
+    new_df[['pressure', 'contribution']] = pd.DataFrame(new_df['pressure'].tolist())
     #
     # remove rows with missing data (no pressure or no thresholds)
     #
@@ -513,8 +501,8 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
     #
     # split new_df into two dataframes, one for pressure contributions and one for thresholds
     #
-    pressure_contributions = pd.DataFrame(new_df.loc[:, ['State', 'pressure', 'area_id', 'average', 'uncertainty']])
-    thresholds = pd.DataFrame(new_df.loc[:, ['State', 'area_id'] + threshold_cols]).drop_duplicates(subset=['State', 'area_id'], keep='first').reset_index(drop=True)
+    pressure_contributions = pd.DataFrame(new_df.loc[:, ['State', 'pressure', 'area_id', 'contribution']])
+    thresholds = pd.DataFrame(new_df.loc[:, ['State', 'area_id'] + threshold_cols])
 
     return pressure_contributions, thresholds
 
@@ -564,7 +552,7 @@ def read_cases(file_name: str, sheet_name: str) -> pd.DataFrame:
 
     assert len(cases[cases.duplicated(['ID'])]) == 0
 
-    for col in ['activity', 'pressure', 'state', 'basin', 'country']:
+    for col in ['activity', 'pressure', 'state', 'area_id']:
         # separate ids grouped together in sheet on the same row with ';' into separate rows
         cases[col] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in cases[col]]
         cases = cases.explode(col)
@@ -576,51 +564,16 @@ def read_cases(file_name: str, sheet_name: str) -> pd.DataFrame:
 
     cases = cases.reset_index(drop=True)
 
-    # create new column 'area_id' to link basins and countries, and create the unique ids
-    cases['area_id'] = None
-    for i, row in cases.iterrows():
-        cases.at[i, 'area_id'] = (row['basin'], row['country'])
-    
-    cases = cases.drop(columns=['basin', 'country'])
-
     return cases
-
-
-def link_area_ids(data: dict[str, pd.DataFrame]):
-    """
-    Links area ids in the area dataframe to the (basin, country) tuples of the data and updates 
-    area_id fields in the data to use actual area ids from the area dataframe.
-    """
-    # create area_id column
-    data['area']['area_id'] = None
-    for i, row in data['area'].iterrows():
-        data['area'].at[i, 'area_id'] = (row['basin'], row['country'])
-    def find_area_id(area_id):
-        new_id = data['area'].loc[data['area']['area_id'] == area_id, 'ID']
-        assert len(new_id.values) == 1
-        new_id = new_id.values[0]
-        return new_id
-    for category in data.keys():
-        if type(data[category]) == pd.DataFrame and category != 'area':
-            if 'area_id' in data[category].columns:
-                # filter out non-existent areas
-                mask = data[category]['area_id'].isin(data['area']['area_id'])
-                data[category] = data[category].loc[mask, :]
-                data[category] = data[category].reset_index(drop=True)
-                # change all other columns using area_id to use actual id
-                data[category]['area_id'] = data[category]['area_id'].apply(find_area_id)
-
-    return data
 
 
 def read_activity_contributions(file_name: str, sheet_name: str) -> pd.DataFrame:
     """
-    Reads input data of activities to pressures in Baltic Sea basins. 
+    Reads input data of activities to pressures in areas. 
 
     Arguments:
         file_name (str): name of source excel file name
         sheet_name (str): name of excel sheet
-        areas (DataFrame): table to link countries/basins with area ids
 
     Returns:
         act_to_press (DataFrame): dataframe containing mappings between activities and pressures
@@ -635,23 +588,15 @@ def read_activity_contributions(file_name: str, sheet_name: str) -> pd.DataFrame
     for regex_str in ['ML[1-6]', 'Min[1-6]', 'Max[1-6]']:
         act_to_press.drop(act_to_press.filter(regex=regex_str).columns, axis=1, inplace=True)
 
-    # separate valuesgrouped together in sheet on the same row with ';' into separate rows
-    for category in ['Activity', 'Pressure', 'Basin', 'Country']:
+    # separate values grouped together in sheet on the same row with ';' into separate rows
+    for category in ['Activity', 'Pressure', 'area_id']:
         act_to_press[category] = [list(filter(None, x.split(';'))) if type(x) == str else x for x in act_to_press[category]]
         act_to_press = act_to_press.explode(category)
         act_to_press[category] = act_to_press[category].astype(int)
     act_to_press = act_to_press.reset_index(drop=True)
 
-    # create area_id column
-    act_to_press['area_id'] = None
-    for i, row in act_to_press.iterrows():
-        act_to_press.at[i, 'area_id'] = (row['Basin'], row['Country'])
-    act_to_press = act_to_press.drop(columns=['Basin', 'Country'])
-
-    act_to_press = act_to_press.reset_index(drop=True)
-
     # calculate probability distributions
-    act_to_press['probability'] = pd.Series([np.nan] * len(act_to_press), dtype='object')
+    act_to_press['contribution'] = pd.Series([np.nan] * len(act_to_press), dtype='object')
     for num in act_to_press.index:
         # convert expert answers to array
         expected = np.array(list(act_to_press.loc[num, ['expected']])).flatten()
@@ -662,12 +607,9 @@ def read_activity_contributions(file_name: str, sheet_name: str) -> pd.DataFrame
         lower[np.isnan(lower)] = expected[np.isnan(lower)]
         upper[np.isnan(upper)] = expected[np.isnan(upper)]
         # get probability distribution
-        prob_dist = get_prob_dist(expected, lower, upper, weights)
-        act_to_press.at[num, 'probability'] = prob_dist
+        act_to_press.at[num, 'contribution'] = get_prob_dist(expected, lower, upper, weights)
 
-    act_to_press['value'] = act_to_press['probability'].apply(get_pick)
-
-    act_to_press = act_to_press.drop(columns=['expected', 'minimum', 'maximum', 'probability'])
+    act_to_press = act_to_press.drop(columns=['expected', 'minimum', 'maximum'])
 
     return act_to_press
 
@@ -691,8 +633,6 @@ def read_development_scenarios(file_name: str, sheet_name: str) -> pd.DataFrame:
         development_scenarios[category] = development_scenarios[category].astype(float)
     
     development_scenarios['Activity'] = development_scenarios['Activity'].astype(int)
-
-    development_scenarios = development_scenarios.drop(columns=['Activity Description'])
 
     # change values from percentual change to multiplier type by adding 1
     for category in ['BAU', 'ChangeMin', 'ChangeML', 'ChangeMax']:
@@ -778,7 +718,7 @@ def get_prob_dist(expecteds: np.ndarray,
                   upper_boundaries: np.ndarray, 
                   weights: np.ndarray) -> np.ndarray:
     '''
-    Returns a cumulative probability distribution. All arguments should be 1D arrays.
+    Returns a cumulative probability distribution. All arguments should be 1D arrays with percentage as unit.
     '''
     # verify that all arrays have the same size
     assert expecteds.size == lower_boundaries.size == upper_boundaries.size == weights.size

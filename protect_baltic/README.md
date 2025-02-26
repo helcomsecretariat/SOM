@@ -2,135 +2,136 @@
 
 This project continues on the work done on the SOM model in the [HELCOM BLUES](https://github.com/helcomsecretariat/SOM/tree/main/helcom_blues) project as part of the [HELCOM PROTECT BALTIC](https://protectbaltic.eu/) project. 
 
-Contains two programs:
-- HELCOM API
-    - API consumer to retrieve and process spatial data in raster or vector form
-- SOM
-    - Processes, organises and calculates data for the Sufficiency of Measures (SOM) analysis done at HELCOM
-
 ## Installation
 
-Developed in Python version 3.12
+Requires Python version 3.12 or above.
 
-Create an environment:
+1. Create an environment (optional):
 
 ```
-cd /path/to/protect_baltic
+cd "/path/to/protect_baltic"
 python -m venv .
 source bin/activate
 ```
 
-Editable version:
-
-```
-python -m pip install -e .  
-```
-
-Run only version:
+2. Install dependencies:
 
 ```
 python -m pip install .
 ```
 
-## helcom_api
+3. Run tool:
 
-Contains the HELCOM API consumer. Figure 1 details the workflow of processing of fetched spatial data.
+```
+python "/path/to/protect_baltic/src"
+```
 
-![image](docs/SOM-app-helcom-api.png)
-Figure 1. Workflow of processing spatial data.
+## Setup
 
-Currently requires the directory ```EEZ``` which contains topology corrected spatial shape files for exclusive economic zones and administrative boundaries. These are not available through the HELCOM API, but are given upon request.
+The *src/config.toml* file contains settings controlling the model, as well as paths to the input data for the user to adjust.
 
-```configuration.toml``` contains meta data of spatial data and other information needed for processing.
-
-```gis_tools.py``` contains io and processing functions of the workflow.
-
-
-## som
+## SOM
 
 The scientific foundation of the SOM model framework can be found [here](https://helcom.fi/baltic-sea-action-plan/som/).
 
-### Development - Part 1
+### Context
 
-Two of three input data files are used to initialize and populate the object model by programatically describing the problem domain, i.e. interactions between societal, economic and environment in its geographcical context in the Baltic Sea region. 
+The model links measures, human activities, pressures, and environmental states together to assess the improvements that can be achieved in the pressures and states through the implementation of measures. This is further compared against set thresholds to observe whether the improvements are sufficient to achieve Good Environmental Status (GES). 
 
-When constructing the model three principles are followed whenever possible:
+### Input
 
- 1. modularity
- 2. objects with single responsibility
- 3. clear interfaces
- 
- Although the current version is a proof of concept of the object model, care has been taken to ensure it can be extended in future versions, e.g., expected values extracted from survey data and description of the problem domain are single values with a range (min and max), not distributions, but implementation of distributions is already planned in future versions.
-
-Input data consists of three files:
-
+The input data consists of three files:
 - generalInput.xlsx
-- measureEffInput.xslx
-- pressStateInput.
+- measureEffectInput.xlsx
+- pressureStateInput.xlsx
 
-```generalInput.xlsx``` contains descriptions of the problem domain:
+Example data has been provided in the *src/data* folder.
 
-- in ```sheet:ActMeas``` are governance issues, all rows are independent
-    1. ID - ID of the case
-    2. MT_ID - Measure type ID
-    3. In_Activities - Relevant Activities, 0 means all relevant activities for Measure type in ```sheet:MT_to_A_to_P```
-    4. In_Pressure - Relevant Pressures, 0 means all relevant pressures for Measure type in ```sheet:MT_to_A_to_P```
-    5. In_State_components - Relevant States, 0 means all relevant states for Measure type in ```sheet:MT_to_A_to_P```
-    6. Multiplier_OL - Measure type multiplier
-    7. B_ID - Basin IDs
-    8. C_ID - Country IDs
-- in ```sheet:ActPres``` are environmental issues, lists the relevant basins for each Activity-Pressure pairs
-    1. Activity - Activity ID
-    2. Pressure - Pressure ID
-    3. Basin - Basin ID
-    4. Ml# - MostLikely (ActivityPressure.AP_expected)
-    5. Min# - Minimum end of range
-    6. Max# - Maximum end of range
-- in ```sheet:MT_to_A_to_P``` are linkages between measure types, activities, pressures and states
+```generalInput.xlsx``` contains descriptions of the model domain:
 
-```measureEffInput.xslx``` contains survey data on the effects of measures on activity-pressure pairs as surved by expert panels.
+- ```sheet:Measure ID```: Unique identifiers for measures
+- ```sheet:Activity ID```: Unique identifiers for activities
+- ```sheet:Pressure ID```: Unique identifiers for pressures
+- ```sheet:State ID```: Unique identifiers for states
+- ```sheet:Area ID```: Unique identifiers for areas
+- ```sheet:Case ID```: Unique identifiers for cases
+- ```sheet:ActMeas```: Implemented measure cases, all rows are independent, multiple IDs can be joined by a semi-colon.
+    - ```column:ID```: Unique case id, linked to ```sheet:Case ID```
+    - ```column:measure```: Measure type ID, linked to ```sheet:Measure ID```
+    - ```column:activity```: Relevant Activities, linked to ```sheet:Activity ID```, the value 0 (zero) means all relevant activities affected by the measure
+    - ```column:pressure```: Relevant Pressures, linked to ```sheet:Pressure ID```, the value 0 (zero) means all relevant pressures affected by the measure
+    - ```column:state```: Relevant States, linked to ```sheet:State ID```, the value 0 (zero) means all relevant states affected by the measure
+    - ```column:coverage```: Multiplier (fraction), represents how much of the area is covered by the measure
+    - ```column:implementation```: Multiplier (fraction), represents how much of the measure is implemented
+    - ```column:area_id```: Area ID, linked to ```sheet:Area ID```
+- ```sheet:ActPres```: Activity-Pressure links, how much the individual activities contribute to the pressures
+    - ```column:Activity```: Activity ID, linked to ```sheet:Activity ID```
+    - ```column:Pressure```: Pressure ID, linked to ```sheet:Pressure ID```
+    - ```column:area_id```: Area ID, linked to ```sheet:Area ID```, multiple IDs can be joined by a semi-colon
+    - ```column:Ml#```: Most likely contribution (%)
+    - ```column:Min#```: Lowest potential contribution (%)
+    - ```column:Max#```: Highest potential contribution (%)
+- ```sheet:DEV_scenarios```: Activity development scenarios
+    - ```column:Activity```: Activity ID, linked to ```sheet:Activity ID```
+    - ```column:BAU```: Business As Usual, how much the activity will change without extra action (fraction)
+    - ```column:ChangeMin```: Lowest potential change (fraction)
+    - ```column:ChangeML```: Most likely change (fraction)
+    - ```column:ChangeMax```: Highest potential change (fraction)
+- ```sheet:Overlaps```: Interaction between separate measures, how joint implementation affects measure efficiency
+    - ```column:Overlap```: Overlap ID
+    - ```column:Pressure```: Pressure ID, linked to ```sheet:Pressure ID```
+    - ```column:Activity```: Activity ID, linked to ```sheet:Activity ID```
+    - ```column:Overlapping```: Overlapping measure ID, linked to ```sheet:Measure ID```
+    - ```column:Overlapped```: Overlapped measure ID, linked to ```sheet:Measure ID```
+    - ```column:Multiplier```: Multiplier (fraction), how much of the ```column:Overlapped``` measure's effect will be observed if ```column:Overlapping``` is also implemented
+- ```sheet:SubPres```: Links between separate pressures, where *subpressures* make up part of *state pressures*
+    - ```column:Reduced pressure```: Subpressure ID, linked to ```sheet:Pressure ID```
+    - ```column:State pressure```: State pressure ID, linked to ```sheet:Pressure ID```
+    - ```column:Equivalence```: Equivalence between ```column:Reduced pressure``` and ```column:State pressure```, i.e. how much of the *state pressure* is made up of the *subpressure*, where values between 0 and 1 are treated as fractions, and other values as either no quantified equivalence or no reduction from pressures
+    - ```column:State```: State ID, linked to ```sheet:State ID```
 
-```pressStateInput.xlsx``` contains survey data on pressure reduction targets.
+```measureEffectInput.xslx``` contains survey data on the effects of measures on activity-pressure pairs as surved by expert panels:
 
-Model file structure (under ```src:som```):
+- ```sheet:MTEQ```: General information on the survey questions, each row corresponds to a unique activity-pressure pair, the value 0 (zero) for the Activity, Pressure and State columns is used to denote no value, used for *direct to pressure* / *direct to state* measures
+    - ```column:Survey ID```: Survey ID, each unique id corresponds to a specific sheet in ```measureEffectInput.xslx```
+    - ```column:Activity```: Activity ID, linked to ```generalInput.xlsx:Activity ID```
+    - ```column:Pressure```: Pressure ID, linked to ```generalInput.xlsx:Pressure ID```
+    - ```column:State```: State ID, linked to ```generalInput.xlsx:State ID```
+    - ```column:AMT```: Amount of measures linked to the activity-pressure pair in the corresponding survey sheet
+    - ```column:Exp#```: Expert columns, details the number of experts that gave each answer, used for weighting
+- ```sheet:Surveys```: Survey sheets detailing the effects of the measures on the activity-pressure pairs in ```sheet:MTEQ```
+    - ```column:expert ID```: Expert ID, linked to the corresponding expert columns in ```sheet:MTEQ```
+    - ```column:#```: Measure IDs as columns, linked to ```generalInput.xlsx:Measure ID```, each measure takes two columns
+        - the first column describes the most likely reduction (%) of the measure on the activity-pressure pair
+        - the second column describes the potential uncertainty range (%) regarding the reduction
+    - ```column:ME```: The actual effect of the most effective measure for the current activity-pressure pair
 
-- ```__main__```: calls facade functions that represents workflow steps. 
-- ```configuration.toml```: holds paths to input data files and other meta data about input files.
-- ```som_app.py```: contains facade functions that wrap underlying functions on thematic collections representing workflow steps.
-- ```som_classes.py```: contains object definitions of core and secondary object layers.
-- ```som_tools.py```: contains data reading and processing functions. 
+```pressureStateInput.xlsx``` contains survey data on pressure contributions to states and total pressure load reduction targets:
 
-## SOM object model
+- ```sheet:PSQ```: General information on the survey questions, each row corresponds to a unique state-area pair
+    - ```column:State```: State ID, linked to ```generalInput.xlsx:State ID```
+    - ```column:area_id```: Area ID, linked to ```generalInput.xlsx:Area ID```, multiple IDs can be joined by a semi-colon
+    - ```column:GES known```: Is the GES threshold known, 0 for no, 1 for yes
+    - ```column:Exp#```: Expert columns, details the number of experts that gave each answer, used for weighting
+- ```sheet:Surveys```: Survey sheets detailing the contributions of individual pressures to states and the total pressure load reduction targets for the state, the targets are for PR (=GES), 10 %, 25 % and 50 % improvement in state
+    - ```column:Expert```: Expert ID, linked to the corresponding expert columns in ```sheet:PSQ```, each expert's answers comprise a block of rows corresponding to the state-area pair rows in ```sheet:PSQ```
+    - ```column:P#```: Pressure IDs, linked to ```generalInput.xlsx:Pressure ID```
+    - ```column:S#```: Significance of corresponding ```column:P#```, used when weighing contributions of each pressure
+    - ```column:MIN#```: Lowest potential threshold value (%)
+    - ```column:MAX#```: Highest potential threshold value (%)
+    - ```column:ML#```: Most likely threshold value (%)
 
-The model framework encapsulates the problem domain and survey data as a layered structure (Figure 2). 
+Model file structure (in *src* directory):
 
-![image](docs/SOM-app-class-diagram.png)
-Figure 2. SOM class diagram.
+- ```__main__```: runs the tool
+- ```config.toml```: configuration settings
+- ```som_app.py```: main calculations are performed here
+- ```som_tools.py```: input data loading functions
+- ```utilities.py```: small utility functions
 
-The layers consist of a set of objects that describe basic elements of the problem domain and their interactions. Each object contains appropriate data either from the problem domain description, calculated from survey data, or calculated from all of the previous. 
+### Model flow
 
-The object model describes the core functionality of the SOM analysis, object oriented data structure as a result of expert panel survey data coupled with the problem domain description. It concentrates on model Measure, Activity-Pressure, Activity and Pressure interactions and stores approriate data. State, Pressure, and State-Pressure are included in object model but not yet implemented. 
 
-In the initialization of the object model the following steps are taken:
-
-1. Process survey data from measure effect input and read general input
-2. Build core object model and initialize core object instances
-3. Build second object layer model and initialize second object layer instances
-4. Post-process core objects organised in secondary object layer by storing data into them from general input
-
-The data flow from input data to data structures containing object model is shown in Figure 3. The diagram shows processes and data structures that are created upon initalization.
-
-![image](docs/SOM-app-data-flow-diagram.png)
-Figure 3. Data flow diagram. 
-
-After the initialization, altogether 41 object models are instantiated. They represents 41 country-basin combinations. They are stored in a Pandas DataFrame named ```countrybasin_df``` together with their country-basin, basin and country ids. Each country-basin pair is an individual sub-model with separate deep copies of instantiated core model components. Country-basin pairs represent a geographical aspect of SOM analysis. Sub-division to smaller geographical regions is possible, but omitted from this version to keep it simple.
 
 ### Next development steps
-- implementation of expert panel survey data distributions
-- reading and processing ```pressStateInput.xlsx```
-- implementation of model parts combining interactions and data: Pressure, State, Pressure-State
-- implementing simple version of business logic
-- module that implements distribution based calculation of business logic
-
-
 

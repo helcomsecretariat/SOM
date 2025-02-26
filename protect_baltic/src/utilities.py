@@ -45,3 +45,15 @@ def exception_traceback(e: Exception):
     tb = traceback.format_exception(type(e), e, e.__traceback__)
     print(''.join(tb))
 
+
+def fail_with_message(m: str = None, e: Exception = None):
+    """
+    Prints the given exception traceback along with given message, and exits.
+    """
+    if e is not None:
+        exception_traceback(e)
+    if m is not None:
+        print(m)
+    print('Terminating.')
+    exit()
+
