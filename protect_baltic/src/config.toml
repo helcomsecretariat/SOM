@@ -17,8 +17,8 @@ simulations = 5
 # excel input files
 [input_data]
     general_input = './data/generalInput.xlsx'
-    measure_effect_input = './data/measureEffInput.xlsx'
-    pressure_state_input = './data/pressStateInput.xlsx'
+    measure_effect_input = './data/measureEffectInput.xlsx'
+    pressure_state_input = './data/pressureStateInput.xlsx'
 
     [input_data.general_input_sheets]
         case = 'ActMeas'
