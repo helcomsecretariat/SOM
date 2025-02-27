@@ -78,6 +78,9 @@ def run(is_test: bool = False):
             data['total_pressure_load_levels'].to_excel(writer, sheet_name='TPLLevels', index=False)
             data['total_pressure_load_reductions'].to_excel(writer, sheet_name='TPLReductions', index=False)
             data['thresholds']['PR'].to_excel(writer, sheet_name='RequiredReductionsForGES', index=False)
+            data['measure_effects'].to_excel(writer, sheet_name='MeasureEffects', index=False)
+            data['activity_contributions'].to_excel(writer, sheet_name='ActivityContributions', index=False)
+            data['pressure_contributions'].to_excel(writer, sheet_name='PressureContributions', index=False)
 
     except Exception as e:
         fail_with_message('ERROR! Something went wrong! Check traceback.', e)
