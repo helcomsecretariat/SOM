@@ -11,14 +11,14 @@ url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
 
 import toml
 import som_app as som_app
-from utilities import Timer, exception_traceback, fail_with_message
+from utilities import Timer, fail_with_message
 import os
 import pandas as pd
 import numpy as np
 import sys
 
 
-def run(is_test: bool = False):
+def run(config_file: str = None):
 
     timer = Timer()
     print('\nInitiating program...\n')
@@ -27,14 +27,10 @@ def run(is_test: bool = False):
     # read configuration file
     #
     try:
-        config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'config.toml')
+        if not config_file: config_file = 'config.toml'
+        if not os.path.isfile(config_file): config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), config_file)
         with open(config_file, 'r') as f:
             config = toml.load(f)
-            # if test_run, swap input files
-            if is_test:
-                for key in config['input_data'].keys():
-                    if key in config['test_data'].keys():
-                        config['input_data'][key] = config['test_data'][key]
     except Exception as e:
         fail_with_message('ERROR! Could not load config file!', e)
 
@@ -90,6 +86,9 @@ def run(is_test: bool = False):
     return
 
 if __name__ == "__main__":
-    is_test = '-test' in sys.argv or '-t' in sys.argv
-    run(is_test=is_test)
+    config_file = None
+    for i in range(len(sys.argv)):
+        if sys.argv[i] in ['-config', '-c']:
+            config_file = sys.argv[i+1]
+    run(config_file)
 
