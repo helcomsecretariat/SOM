@@ -428,7 +428,7 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
                     # reduce pressure
                     #
                     total_pressure_load_levels.at[s_i, area] = total_pressure_load_levels.at[s_i, area] * (1 - reduction)
-        
+
         # pressure contributions
         for area in areas:
             a_i = pressure_levels.columns.get_loc(area)
@@ -440,7 +440,7 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
                     #
                     row_i = pressure_levels.loc[pressure_levels['ID'] == p['pressure']].index[0]
                     reduction = 1 - pressure_levels.iloc[row_i, a_i]    # reduction = 100 % - the part that is left of the pressure
-                    contribution = p['contribution']
+                    contribution = data['pressure_contributions'].loc[(data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID']) & (data['pressure_contributions']['pressure'] == p['pressure']), 'contribution'].values[0]
                     #
                     # subpressures
                     #
@@ -464,6 +464,8 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
                         norm_mask = (data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID'])
                         relevant_contributions = data['pressure_contributions'].loc[norm_mask, 'contribution']
                         data['pressure_contributions'].loc[norm_mask, 'contribution'] = relevant_contributions / (1 - reduction * contribution)
+                        try: assert abs(1 - data['pressure_contributions'].loc[norm_mask, 'contribution'].sum()) <= allowed_error
+                        except Exception as e: fail_with_message(f'Failed on area {area}, state {s["ID"]}, pressure {p["pressure"]} with pressure contribution sum not equal to 1', e)
     
     # total reduction observed in total pressure loads
     for area in areas:
