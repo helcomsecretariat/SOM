@@ -291,7 +291,7 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
 
     cases = data['cases']
     links = data['measure_effects']
-    areas = cases['area_id'].unique()
+    areas = data['area']['ID']
 
     # create dataframes to store changes in pressure and state, one column per area_id
     # NOTE: the DataFrames are created on one line to avoid PerformanceWarning
