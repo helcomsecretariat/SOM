@@ -131,7 +131,33 @@ Model file structure (in *src* directory):
 
 ### Model flow
 
+The model links together the various inputs as shown in the diagram below.
 
+![som-model-flowchart](docs/som_model_flow.png)
+
+The figure above details the links between each element of the model, both for the original model developed in the [ACTION](https://helcom.fi/helcom-at-work/projects/action/) project and further expanded on in the [BLUES](https://helcom.fi/helcom-at-work/projects/blues/) project. For each individual simulation run, these calculations occur:
+
+1. An individual random sample is picked from each of the probability distributions representing the measure reductions, activity and pressure contributions, and GES thresholds.
+
+2. Activity contributions are multiplied by their respective development factor for the chosen scenario.
+
+3. Pressure levels are reduced by the reduction in its respective activity contributions (or directly through straight-to-pressure measures).
+    - Reduction = Coverage * Implementation * Measure overlaps * Measure reduction * Activity contribution
+
+4. Total pressure load levels on environmental states are reduced by the reduction in its respective pressure contributions (or directly through straight-to-state measures).
+    - Reduction = Pressure level reduction * Pressure contribution
 
 ### Next development steps
 
+The tool will implement the following aspects:
+
+- Multiple simulations to assess uncertainty of results
+- Incorporating GIS layers in determining cases and areas
+- Result visualisation
+
+Possible future development steps to implement (but are not yet due to lack of data):
+
+- Ecosystem services & Benefits
+- Impact on human well-being
+- Incentives
+- Drivers
