@@ -1,7 +1,7 @@
 # Configuration file
 
 # export path
-export_path = './data/testActCont/testActContResults.xlsx'
+export_path = './data/testActRed/testActRedResults.xlsx'
 
 # scenario used for calculations
 use_scenario = false
@@ -16,9 +16,9 @@ simulations = 5
 
 # excel input files
 [input_data]
-    general_input = './data/testActCont/testActContData.xlsx'
-    measure_effect_input = './data/testActCont/testActContMeasureEffect.xlsx'
-    pressure_state_input = './data/testActCont/testActContPressureState.xlsx'
+    general_input = './data/testActRed/testActRedData.xlsx'
+    measure_effect_input = './data/testActRed/testActRedMeasureEffect.xlsx'
+    pressure_state_input = './data/testActRed/testActRedPressureState.xlsx'
 
     [input_data.general_input_sheets]
         case = 'ActMeas'

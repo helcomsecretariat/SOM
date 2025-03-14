@@ -1,0 +1,34 @@
+# Configuration file
+
+# export path
+export_path = './data/testDataLoad/testDataLoadResults.xlsx'
+
+# scenario used for calculations
+use_scenario = false
+scenario = 'ChangeML'
+
+# randomness setup
+use_random_seed = true
+random_seed = 10022025
+
+# number of simulations
+simulations = 5
+
+# excel input files
+[input_data]
+    general_input = './data/testDataLoad/testDataLoadData.xlsx'
+    measure_effect_input = './data/testDataLoad/testDataLoadMeasureEffect.xlsx'
+    pressure_state_input = './data/testDataLoad/testDataLoadPressureState.xlsx'
+
+    [input_data.general_input_sheets]
+        case = 'ActMeas'
+        postprocess = 'ActPres'
+        overlaps = 'Overlaps'
+        development_scenarios = 'DEV_scenarios'
+        subpressures = 'SubPres'
+        [input_data.general_input_sheets.ID]
+            measure = 'Measure ID'
+            activity = 'Activity ID'
+            pressure = 'Pressure ID'
+            state = 'State ID'
+            area = 'Area ID'
