@@ -42,14 +42,6 @@ The model links measures, human activities, pressures, and environmental states 
 
 Information on the input data is explained in the [wiki](../../../wiki/Input-Data).
 
-Model file structure (in *src* directory):
-
-- ```__main__```: runs the tool
-- ```config.toml```: configuration settings
-- ```som_app.py```: main calculations are performed here
-- ```som_tools.py```: input data loading functions
-- ```utilities.py```: small utility functions
-
 ### Model flow
 
 The model links together the various inputs as shown in the diagram below.
