@@ -496,11 +496,63 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
     return data
 
 
-def build_results(sim_res: str):
+def build_results(sim_res: str, data: dict[str, pd.DataFrame]):
     """
     Process the simulated results to calculate uncertainties.
     """
+    files = [os.path.join(sim_res, x) for x in os.listdir(sim_res) if x.endswith('.xlsx') and 'sim_res' in x]
 
-    return
+    areas = data['area']['ID']
+    pressures = data['pressure']['ID']
+    states = data['state']['ID']
+
+    # create dataframes for average
+    pressure_levels_average = pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
+    total_pressure_load_levels_average = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
+    thresholds_average = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist())
+    # create dataframes for uncertainty (standard error of the mean)
+    pressure_levels_uncertainty = pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
+    total_pressure_load_levels_uncertainty = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
+    thresholds_uncertainty = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist())
+
+    #
+    # pressure levels
+    #
+    arr = np.empty(shape=(len(pressures.tolist()), len(areas.tolist()), len(files)))
+    for i in range(len(files)):
+        df = pd.read_excel(io=files[i], sheet_name='PressureLevels')
+        arr[:, :, i] = df.values[:, 1:]
+    pressure_levels_average.iloc[:, 1:] = np.mean(arr, axis=2)
+    pressure_levels_uncertainty.iloc[:, 1:] = np.std(arr, axis=2, ddof=1) / arr.shape[2]
+    #
+    # total pressure load levels
+    #
+    arr = np.empty(shape=(len(states.tolist()), len(areas.tolist()), len(files)))
+    for i in range(len(files)):
+        df = pd.read_excel(io=files[i], sheet_name='TPLLevels')
+        arr[:, :, i] = df.values[:, 1:]
+    total_pressure_load_levels_average.iloc[:, 1:] = np.mean(arr, axis=2)
+    total_pressure_load_levels_uncertainty.iloc[:, 1:] = np.std(arr, axis=2, ddof=1) / arr.shape[2]
+    #
+    # thresholds
+    #
+    arr = np.empty(shape=(len(states.tolist()), len(areas.tolist()), len(files)))
+    for i in range(len(files)):
+        df = pd.read_excel(io=files[i], sheet_name='RequiredReductionsForGES')
+        arr[:, :, i] = df.values[:, 1:]
+    thresholds_average.iloc[:, 1:] = np.mean(arr, axis=2)
+    thresholds_uncertainty.iloc[:, 1:] = np.std(arr, axis=2, ddof=1) / arr.shape[2]
+
+    # create new dict of dataframes
+    res = {
+        'pressure_mean': pressure_levels_average, 
+        'pressure_error': pressure_levels_uncertainty, 
+        'tpl_mean': total_pressure_load_levels_average, 
+        'tpl_error': total_pressure_load_levels_uncertainty, 
+        'thresholds_mean': thresholds_average, 
+        'thresholds_error': thresholds_uncertainty
+    }
+
+    return res
 
 #EOF

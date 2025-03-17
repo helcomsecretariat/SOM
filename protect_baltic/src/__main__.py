@@ -17,6 +17,7 @@ import pandas as pd
 import numpy as np
 import sys
 import copy
+import shutil
 
 
 def run(config_file: str = None):
@@ -43,7 +44,10 @@ def run(config_file: str = None):
     export_path = os.path.realpath(config['export_path'])
     if not os.path.isdir(os.path.dirname(export_path)): export_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['export_path'])
     sim_res_path = os.path.join(os.path.dirname(export_path), 'sim_res')
-    if not os.path.exists(sim_res_path): os.makedirs(sim_res_path, exist_ok=True)
+    if os.path.exists(sim_res_path):
+        for f in [x for x in os.listdir(sim_res_path) if x.endswith('.xlsx') and 'sim_res' in x]:
+            os.remove(os.path.join(sim_res_path, f))
+    os.makedirs(sim_res_path, exist_ok=True)
 
     if config['use_random_seed']:
         print(f'Using random seed: {config["random_seed"]}', file=log)
@@ -101,7 +105,10 @@ def run(config_file: str = None):
     # process results
     #
     print('\nProcessing results...')
-    res = som_app.build_results(sim_res_path)
+    try:
+        res = som_app.build_results(sim_res_path, input_data)
+    except Exception as e:
+        fail_with_message(f'ERROR! Something went wrong while processing results! Check traceback.', e)
 
     print(f'\nProgram terminated successfully after {timer.get_hhmmss()}')
 
