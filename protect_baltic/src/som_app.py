@@ -496,4 +496,11 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
     return data
 
 
+def build_results(sim_res: str):
+    """
+    Process the simulated results to calculate uncertainties.
+    """
+
+    return
+
 #EOF

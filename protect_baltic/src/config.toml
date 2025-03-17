@@ -12,7 +12,7 @@ use_random_seed = true
 random_seed = 10022025
 
 # number of simulations
-simulations = 5
+simulations = 10
 
 # excel input files
 [input_data]
