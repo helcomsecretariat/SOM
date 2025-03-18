@@ -499,6 +499,8 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
 def build_results(sim_res: str, data: dict[str, pd.DataFrame]):
     """
     Process the simulated results to calculate uncertainties.
+
+    Uncertainty is determined as standard error of the mean.
     """
     files = [os.path.join(sim_res, x) for x in os.listdir(sim_res) if x.endswith('.xlsx') and 'sim_res' in x]
 
@@ -506,51 +508,87 @@ def build_results(sim_res: str, data: dict[str, pd.DataFrame]):
     pressures = data['pressure']['ID']
     states = data['state']['ID']
 
-    # create dataframes for average
-    pressure_levels_average = pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
-    total_pressure_load_levels_average = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
-    thresholds_average = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist())
-    # create dataframes for uncertainty (standard error of the mean)
-    pressure_levels_uncertainty = pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
-    total_pressure_load_levels_uncertainty = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
-    thresholds_uncertainty = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist())
-
     #
     # pressure levels
     #
+    pressure_levels_average = pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
+    pressure_levels_error = pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
     arr = np.empty(shape=(len(pressures.tolist()), len(areas.tolist()), len(files)))
     for i in range(len(files)):
         df = pd.read_excel(io=files[i], sheet_name='PressureLevels')
         arr[:, :, i] = df.values[:, 1:]
     pressure_levels_average.iloc[:, 1:] = np.mean(arr, axis=2)
-    pressure_levels_uncertainty.iloc[:, 1:] = np.std(arr, axis=2, ddof=1) / arr.shape[2]
+    pressure_levels_error.iloc[:, 1:] = np.std(arr, axis=2, ddof=1) / np.sqrt(arr.shape[2])    # calculate standard error
     #
     # total pressure load levels
     #
+    total_pressure_load_levels_average = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
+    total_pressure_load_levels_error = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
     arr = np.empty(shape=(len(states.tolist()), len(areas.tolist()), len(files)))
     for i in range(len(files)):
         df = pd.read_excel(io=files[i], sheet_name='TPLLevels')
         arr[:, :, i] = df.values[:, 1:]
     total_pressure_load_levels_average.iloc[:, 1:] = np.mean(arr, axis=2)
-    total_pressure_load_levels_uncertainty.iloc[:, 1:] = np.std(arr, axis=2, ddof=1) / arr.shape[2]
+    total_pressure_load_levels_error.iloc[:, 1:] = np.std(arr, axis=2, ddof=1) / np.sqrt(arr.shape[2])    # calculate standard error
     #
     # thresholds
     #
+    thresholds_average = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist())
+    thresholds_error = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist())
     arr = np.empty(shape=(len(states.tolist()), len(areas.tolist()), len(files)))
     for i in range(len(files)):
         df = pd.read_excel(io=files[i], sheet_name='RequiredReductionsForGES')
         arr[:, :, i] = df.values[:, 1:]
     thresholds_average.iloc[:, 1:] = np.mean(arr, axis=2)
-    thresholds_uncertainty.iloc[:, 1:] = np.std(arr, axis=2, ddof=1) / arr.shape[2]
+    thresholds_error.iloc[:, 1:] = np.std(arr, axis=2, ddof=1) / np.sqrt(arr.shape[2])    # calculate standard error
+    #
+    # measure effects
+    #
+    measure_effects_mean = pd.DataFrame(data['measure_effects']).drop(columns=['probability'])
+    measure_effects_error = pd.DataFrame(data['measure_effects']).drop(columns=['probability'])
+    arr = np.empty(shape=([x for x in data['measure_effects'].values.shape]+[len(files)]))
+    for i in range(len(files)):
+        df = pd.read_excel(io=files[i], sheet_name='MeasureEffects')
+        arr[:, :, i] = df.values
+    measure_effects_mean['reduction'] = np.mean(arr[:, -1, :], axis=1)
+    measure_effects_error['reduction'] = np.std(arr[:, -1, :], axis=1, ddof=1) / np.sqrt(arr.shape[2])
+    #
+    # activity contributions
+    #
+    activity_contributions_mean = pd.DataFrame(data['activity_contributions'])
+    activity_contributions_error = pd.DataFrame(data['activity_contributions'])
+    arr = np.empty(shape=([x for x in data['activity_contributions'].values.shape]+[len(files)]))
+    for i in range(len(files)):
+        df = pd.read_excel(io=files[i], sheet_name='ActivityContributions')
+        arr[:, :, i] = df.values
+    activity_contributions_mean['contribution'] = np.mean(arr[:, -1, :], axis=1)
+    activity_contributions_error['contribution'] = np.std(arr[:, -1, :], axis=1, ddof=1) / np.sqrt(arr.shape[2])
+    #
+    # pressure contributions
+    #
+    pressure_contributions_mean = pd.DataFrame(data['pressure_contributions'])
+    pressure_contributions_error = pd.DataFrame(data['pressure_contributions'])
+    arr = np.empty(shape=([x for x in data['pressure_contributions'].values.shape]+[len(files)]))
+    for i in range(len(files)):
+        df = pd.read_excel(io=files[i], sheet_name='PressureContributions')
+        arr[:, :, i] = df.values
+    pressure_contributions_mean['contribution'] = np.mean(arr[:, -1, :], axis=1)
+    pressure_contributions_error['contribution'] = np.std(arr[:, -1, :], axis=1, ddof=1) / np.sqrt(arr.shape[2])
 
     # create new dict of dataframes
     res = {
-        'pressure_mean': pressure_levels_average, 
-        'pressure_error': pressure_levels_uncertainty, 
-        'tpl_mean': total_pressure_load_levels_average, 
-        'tpl_error': total_pressure_load_levels_uncertainty, 
-        'thresholds_mean': thresholds_average, 
-        'thresholds_error': thresholds_uncertainty
+        'PressureMean': pressure_levels_average, 
+        'PressureError': pressure_levels_error, 
+        'TPLMean': total_pressure_load_levels_average, 
+        'TPLError': total_pressure_load_levels_error, 
+        'ThresholdsMean': thresholds_average, 
+        'ThresholdsError': thresholds_error, 
+        'MeasureEffectsMean': measure_effects_mean, 
+        'MeasureEffectsError': measure_effects_error, 
+        'ActivityContributionsMean': activity_contributions_mean, 
+        'ActivityContributionsError': activity_contributions_error, 
+        'PressureContributionsMean': pressure_contributions_mean, 
+        'PressureContributionsError': pressure_contributions_error
     }
 
     return res

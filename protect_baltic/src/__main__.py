@@ -107,6 +107,9 @@ def run(config_file: str = None):
     print('\nProcessing results...')
     try:
         res = som_app.build_results(sim_res_path, input_data)
+        with pd.ExcelWriter(export_path) as writer:
+            for key in res:
+                res[key].to_excel(writer, sheet_name=key, index=False)
     except Exception as e:
         fail_with_message(f'ERROR! Something went wrong while processing results! Check traceback.', e)
 
