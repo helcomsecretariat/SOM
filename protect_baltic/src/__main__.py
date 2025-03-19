@@ -39,7 +39,7 @@ def run(config_file: str = None):
         fail_with_message('ERROR! Could not load config file!', e)
 
     #
-    # run simulations
+    # paths
     #
     export_path = os.path.realpath(config['export_path'])
     if not os.path.isdir(os.path.dirname(export_path)): export_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['export_path'])
@@ -48,7 +48,13 @@ def run(config_file: str = None):
         for f in [x for x in os.listdir(sim_res_path) if x.endswith('.xlsx') and 'sim_res' in x]:
             os.remove(os.path.join(sim_res_path, f))
     os.makedirs(sim_res_path, exist_ok=True)
+    out_dir = os.path.join(os.path.dirname(export_path), 'output')
+    if os.path.exists(out_dir): shutil.rmtree(out_dir)
+    os.makedirs(out_dir, exist_ok=True)
 
+    #
+    # run simulations
+    #
     if config['use_random_seed']:
         print(f'Using random seed: {config["random_seed"]}', file=log)
         np.random.seed(config['random_seed'])
@@ -106,10 +112,13 @@ def run(config_file: str = None):
     #
     print('\nProcessing results...')
     try:
+        print('Calculating means and errors...', file=log)
         res = som_app.build_results(sim_res_path, input_data)
         with pd.ExcelWriter(export_path) as writer:
             for key in res:
                 res[key].to_excel(writer, sheet_name=key, index=False)
+        print('Producing plots...', file=log)
+        som_app.build_display(res, input_data, out_dir, show_areas=[1])
     except Exception as e:
         fail_with_message(f'ERROR! Something went wrong while processing results! Check traceback.', e)
 

@@ -12,8 +12,9 @@ import pandas as pd
 import os
 from som_tools import *
 from utilities import *
+import matplotlib.pyplot as plt
 
-def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
+def process_input_data(config: dict) -> dict[str, pd.DataFrame]:
     """
     Reads in data and processes to usable form.
 
@@ -121,7 +122,7 @@ def process_input_data(config: dict) -> tuple[pd.DataFrame, pd.DataFrame]:
     return data
 
 
-def build_links(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
+def build_links(data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     """
     Build links by picking random samples using probability distributions.
     """
@@ -237,7 +238,7 @@ def build_scenario(data: dict[str, pd.DataFrame], scenario: str) -> pd.DataFrame
     return act_to_press
 
 
-def build_cases(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
+def build_cases(data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     """
     Builds cases.
     """
@@ -281,7 +282,7 @@ def build_cases(data: dict[str, pd.DataFrame]) -> pd.DataFrame:
     return data
 
 
-def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings = False) -> pd.DataFrame:
+def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings = False) -> dict[str, pd.DataFrame]:
     """
     Simulate the reduction in activities and pressures caused by measures and 
     return the change observed in state. 
@@ -496,7 +497,7 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
     return data
 
 
-def build_results(sim_res: str, data: dict[str, pd.DataFrame]):
+def build_results(sim_res: str, data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     """
     Process the simulated results to calculate uncertainties.
 
@@ -592,5 +593,76 @@ def build_results(sim_res: str, data: dict[str, pd.DataFrame]):
     }
 
     return res
+
+
+def build_display(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame], out_dir: str, show_areas: list = None):
+    """
+    Constructs plots to visualize results.
+    """
+    areas = data['area']['ID']
+    pressures = data['pressure']['ID']
+    states = data['state']['ID']
+
+    for area in areas:
+        # create new directory for the plots
+        area_name = data['area'].loc[areas == area, 'area'].values[0]
+        temp_dir = os.path.join(out_dir, f'{area}_{area_name}')
+        os.makedirs(temp_dir, exist_ok=True)
+        # create subplots
+        fig, axes = plt.subplots(2, 1)
+
+        #
+        # TPL
+        #
+
+        # adjust data
+        suffixes = ('_mean', '_error')
+        df = pd.merge(res['TPLMean'].loc[:, ['ID', area]], res['TPLError'].loc[:, ['ID', area]], on='ID', suffixes=suffixes)
+        x_vals = data['state'].loc[:, 'state'].values
+        y_vals = df[str(area)+'_mean'] * 100    # convert to %
+        y_err = df[str(area)+'_error'] * 100    # conver to %
+
+        # create plot
+        axes[0].errorbar(np.arange(len(x_vals)), y_vals, yerr=y_err, linestyle='None', marker='s', capsize=3, capthick=1, elinewidth=1, markersize=5, color='black', ecolor='red')
+        axes[0].set_xlabel('State')
+        axes[0].set_ylabel('Level (%)')
+        axes[0].set_title(f'Total Pressure Load on environmental states\n({area_name})')
+        axes[0].set_xticks(np.arange(len(x_vals)), x_vals, rotation=60, ha='right')
+
+        # adjust axis limits
+        x_lim = [- 0.5, len(x_vals) - 0.5]
+        axes[0].set_xlim(x_lim)
+        diff = (np.max(y_vals + y_err) - np.min(y_vals - y_err))
+        y_lim = [np.min(y_vals - y_err) - 0.2 * diff, np.max(y_vals + y_err) + 0.2 * diff]
+        axes[0].set_ylim(y_lim)
+
+        #
+        # Pressures
+        #
+
+        # adjust data
+        suffixes = ('_mean', '_error')
+        df = pd.merge(res['PressureMean'].loc[:, ['ID', area]], res['PressureError'].loc[:, ['ID', area]], on='ID', suffixes=suffixes)
+        x_vals = data['pressure'].loc[:, 'pressure'].values
+        y_vals = df[str(area)+'_mean'] * 100    # convert to %
+        y_err = df[str(area)+'_error'] * 100    # conver to %
+
+        # create plot
+        axes[1].errorbar(np.arange(len(x_vals)), y_vals, yerr=y_err, linestyle='None', marker='s', capsize=3, capthick=1, elinewidth=1, markersize=5, color='black', ecolor='red')
+        axes[1].set_xlabel('Pressure')
+        axes[1].set_ylabel('Level (%)')
+        axes[1].set_title(f'Pressure levels\n({area_name})')
+        axes[1].set_xticks(np.arange(len(x_vals)), x_vals, rotation=60, ha='right')
+
+        # adjust axis limits
+        x_lim = [- 0.5, len(x_vals) - 0.5]
+        axes[1].set_xlim(x_lim)
+        diff = (np.max(y_vals + y_err) - np.min(y_vals - y_err))
+        y_lim = [np.min(y_vals - y_err) - 0.2 * diff, np.max(y_vals + y_err) + 0.2 * diff]
+        axes[1].set_ylim(y_lim)
+
+        plt.savefig(os.path.join(temp_dir, f'{area}_{area_name}.png'))
+        if show_areas != None and area in show_areas:
+            plt.show()
 
 #EOF
