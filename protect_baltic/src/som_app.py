@@ -609,7 +609,21 @@ def build_display(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame], o
         temp_dir = os.path.join(out_dir, f'{area}_{area_name}')
         os.makedirs(temp_dir, exist_ok=True)
         # create subplots
-        fig, axes = plt.subplots(2, 1)
+        fig, axes = plt.subplots(nrows=2, ncols=1, figsize=(16,9), height_ratios=[1, 1], width_ratios=[1], constrained_layout=True)
+
+        #
+        # General plot settings
+        #
+
+        marker = 's'
+        markersize = 5
+        markercolor = 'black'
+        capsize = 3
+        capthick = 1
+        elinewidth = 1
+        ecolor = 'red'
+        label_angle = 60
+        char_limit = 15
 
         #
         # TPL
@@ -619,15 +633,16 @@ def build_display(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame], o
         suffixes = ('_mean', '_error')
         df = pd.merge(res['TPLMean'].loc[:, ['ID', area]], res['TPLError'].loc[:, ['ID', area]], on='ID', suffixes=suffixes)
         x_vals = data['state'].loc[:, 'state'].values
+        x_vals = np.array([x[:char_limit]+'...' if len(x) > char_limit else x for x in x_vals])     # limit characters to char_limit
         y_vals = df[str(area)+'_mean'] * 100    # convert to %
         y_err = df[str(area)+'_error'] * 100    # conver to %
 
         # create plot
-        axes[0].errorbar(np.arange(len(x_vals)), y_vals, yerr=y_err, linestyle='None', marker='s', capsize=3, capthick=1, elinewidth=1, markersize=5, color='black', ecolor='red')
+        axes[0].errorbar(np.arange(len(x_vals)), y_vals, yerr=y_err, linestyle='None', marker=marker, capsize=capsize, capthick=capthick, elinewidth=elinewidth, markersize=markersize, color=markercolor, ecolor=ecolor)
         axes[0].set_xlabel('State')
         axes[0].set_ylabel('Level (%)')
         axes[0].set_title(f'Total Pressure Load on environmental states\n({area_name})')
-        axes[0].set_xticks(np.arange(len(x_vals)), x_vals, rotation=60, ha='right')
+        axes[0].set_xticks(np.arange(len(x_vals)), x_vals, rotation=label_angle, ha='right')
 
         # adjust axis limits
         x_lim = [- 0.5, len(x_vals) - 0.5]
@@ -644,15 +659,16 @@ def build_display(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame], o
         suffixes = ('_mean', '_error')
         df = pd.merge(res['PressureMean'].loc[:, ['ID', area]], res['PressureError'].loc[:, ['ID', area]], on='ID', suffixes=suffixes)
         x_vals = data['pressure'].loc[:, 'pressure'].values
+        x_vals = np.array([x[:char_limit]+'...' if len(x) > char_limit else x for x in x_vals])     # limit characters to char_limit
         y_vals = df[str(area)+'_mean'] * 100    # convert to %
         y_err = df[str(area)+'_error'] * 100    # conver to %
 
         # create plot
-        axes[1].errorbar(np.arange(len(x_vals)), y_vals, yerr=y_err, linestyle='None', marker='s', capsize=3, capthick=1, elinewidth=1, markersize=5, color='black', ecolor='red')
+        axes[1].errorbar(np.arange(len(x_vals)), y_vals, yerr=y_err, linestyle='None', marker=marker, capsize=capsize, capthick=capthick, elinewidth=elinewidth, markersize=markersize, color=markercolor, ecolor=ecolor)
         axes[1].set_xlabel('Pressure')
         axes[1].set_ylabel('Level (%)')
         axes[1].set_title(f'Pressure levels\n({area_name})')
-        axes[1].set_xticks(np.arange(len(x_vals)), x_vals, rotation=60, ha='right')
+        axes[1].set_xticks(np.arange(len(x_vals)), x_vals, rotation=label_angle, ha='right')
 
         # adjust axis limits
         x_lim = [- 0.5, len(x_vals) - 0.5]
@@ -661,7 +677,11 @@ def build_display(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame], o
         y_lim = [np.min(y_vals - y_err) - 0.2 * diff, np.max(y_vals + y_err) + 0.2 * diff]
         axes[1].set_ylim(y_lim)
 
-        plt.savefig(os.path.join(temp_dir, f'{area}_{area_name}.png'))
+        #
+        # Export
+        #
+
+        plt.savefig(os.path.join(temp_dir, f'{area}_{area_name}.png'), dpi=200)
         if show_areas != None and area in show_areas:
             plt.show()
 
