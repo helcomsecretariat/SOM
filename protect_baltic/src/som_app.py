@@ -731,4 +731,6 @@ def build_display(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame], o
             # plt.show()
             pass
 
+        plt.close(fig)
+
 #EOF
