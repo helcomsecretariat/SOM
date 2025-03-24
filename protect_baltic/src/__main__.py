@@ -73,7 +73,6 @@ def run(config_file: str = None, skip_sim: bool = False):
         display_progress(0)
         for i in range(config['simulations']):
             try:
-                display_progress((i + 1) / config['simulations'])
                 print(f'sim = {i}', file=log)
 
                 # Create links between core components
@@ -106,6 +105,8 @@ def run(config_file: str = None, skip_sim: bool = False):
                     data['measure_effects'].to_excel(writer, sheet_name='MeasureEffects', index=False)
                     data['activity_contributions'].to_excel(writer, sheet_name='ActivityContributions', index=False)
                     data['pressure_contributions'].to_excel(writer, sheet_name='PressureContributions', index=False)
+
+                display_progress((i + 1) / config['simulations'])
 
             except Exception as e:
                 fail_with_message(f'ERROR! Something went wrong (sim i = {i})! Check traceback.', e)

@@ -156,10 +156,6 @@ def build_links(data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     # get picks from cumulative distribution
     data['pressure_contributions']['contribution'] = data['pressure_contributions']['contribution'].apply(lambda x: get_pick(x) if not np.any(np.isnan(x)) else np.nan)
     
-    # split areas into separate rows
-    data['pressure_contributions'] = data['pressure_contributions'].explode('area_id')
-    data['pressure_contributions'] = data['pressure_contributions'].reset_index(drop=True)
-
     data['pressure_contributions'] = data['pressure_contributions'].drop_duplicates(subset=['State', 'pressure', 'area_id'], keep='first').reset_index(drop=True)
 
     # verify that there are no duplicate links
@@ -183,10 +179,6 @@ def build_links(data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     # get picks from cumulative distribution
     for col in threshold_cols:
         data['thresholds'][col] = data['thresholds'][col].apply(lambda x: get_pick(x) if not np.any(np.isnan(x)) else np.nan)
-
-    # split areas into separate rows
-    data['thresholds'] = data['thresholds'].explode('area_id')
-    data['thresholds'] = data['thresholds'].reset_index(drop=True)
 
     data['thresholds'] = data['thresholds'].drop_duplicates(subset=['State', 'area_id'], keep='first').reset_index(drop=True)
 
@@ -736,6 +728,7 @@ def build_display(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame], o
 
         plt.savefig(os.path.join(temp_dir, f'{area}_{area_name}.png'), dpi=200)
         if show_areas != None and area in show_areas:
-            plt.show()
+            # plt.show()
+            pass
 
 #EOF

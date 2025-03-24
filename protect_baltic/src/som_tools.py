@@ -499,6 +499,11 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
     new_df['pressure'] = new_df['pressure'].astype(int)
     new_df = new_df.drop(columns=['survey_id', 'question_id', 'GES known'])
     #
+    # split areas into separate rows
+    #
+    new_df = new_df.explode('area_id')
+    new_df = new_df.reset_index(drop=True)
+    #
     # split new_df into two dataframes, one for pressure contributions and one for thresholds
     #
     pressure_contributions = pd.DataFrame(new_df.loc[:, ['State', 'pressure', 'area_id', 'contribution']])
