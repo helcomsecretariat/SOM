@@ -122,7 +122,7 @@ def run(config_file: str = None, skip_sim: bool = False):
             for key in res:
                 res[key].to_excel(writer, sheet_name=key, index=False)
         print('Producing plots...', file=log)
-        som_app.build_display(res, input_data, out_dir, show_areas=[1])
+        som_app.build_display(res, input_data, out_dir)
     except Exception as e:
         fail_with_message(f'ERROR! Something went wrong while processing results! Check traceback.', e)
 

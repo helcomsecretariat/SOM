@@ -556,6 +556,8 @@ def build_results(sim_res: str, data: dict[str, pd.DataFrame]) -> dict[str, pd.D
         arr[:, :, i] = df.values
     measure_effects_mean['reduction'] = np.mean(arr[:, -1, :], axis=1)
     measure_effects_error['reduction'] = np.std(arr[:, -1, :], axis=1, ddof=1) / np.sqrt(arr.shape[2])
+    suffixes = ('_mean', '_error')
+    measure_effects = pd.merge(measure_effects_mean, measure_effects_error, on=['measure', 'activity', 'pressure', 'state'], suffixes=suffixes)
     #
     # activity contributions
     #
@@ -567,6 +569,8 @@ def build_results(sim_res: str, data: dict[str, pd.DataFrame]) -> dict[str, pd.D
         arr[:, :, i] = df.values
     activity_contributions_mean['contribution'] = np.mean(arr[:, -1, :], axis=1)
     activity_contributions_error['contribution'] = np.std(arr[:, -1, :], axis=1, ddof=1) / np.sqrt(arr.shape[2])
+    suffixes = ('_mean', '_error')
+    activity_contributions = pd.merge(activity_contributions_mean, activity_contributions_error, on=['Activity', 'Pressure', 'area_id'], suffixes=suffixes)
     #
     # pressure contributions
     #
@@ -578,6 +582,8 @@ def build_results(sim_res: str, data: dict[str, pd.DataFrame]) -> dict[str, pd.D
         arr[:, :, i] = df.values
     pressure_contributions_mean['contribution'] = np.mean(arr[:, -1, :], axis=1)
     pressure_contributions_error['contribution'] = np.std(arr[:, -1, :], axis=1, ddof=1) / np.sqrt(arr.shape[2])
+    suffixes = ('_mean', '_error')
+    pressure_contributions = pd.merge(pressure_contributions_mean, pressure_contributions_error, on=['State', 'pressure', 'area_id'], suffixes=suffixes)
 
     # create new dict of dataframes
     res = {
@@ -589,18 +595,15 @@ def build_results(sim_res: str, data: dict[str, pd.DataFrame]) -> dict[str, pd.D
         'TPLRedError': total_pressure_load_reductions_error, 
         'ThresholdsMean': thresholds_average, 
         'ThresholdsError': thresholds_error, 
-        'MeasureEffectsMean': measure_effects_mean, 
-        'MeasureEffectsError': measure_effects_error, 
-        'ActivityContributionsMean': activity_contributions_mean, 
-        'ActivityContributionsError': activity_contributions_error, 
-        'PressureContributionsMean': pressure_contributions_mean, 
-        'PressureContributionsError': pressure_contributions_error
+        'MeasureEffects': measure_effects, 
+        'ActivityContributions': activity_contributions, 
+        'PressureContributions': pressure_contributions
     }
 
     return res
 
 
-def build_display(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame], out_dir: str, show_areas: list = None):
+def build_display(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame], out_dir: str):
     """
     Constructs plots to visualize results.
     """
@@ -613,8 +616,6 @@ def build_display(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame], o
         area_name = data['area'].loc[areas == area, 'area'].values[0]
         temp_dir = os.path.join(out_dir, f'{area}_{area_name}')
         os.makedirs(temp_dir, exist_ok=True)
-        # create subplots
-        fig, axes = plt.subplots(nrows=3, ncols=1, figsize=(16,16), height_ratios=[1, 1, 1], width_ratios=[1], constrained_layout=True)
 
         #
         # General plot settings
@@ -637,6 +638,8 @@ def build_display(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame], o
         # TPL
         #
 
+        fig, ax = plt.subplots(figsize=(16, 10), constrained_layout=True)
+
         # adjust data
         suffixes = ('_mean', '_error')
         df = pd.merge(res['TPLMean'].loc[:, ['ID', area]], res['TPLError'].loc[:, ['ID', area]], on='ID', suffixes=suffixes)
@@ -646,23 +649,30 @@ def build_display(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame], o
         y_err = df[str(area)+'_error'] * 100    # conver to %
 
         # create plot
-        axes[0].errorbar(np.arange(len(x_vals)), y_vals, yerr=y_err, linestyle='None', marker=marker, capsize=capsize, capthick=capthick, elinewidth=elinewidth, markersize=markersize, color=markercolor, ecolor=ecolor)
-        axes[0].set_xlabel('Environmental State')
-        axes[0].set_ylabel('Level (%)')
-        axes[0].set_title(f'Total Pressure Load on Environmental States\n({area_name})')
-        axes[0].set_xticks(np.arange(len(x_vals)), x_vals, rotation=label_angle, ha='right')
-        axes[0].yaxis.grid(True, linestyle='--', color='lavender')
+        ax.errorbar(np.arange(len(x_vals)), y_vals, yerr=y_err, linestyle='None', marker=marker, capsize=capsize, capthick=capthick, elinewidth=elinewidth, markersize=markersize, color=markercolor, ecolor=ecolor)
+        ax.set_xlabel('Environmental State')
+        ax.set_ylabel('Level (%)')
+        ax.set_title(f'Total Pressure Load on Environmental States\n({area_name})')
+        ax.set_xticks(np.arange(len(x_vals)), x_vals, rotation=label_angle, ha='right')
+        ax.yaxis.grid(True, linestyle='--', color='lavender')
 
         # adjust axis limits
         x_lim = [- 0.5, len(x_vals) - 0.5]
-        axes[0].set_xlim(x_lim)
+        ax.set_xlim(x_lim)
         diff = (np.max(y_vals + y_err) - np.min(y_vals - y_err))
-        y_lim = [np.min(y_vals - y_err) - 0.2 * diff, np.max(y_vals + y_err) + 0.2 * diff]
-        axes[0].set_ylim(y_lim)
+        y_lim = [-5, 105]
+        ax.set_ylim(y_lim)
+
+        # export
+        plt.savefig(os.path.join(temp_dir, f'{area}_{area_name}_TotalPressureLoadLevels.png'), dpi=200)
+
+        plt.close(fig)
 
         #
         # Pressures
         #
+
+        fig, ax = plt.subplots(figsize=(25, 10), constrained_layout=True)
 
         # adjust data
         suffixes = ('_mean', '_error')
@@ -673,23 +683,30 @@ def build_display(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame], o
         y_err = df[str(area)+'_error'] * 100    # conver to %
 
         # create plot
-        axes[1].errorbar(np.arange(len(x_vals)), y_vals, yerr=y_err, linestyle='None', marker=marker, capsize=capsize, capthick=capthick, elinewidth=elinewidth, markersize=markersize, color=markercolor, ecolor=ecolor)
-        axes[1].set_xlabel('Pressure')
-        axes[1].set_ylabel('Level (%)')
-        axes[1].set_title(f'Pressure Levels\n({area_name})')
-        axes[1].set_xticks(np.arange(len(x_vals)), x_vals, rotation=label_angle, ha='right')
-        axes[1].yaxis.grid(True, linestyle='--', color='lavender')
+        ax.errorbar(np.arange(len(x_vals)), y_vals, yerr=y_err, linestyle='None', marker=marker, capsize=capsize, capthick=capthick, elinewidth=elinewidth, markersize=markersize, color=markercolor, ecolor=ecolor)
+        ax.set_xlabel('Pressure')
+        ax.set_ylabel('Level (%)')
+        ax.set_title(f'Pressure Levels\n({area_name})')
+        ax.set_xticks(np.arange(len(x_vals)), x_vals, rotation=label_angle, ha='right')
+        ax.yaxis.grid(True, linestyle='--', color='lavender')
 
         # adjust axis limits
         x_lim = [- 0.5, len(x_vals) - 0.5]
-        axes[1].set_xlim(x_lim)
+        ax.set_xlim(x_lim)
         diff = (np.max(y_vals + y_err) - np.min(y_vals - y_err))
-        y_lim = [np.min(y_vals - y_err) - 0.2 * diff, np.max(y_vals + y_err) + 0.2 * diff]
-        axes[1].set_ylim(y_lim)
+        y_lim = [-5, 105]
+        ax.set_ylim(y_lim)
+
+        # export
+        plt.savefig(os.path.join(temp_dir, f'{area}_{area_name}_PressureLevels.png'), dpi=200)
+
+        plt.close(fig)
 
         #
         # GES thresholds
         #
+
+        fig, ax = plt.subplots(figsize=(16, 10), constrained_layout=True)
 
         # adjust data
         x_labels = np.array([x[:char_limit]+'...' if len(x) > char_limit else x for x in data['state'].loc[:, 'state'].values])     # limit characters to char_limit
@@ -700,37 +717,62 @@ def build_display(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame], o
         y_err_tpl = df[str(area)+'_error'] * 100    # conver to %
         df = pd.merge(res['ThresholdsMean'].loc[:, ['ID', area]], res['ThresholdsError'].loc[:, ['ID', area]], on='ID', suffixes=suffixes)
         y_vals_ges = df[str(area)+'_mean'] * 100    # convert to %
-        y_err_ges = df[str(area)+'_error'] * 100    # conver to %
+        y_err_ges = df[str(area)+'_error'] * 100    # convert to %
 
         # create plot
-        label_tpl = 'BAU'
-        axes[2].bar(x_vals-bar_width/2, y_vals_tpl, width=bar_width, align='center', color=bar_color_1, label=label_tpl)
-        axes[2].errorbar(x_vals-bar_width/2, y_vals_tpl, yerr=y_err_tpl, linestyle='None', marker='None', capsize=capsize, capthick=capthick, elinewidth=elinewidth, ecolor=ecolor)
+        label_tpl = 'Reduction with measures'
+        ax.bar(x_vals-bar_width/2, y_vals_tpl, width=bar_width, align='center', color=bar_color_1, label=label_tpl)
+        ax.errorbar(x_vals-bar_width/2, y_vals_tpl, yerr=y_err_tpl, linestyle='None', marker='None', capsize=capsize, capthick=capthick, elinewidth=elinewidth, ecolor=ecolor)
         label_ges = 'GES'
-        axes[2].bar(x_vals+bar_width/2, y_vals_ges, width=bar_width, align='center', color=bar_color_2, label=label_ges)
-        axes[2].errorbar(x_vals+bar_width/2, y_vals_ges, yerr=y_err_ges, linestyle='None', marker='None', capsize=capsize, capthick=capthick, elinewidth=elinewidth, ecolor=ecolor)
-        axes[2].set_xlabel('Environmental State')
-        axes[2].set_ylabel('Reduction (%)')
-        axes[2].set_title(f'Total Pressure Load Reduction vs. GES Reduction Thresholds\n({area_name})')
-        axes[2].set_xticks(x_vals, x_labels, rotation=label_angle, ha='right')
-        axes[2].yaxis.grid(True, linestyle='--', color='lavender')
-        axes[2].legend()
+        ax.bar(x_vals+bar_width/2, y_vals_ges, width=bar_width, align='center', color=bar_color_2, label=label_ges)
+        ax.errorbar(x_vals+bar_width/2, y_vals_ges, yerr=y_err_ges, linestyle='None', marker='None', capsize=capsize, capthick=capthick, elinewidth=elinewidth, ecolor=ecolor)
+        ax.set_xlabel('Environmental State')
+        ax.set_ylabel('Reduction (%)')
+        ax.set_title(f'Total Pressure Load Reduction vs. GES Reduction Thresholds\n({area_name})')
+        ax.set_xticks(x_vals, x_labels, rotation=label_angle, ha='right')
+        ax.yaxis.grid(True, linestyle='--', color='lavender')
+        ax.legend()
+
+        # export
+        plt.savefig(os.path.join(temp_dir, f'{area}_{area_name}_Thresholds.png'), dpi=200)
 
         # adjust axis limits
         x_lim = [- 0.5, len(x_vals) - 0.5]
-        axes[2].set_xlim(x_lim)
+        ax.set_xlim(x_lim)
         y_lim = [0, 100]
-        axes[2].set_ylim(y_lim)
-
-        #
-        # Export
-        #
-
-        plt.savefig(os.path.join(temp_dir, f'{area}_{area_name}.png'), dpi=200)
-        if show_areas != None and area in show_areas:
-            # plt.show()
-            pass
+        ax.set_ylim(y_lim)
 
         plt.close(fig)
+
+        #
+        # Measure effects
+        #
+
+        # fig, ax = plt.subplots(figsize=(16, 10), constrained_layout=True)
+
+        # # adjust data
+        # df = res['MeasureEffects'].sort_values(by='')
+        # x_vals = data['state'].loc[:, 'state'].values
+        # x_vals = np.array([x[:char_limit]+'...' if len(x) > char_limit else x for x in x_vals])     # limit characters to char_limit
+        # y_vals = df[str(area)+'_mean'] * 100    # convert to %
+        # y_err = df[str(area)+'_error'] * 100    # conver to %
+
+        # # create plot
+        # ax.errorbar(np.arange(len(x_vals)), y_vals, yerr=y_err, linestyle='None', marker=marker, capsize=capsize, capthick=capthick, elinewidth=elinewidth, markersize=markersize, color=markercolor, ecolor=ecolor)
+        # ax.set_xlabel('Environmental State')
+        # ax.set_ylabel('Level (%)')
+        # ax.set_title(f'Total Pressure Load on Environmental States\n({area_name})')
+        # ax.set_xticks(np.arange(len(x_vals)), x_vals, rotation=label_angle, ha='right')
+        # ax.yaxis.grid(True, linestyle='--', color='lavender')
+
+        # # adjust axis limits
+        # x_lim = [- 0.5, len(x_vals) - 0.5]
+        # ax.set_xlim(x_lim)
+        # diff = (np.max(y_vals + y_err) - np.min(y_vals - y_err))
+        # y_lim = [-5, 105]
+        # ax.set_ylim(y_lim)
+
+        # plt.close(fig)
+
 
 #EOF
