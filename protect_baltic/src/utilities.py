@@ -2,10 +2,10 @@
 Utility methods for easy use
 """
 
-
 import time
 from collections import namedtuple
 import traceback
+import sys
 
 
 class Timer:
@@ -56,4 +56,10 @@ def fail_with_message(m: str = None, e: Exception = None):
         print(m)
     print('Terminating.')
     exit()
+
+
+def display_progress(completion, size=50, text='Progress: '):
+    x = int(size*completion)
+    sys.stdout.write("%s[%s%s] %02d %%\r" % (text, "#"*x, "."*(size-x), completion*100))
+    sys.stdout.flush()
 

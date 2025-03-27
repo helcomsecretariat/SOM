@@ -1,7 +1,7 @@
 # Configuration file
 
 # export path
-export_path = './data/results.xlsx'
+export_path = './data/testActRed/testActRedResults.xlsx'
 
 # scenario used for calculations
 use_scenario = false
@@ -12,13 +12,13 @@ use_random_seed = true
 random_seed = 10022025
 
 # number of simulations
-simulations = 10
+simulations = 5
 
 # excel input files
 [input_data]
-    general_input = './data/generalInput.xlsx'
-    measure_effect_input = './data/measureEffectInput.xlsx'
-    pressure_state_input = './data/pressureStateInput.xlsx'
+    general_input = './data/testActRed/testActRedData.xlsx'
+    measure_effect_input = './data/testActRed/testActRedMeasureEffect.xlsx'
+    pressure_state_input = './data/testActRed/testActRedPressureState.xlsx'
 
     [input_data.general_input_sheets]
         case = 'ActMeas'
