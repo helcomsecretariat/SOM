@@ -64,7 +64,7 @@ def run(config_file: str = None, skip_sim: bool = False):
     print('Loading input data...')
     try:
         print('Loading input data...', file=log)
-        input_data = som_app.process_input_data(config)
+        input_data = som_app.build_input(config)
     except Exception as e:
         fail_with_message(f'ERROR! Something went wrong while processing input data! Check traceback.', e)
     

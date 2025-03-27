@@ -7,10 +7,11 @@ local: 'SOM/protect_baltic/LICENSE'
 url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
 """
 
+import os
 import numpy as np
 import pandas as pd
 import warnings     # for suppressing deprecated warnings
-import matplotlib.pyplot as plt
+from utilities import *
 
 def get_expert_ids(df: pd.DataFrame) -> list:
     '''
@@ -701,126 +702,115 @@ def read_subpressures(file_name: str, sheet_name: str) -> pd.DataFrame:
     return subpressures
 
 
-def pert_dist(peak, low, high, size) -> np.ndarray:
-    '''
-    Returns a set of random picks from a PERT distribution.
-    '''
-    # weight, controls probability of edge values (higher -> more emphasis on most likely, lower -> extreme values more probable)
-    # 4 is standard used in unmodified PERT distributions
-    gamma = 4
-    # calculate expected value
-    # mu = ((low + gamma) * (peak + high)) / (gamma + 2)
-    if low == high and low == peak:
-        return np.full(int(size), peak)
-    r = high - low
-    alpha = 1 + gamma * (peak - low) / r
-    beta = 1 + gamma * (high - peak) / r
-    return low + np.random.default_rng().beta(alpha, beta, size=int(size)) * r
+def process_input_data(config: dict) -> dict[str, pd.DataFrame]:
+    """
+    Reads in data and processes to usable form.
 
+    Arguments:
+        config (dict): dictionary loaded from configuration file
 
-def get_prob_dist(expecteds: np.ndarray, 
-                  lower_boundaries: np.ndarray, 
-                  upper_boundaries: np.ndarray, 
-                  weights: np.ndarray) -> np.ndarray:
-    '''
-    Returns a cumulative probability distribution. All arguments should be 1D arrays with percentage as unit.
-    '''
-    # verify that all arrays have the same size
-    assert expecteds.size == lower_boundaries.size == upper_boundaries.size == weights.size
+    Returns:
+        measure_survey_df (DataFrame): contains the measure survey data of expert panels
+        pressure_survey_df (DataFrame): contains the pressure survey data of expert panels
+        data (dict): container for general data dataframes
+            'measure' (DataFrame):
+                'ID': unique measure identifier
+                'measure': name / description column
+            'activity' (DataFrame):
+                'ID': unique activity identifier
+                'activity': name / description column
+            'pressure' (DataFrame):
+                'ID': unique pressure identifier
+                'pressure': name / description column
+            'state' (DataFrame):
+                'ID': unique state identifier
+                'state': name / description column
+            'area' (DataFrame):
+                'ID': unique area identifier
+                'area': name / description column
+            'measure_effects' (DataFrame): measure effects on activities / pressures / states
+            'pressure_contributions' (DataFrame): pressure contributions to states
+            'thresholds' (DataFrame): changes in states required to meet specific target thresholds
+            'cases'
+            'activity_contributions'
+            'overlaps'
+            'development_scenarios'
+            'subpressures'
+    """
+    #
+    # measure survey data
+    #
+
+    file_name = os.path.realpath(config['input_data_legacy']['measure_effect_input'])
+    if not os.path.isfile(file_name): file_name = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['input_data_legacy']['measure_effect_input'])
+    measure_effects = process_measure_survey_data(file_name)
 
     #
-    # TODO: remove uncomment in future to not accept faulty data
-    # for now, sort arrays to have values in correct order
+    # pressure survey data (combined pressure contributions and GES threshold)
     #
-    # # verify that all lower boundaries are lower than the upper boundaries
-    # assert np.sum(lower_boundaries > upper_boundaries) == 0
-    # # verify that most likely values are between lower and upper boundaries
-    # assert np.sum((expecteds < lower_boundaries) & (expecteds > upper_boundaries)) == 0
-    arr = np.full((len(expecteds), 3), np.nan)
-    arr[:, 0] = lower_boundaries
-    arr[:, 1] = expecteds
-    arr[:, 2] = upper_boundaries
-    arr = np.array([np.sort(row) for row in arr])
-    lower_boundaries = arr[:, 0]
-    expecteds = arr[:, 1]
-    upper_boundaries = arr[:, 2]
-    
-    # select values that are not nan, bool matrix
-    non_nan = ~np.isnan(expecteds) & ~np.isnan(lower_boundaries) & ~np.isnan(upper_boundaries)
-    # multiply those values with weights, True = 1 and False = 0
-    weights_non_nan = (non_nan * weights)
 
-    # create a PERT distribution for each expert
-    # from each distribution, draw a large number of picks
-    # pool the picks together
-    number_of_picks = 5000
-    picks = []
-    for i in range(len(expecteds)):
-        peak = expecteds[i]
-        low = lower_boundaries[i]
-        high = upper_boundaries[i]
-        w = weights_non_nan[i]
-        if ~non_nan[i]: # note the tilde ~ to check for nan value
-            continue    # skip if any value is nan
-        dist = pert_dist(peak, low, high, w * number_of_picks)
-        picks += dist.tolist()
-    
-    # return nan if no distributions (= no expert answers)
-    if len(picks) == 0:
-        return np.nan
-        
-    # create final probability distribution
-    picks = np.array(picks) / 100.0   # convert percentages to fractions
-    prob_dist = get_dist_from_picks(picks)
-    cum_dist = np.cumsum(prob_dist) # cumulative distribution, not used
+    file_name = os.path.realpath(config['input_data_legacy']['pressure_state_input'])
+    if not os.path.isfile(file_name): file_name = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['input_data_legacy']['pressure_state_input'])
+    pressure_contributions, thresholds = process_pressure_survey_data(file_name)
 
-    return prob_dist
+    #
+    # measure / pressure / activity / state links
+    #
 
+    # read core object descriptions
+    # i.e. ids for measures, activities, pressures and states
+    file_name = os.path.realpath(config['input_data_legacy']['general_input'])
+    if not os.path.isfile(file_name): file_name = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['input_data_legacy']['general_input'])
+    id_sheets = config['input_data_legacy']['general_input_sheets']['ID']
+    data = read_ids(file_name=file_name, id_sheets=id_sheets)
 
-def get_pick(dist: np.ndarray) -> float:
-    """
-    Makes a random pick within [0, 1] weighted by the given discrete distribution.
-    """
-    if dist is not None:
-        step = 1 / (dist.size - 1)
-        a = np.arange(0, 1 + step, step)
-        pick = np.random.choice(a, p=dist)
-        return pick
-    else:
-        return np.nan
+    #
+    # read case input
+    #
 
+    sheet_name = config['input_data_legacy']['general_input_sheets']['case']
+    cases = read_cases(file_name=file_name, sheet_name=sheet_name)
 
-def get_dist_from_picks(picks: np.ndarray) -> np.ndarray:
-    """
-    Takes an array of picks and returns the probability distribution for each percentage unit. Picks need to be fractions in [0, 1].
-    """
-    picks = np.round(picks, decimals=2)
-    unique, count = np.unique(picks, return_counts=True)
-    dist = np.zeros(shape=101)  # probability distribution, each element represents a percentage from 0 - 100 %
-    # for each percentage, set its value to its frequency in the picks
-    for i in range(dist.size):
-        for k in range(unique.size):
-            if i / 100.0 == unique[k]:
-                dist[i] = count[k]
-    dist = dist / dist.sum()    # normalize frequencies to sum up to 1
-    return dist
+    #
+    # read activity contribution data
+    #
 
+    sheet_name = config['input_data_legacy']['general_input_sheets']['postprocess']
+    activity_contributions = read_activity_contributions(file_name=file_name, sheet_name=sheet_name)
 
-def plot_dist(dist):
-    """
-    Plot the given distribution
-    """
-    # plot distribution
-    y_vals = dist
-    step = 1 / y_vals.size
-    x_vals = np.arange(0, 1, step)
-    plt.plot(x_vals, y_vals)
-    # verify that get_pick works
-    picks = np.array([get_pick(dist) for i in range(5000)])
-    y_vals = get_dist_from_picks(picks)
-    step = 1 / y_vals.size
-    x_vals = np.arange(0, 1, step)
-    plt.plot(x_vals, y_vals)
-    plt.show()
+    #
+    # read overlap data
+    #
+
+    sheet_name = config['input_data_legacy']['general_input_sheets']['overlaps']
+    overlaps = read_overlaps(file_name=file_name, sheet_name=sheet_name)
+
+    #
+    # read activity development scenario data
+    #
+
+    sheet_name = config['input_data_legacy']['general_input_sheets']['development_scenarios']
+    development_scenarios = read_development_scenarios(file_name=file_name, sheet_name=sheet_name)
+
+    #
+    # read subpressures links
+    #
+
+    sheet_name = config['input_data_legacy']['general_input_sheets']['subpressures']
+    subpressures = read_subpressures(file_name=file_name, sheet_name=sheet_name)
+
+    data.update({
+        'measure_effects': measure_effects, 
+        'pressure_contributions': pressure_contributions, 
+        'thresholds': thresholds, 
+        'cases': cases, 
+        'activity_contributions': activity_contributions, 
+        'overlaps': overlaps, 
+        'development_scenarios': development_scenarios, 
+        'subpressures': subpressures
+    })
+
+    return data
+
 
 #EOF

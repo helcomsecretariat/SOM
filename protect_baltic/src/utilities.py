@@ -1,11 +1,19 @@
 """
-Utility methods for easy use
+Copyright (c) 2024 Baltic Marine Environment Protection Commission
+
+LICENSE available under 
+local: 'SOM/protect_baltic/LICENSE'
+url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
+
+Small utility methods
 """
 
 import time
 from collections import namedtuple
 import traceback
 import sys
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 class Timer:
@@ -62,4 +70,127 @@ def display_progress(completion, size=50, text='Progress: '):
     x = int(size*completion)
     sys.stdout.write("%s[%s%s] %02d %%\r" % (text, "#"*x, "."*(size-x), completion*100))
     sys.stdout.flush()
+
+
+def pert_dist(peak, low, high, size) -> np.ndarray:
+    '''
+    Returns a set of random picks from a PERT distribution.
+    '''
+    # weight, controls probability of edge values (higher -> more emphasis on most likely, lower -> extreme values more probable)
+    # 4 is standard used in unmodified PERT distributions
+    gamma = 4
+    # calculate expected value
+    # mu = ((low + gamma) * (peak + high)) / (gamma + 2)
+    if low == high and low == peak:
+        return np.full(int(size), peak)
+    r = high - low
+    alpha = 1 + gamma * (peak - low) / r
+    beta = 1 + gamma * (high - peak) / r
+    return low + np.random.default_rng().beta(alpha, beta, size=int(size)) * r
+
+
+def get_prob_dist(expecteds: np.ndarray, 
+                  lower_boundaries: np.ndarray, 
+                  upper_boundaries: np.ndarray, 
+                  weights: np.ndarray) -> np.ndarray:
+    '''
+    Returns a cumulative probability distribution. All arguments should be 1D arrays with percentage as unit.
+    '''
+    # verify that all arrays have the same size
+    assert expecteds.size == lower_boundaries.size == upper_boundaries.size == weights.size
+
+    #
+    # TODO: remove uncomment in future to not accept faulty data
+    # for now, sort arrays to have values in correct order
+    #
+    # # verify that all lower boundaries are lower than the upper boundaries
+    # assert np.sum(lower_boundaries > upper_boundaries) == 0
+    # # verify that most likely values are between lower and upper boundaries
+    # assert np.sum((expecteds < lower_boundaries) & (expecteds > upper_boundaries)) == 0
+    arr = np.full((len(expecteds), 3), np.nan)
+    arr[:, 0] = lower_boundaries
+    arr[:, 1] = expecteds
+    arr[:, 2] = upper_boundaries
+    arr = np.array([np.sort(row) for row in arr])
+    lower_boundaries = arr[:, 0]
+    expecteds = arr[:, 1]
+    upper_boundaries = arr[:, 2]
+    
+    # select values that are not nan, bool matrix
+    non_nan = ~np.isnan(expecteds) & ~np.isnan(lower_boundaries) & ~np.isnan(upper_boundaries)
+    # multiply those values with weights, True = 1 and False = 0
+    weights_non_nan = (non_nan * weights)
+
+    # create a PERT distribution for each expert
+    # from each distribution, draw a large number of picks
+    # pool the picks together
+    number_of_picks = 5000
+    picks = []
+    for i in range(len(expecteds)):
+        peak = expecteds[i]
+        low = lower_boundaries[i]
+        high = upper_boundaries[i]
+        w = weights_non_nan[i]
+        if ~non_nan[i]: # note the tilde ~ to check for nan value
+            continue    # skip if any value is nan
+        dist = pert_dist(peak, low, high, w * number_of_picks)
+        picks += dist.tolist()
+    
+    # return nan if no distributions (= no expert answers)
+    if len(picks) == 0:
+        return np.nan
+        
+    # create final probability distribution
+    picks = np.array(picks) / 100.0   # convert percentages to fractions
+    prob_dist = get_dist_from_picks(picks)
+    cum_dist = np.cumsum(prob_dist) # cumulative distribution, not used
+
+    return prob_dist
+
+
+def get_pick(dist: np.ndarray) -> float:
+    """
+    Makes a random pick within [0, 1] weighted by the given discrete distribution.
+    """
+    if dist is not None:
+        step = 1 / (dist.size - 1)
+        a = np.arange(0, 1 + step, step)
+        pick = np.random.choice(a, p=dist)
+        return pick
+    else:
+        return np.nan
+
+
+def get_dist_from_picks(picks: np.ndarray) -> np.ndarray:
+    """
+    Takes an array of picks and returns the probability distribution for each percentage unit. Picks need to be fractions in [0, 1].
+    """
+    picks = np.round(picks, decimals=2)
+    unique, count = np.unique(picks, return_counts=True)
+    dist = np.zeros(shape=101)  # probability distribution, each element represents a percentage from 0 - 100 %
+    # for each percentage, set its value to its frequency in the picks
+    for i in range(dist.size):
+        for k in range(unique.size):
+            if i / 100.0 == unique[k]:
+                dist[i] = count[k]
+    dist = dist / dist.sum()    # normalize frequencies to sum up to 1
+    return dist
+
+
+def plot_dist(dist):
+    """
+    Plot the given distribution
+    """
+    # plot distribution
+    y_vals = dist
+    step = 1 / y_vals.size
+    x_vals = np.arange(0, 1, step)
+    plt.plot(x_vals, y_vals)
+    # verify that get_pick works
+    picks = np.array([get_pick(dist) for i in range(5000)])
+    y_vals = get_dist_from_picks(picks)
+    step = 1 / y_vals.size
+    x_vals = np.arange(0, 1, step)
+    plt.plot(x_vals, y_vals)
+    plt.show()
 

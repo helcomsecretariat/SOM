@@ -14,112 +14,41 @@ from som_tools import *
 from utilities import *
 import matplotlib.pyplot as plt
 
-def process_input_data(config: dict) -> dict[str, pd.DataFrame]:
+def build_input(config: dict) -> dict[str, pd.DataFrame]:
     """
-    Reads in data and processes to usable form.
-
-    Arguments:
-        config (dict): dictionary loaded from configuration file
-
-    Returns:
-        measure_survey_df (DataFrame): contains the measure survey data of expert panels
-        pressure_survey_df (DataFrame): contains the pressure survey data of expert panels
-        data (dict): container for general data dataframes
-            'measure' (DataFrame):
-                'ID': unique measure identifier
-                'measure': name / description column
-            'activity' (DataFrame):
-                'ID': unique activity identifier
-                'activity': name / description column
-            'pressure' (DataFrame):
-                'ID': unique pressure identifier
-                'pressure': name / description column
-            'state' (DataFrame):
-                'ID': unique state identifier
-                'state': name / description column
-            'measure_effects' (DataFrame): measure effects on activities / pressures / states
-            'pressure_contributions' (DataFrame): pressure contributions to states
-            'thresholds' (DataFrame): changes in states required to meet specific target thresholds
-            'cases'
-            'activity_contributions'
-            'overlaps'
-            'development_scenarios'
-            'subpressures'
+    Loads input data. If loading already processed data, probability distributions need to be converted back to arrays. 
     """
-    #
-    # measure survey data
-    #
-
-    file_name = os.path.realpath(config['input_data']['measure_effect_input'])
-    if not os.path.isfile(file_name): file_name = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['input_data']['measure_effect_input'])
-    measure_effects = process_measure_survey_data(file_name)
-
-    #
-    # pressure survey data (combined pressure contributions and GES threshold)
-    #
-
-    file_name = os.path.realpath(config['input_data']['pressure_state_input'])
-    if not os.path.isfile(file_name): file_name = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['input_data']['pressure_state_input'])
-    pressure_contributions, thresholds = process_pressure_survey_data(file_name)
-
-    #
-    # measure / pressure / activity / state links
-    #
-
-    # read core object descriptions
-    # i.e. ids for measures, activities, pressures and states
-    file_name = os.path.realpath(config['input_data']['general_input'])
-    if not os.path.isfile(file_name): file_name = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['input_data']['general_input'])
-    id_sheets = config['input_data']['general_input_sheets']['ID']
-    data = read_ids(file_name=file_name, id_sheets=id_sheets)
-
-    #
-    # read case input
-    #
-
-    sheet_name = config['input_data']['general_input_sheets']['case']
-    cases = read_cases(file_name=file_name, sheet_name=sheet_name)
-
-    #
-    # read activity contribution data
-    #
-
-    sheet_name = config['input_data']['general_input_sheets']['postprocess']
-    activity_contributions = read_activity_contributions(file_name=file_name, sheet_name=sheet_name)
-
-    #
-    # read overlap data
-    #
-
-    sheet_name = config['input_data']['general_input_sheets']['overlaps']
-    overlaps = read_overlaps(file_name=file_name, sheet_name=sheet_name)
-
-    #
-    # read activity development scenario data
-    #
-
-    sheet_name = config['input_data']['general_input_sheets']['development_scenarios']
-    development_scenarios = read_development_scenarios(file_name=file_name, sheet_name=sheet_name)
-
-    #
-    # read subpressures links
-    #
-
-    sheet_name = config['input_data']['general_input_sheets']['subpressures']
-    subpressures = read_subpressures(file_name=file_name, sheet_name=sheet_name)
-
-    data.update({
-        'measure_effects': measure_effects, 
-        'pressure_contributions': pressure_contributions, 
-        'thresholds': thresholds, 
-        'cases': cases, 
-        'activity_contributions': activity_contributions, 
-        'overlaps': overlaps, 
-        'development_scenarios': development_scenarios, 
-        'subpressures': subpressures
-    })
-
-    return data
+    path = os.path.realpath(config['input_data']['path'])
+    if not os.path.isfile(path): path = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['input_data']['path'])
+    if config['use_legacy_input_data']:
+        input_data = process_input_data(config)
+        with pd.ExcelWriter(path) as writer:
+            for key in input_data:
+                input_data[key].to_excel(writer, sheet_name=key, index=False)
+    else:
+        input_data = pd.read_excel(io=path, sheet_name=None)
+        conversion_sheet = [
+            ('measure_effects', 'probability'), 
+            ('activity_contributions', 'contribution'), 
+            ('pressure_contributions', 'contribution'), 
+            ('thresholds', 'PR'), 
+            ('thresholds', '10'), 
+            ('thresholds', '25'), 
+            ('thresholds', '50')
+        ]
+        def str_to_arr(s):
+            if type(s) is float: return s
+            arr = []
+            for a in [x for x in s.replace('[', '').replace(']', '').split(' ')]:
+                if a != '':
+                    arr.append(a)
+            arr = np.array(arr)
+            arr = arr.astype(float)
+            arr = arr / np.sum(arr)
+            return arr
+        for sheet in conversion_sheet:
+            input_data[sheet[0]][sheet[1]] = input_data[sheet[0]][sheet[1]].apply(str_to_arr)
+    return input_data
 
 
 def build_links(data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:

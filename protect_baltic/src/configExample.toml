@@ -15,18 +15,20 @@ random_seed = 10022025
 simulations = 10
 
 # excel input files
+use_legacy_input_data = true
 [input_data]
+    path = './data/example/input_data.xlsx'
+[input_data_legacy]
     general_input = './data/example/exampleData.xlsx'
     measure_effect_input = './data/example/exampleEffect.xlsx'
     pressure_state_input = './data/example/examplePressureState.xlsx'
-
-    [input_data.general_input_sheets]
+    [input_data_legacy.general_input_sheets]
         case = 'ActMeas'
         postprocess = 'ActPres'
         overlaps = 'Overlaps'
         development_scenarios = 'DEV_scenarios'
         subpressures = 'SubPres'
-        [input_data.general_input_sheets.ID]
+        [input_data_legacy.general_input_sheets.ID]
             measure = 'Measure ID'
             activity = 'Activity ID'
             pressure = 'Pressure ID'
