@@ -730,4 +730,41 @@ def build_display(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame], o
     plt.close(fig)
 
 
+def set_id_columns(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
+    """
+    Replaces id column values with the name of the corresponding measure/activity/pressure/state in the result dataframes
+    """
+    relations = {
+        'PressureMean': 'pressure', 
+        'PressureError': 'pressure', 
+        'TPLMean': 'state', 
+        'TPLError': 'state', 
+        'TPLRedMean': 'state', 
+        'TPLRedError': 'state', 
+        'ThresholdsMean': 'state', 
+        'ThresholdsError': 'state'
+    }
+    def replace_ids(id, k):
+        return data[k].loc[data[k]['ID'] == id, k].values[0]
+    for key in relations:
+        res[key]['ID'] = res[key]['ID'].apply(lambda x: replace_ids(x, relations[key]))
+        res[key] = res[key].rename(columns={col: data['area'].loc[data['area']['ID'] == col, 'area'].values[0] for col in [c for c in res[key].columns if c != 'ID']})
+    relations = {
+        'MeasureEffects': ['measure', 'activity', 'pressure', 'state'], 
+        'ActivityContributions': ['Activity', 'Pressure', 'area_id'], 
+        'PressureContributions': ['State', 'pressure', 'area_id']
+    }
+    conversions = {
+        'Activity': 'activity', 
+        'Pressure': 'pressure', 
+        'State': 'state', 
+        'area_id': 'area'
+    }
+    for key in relations:
+        for col in relations[key]:
+            k = conversions[col] if col in conversions else col
+            res[key][col] = res[key][col].apply(lambda id: data[k].loc[data[k]['ID'] == id, k].values[0] if id != 0 else '-')
+
+    return res
+
 #EOF
