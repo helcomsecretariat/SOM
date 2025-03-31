@@ -144,3 +144,5 @@ if __name__ == "__main__":
             skip_sim = True
     run(config_file, skip_sim)
 
+    input('Press ENTER to exit.')
+
