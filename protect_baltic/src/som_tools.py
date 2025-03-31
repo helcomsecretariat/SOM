@@ -1,6 +1,5 @@
 """
 Copyright (c) 2024 Baltic Marine Environment Protection Commission
-Copyright (c) 2022 Antti-Jussi Kieloaho (Natural Resources Institute Finland)
 
 LICENSE available under 
 local: 'SOM/protect_baltic/LICENSE'
