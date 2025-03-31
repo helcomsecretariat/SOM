@@ -2,33 +2,9 @@
 
 This project continues on the work done on the SOM model in the [HELCOM BLUES](https://github.com/helcomsecretariat/SOM/tree/main/helcom_blues) project as part of the [HELCOM PROTECT BALTIC](https://protectbaltic.eu/) project. 
 
-## Installation
+## Use
 
-Requires Python version 3.12 or above.
-
-1. Create an environment (optional):
-
-```
-cd "/path/to/protect_baltic"
-python -m venv .
-source bin/activate
-```
-
-2. Install dependencies:
-
-```
-python -m pip install .
-```
-
-3. Run tool:
-
-```
-python "/path/to/protect_baltic/src"
-```
-
-## Setup
-
-The *src/config.toml* file contains settings controlling the model, as well as paths to the input data for the user to adjust.
+See the [wiki](https://github.com/helcomsecretariat/SOM/wiki/Using-SOM).
 
 ## SOM
 
