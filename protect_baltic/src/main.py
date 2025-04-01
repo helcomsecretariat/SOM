@@ -180,6 +180,7 @@ def run(config_file: str = None, skip_sim: bool = False):
     return
 
 if __name__ == "__main__":
+    # multiprocessing.freeze_support()
     print(som_logo)
     config_file = None
     skip_sim = False
