@@ -12,7 +12,10 @@ use_random_seed = true
 random_seed = 10022025
 
 # number of simulations
-simulations = 10
+simulations = 100
+
+# performance options
+use_parallel_processing = true
 
 # excel input files
 use_legacy_input_data = false

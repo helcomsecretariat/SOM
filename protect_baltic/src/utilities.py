@@ -46,30 +46,47 @@ class Timer:
         self.start = time.perf_counter()
 
 
-def exception_traceback(e: Exception):
+def exception_traceback(e: Exception, file = None):
     """
     Format exception traceback and print
     """
     tb = traceback.format_exception(type(e), e, e.__traceback__)
-    print(''.join(tb))
+    print(''.join(tb), file=file)
 
 
-def fail_with_message(m: str = None, e: Exception = None):
+def fail_with_message(m: str = None, e: Exception = None, file = None, do_not_exit: bool = False):
     """
     Prints the given exception traceback along with given message, and exits.
     """
     if e is not None:
-        exception_traceback(e)
+        exception_traceback(e, file)
     if m is not None:
-        print(m)
-    print('Terminating.')
-    exit()
+        print(m, file=file)
+    print('Terminating.', file=file)
+    if not do_not_exit:
+        exit()
 
 
 def display_progress(completion, size=50, text='Progress: '):
     x = int(size*completion)
     sys.stdout.write("%s[%s%s] %02d %%\r" % (text, "#"*x, "."*(size-x), completion*100))
     sys.stdout.flush()
+
+
+class Progress:
+    def __init__(self, total: int, bar_size: int = 50, text: str = 'Progress: '):
+        self.total = total
+        self.bar_size = bar_size
+        self.text = text
+        self.current = 0
+    def increase(self):
+        self.current += 1
+    def display(self):
+        completion = self.current / self.total
+        x = int(self.bar_size * completion)
+        sys.stdout.write("%s[%s%s] %02d %%\r" % (self.text, "#"*x, "."*(self.bar_size-x), completion*100))
+    def reset(self):
+        self.current = 0
 
 
 def pert_dist(peak, low, high, size) -> np.ndarray:
