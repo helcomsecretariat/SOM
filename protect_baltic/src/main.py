@@ -9,8 +9,9 @@ url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
 # main package script
 
 import toml
-import som_app as som_app
-from utilities import Timer, fail_with_message, display_progress, Progress
+import som_app
+import som_plots
+from utilities import Timer, fail_with_message, display_progress
 import os
 import pandas as pd
 import numpy as np
@@ -31,7 +32,7 @@ som_logo = r"""
 Copyright (c) 2025 HELCOM
 """
 
-def run_sim(id: int, input_data: dict[str, pd.DataFrame], config: dict, out_path: str, log_path: str, progress: Progress, lock):
+def run_sim(id: int, input_data: dict[str, pd.DataFrame], config: dict, out_path: str, log_path: str, progress, lock):
     """
     Runs a single simulation round
     """
@@ -81,7 +82,7 @@ def run_sim(id: int, input_data: dict[str, pd.DataFrame], config: dict, out_path
 
         with lock:
             progress.current += 1
-            display_progress(progress.current / progress.total)
+            display_progress(progress.current / progress.total, text='\tProgress: ')
 
     except Exception as e:
         fail_with_message(f'ERROR! Something went wrong during simulation! Check traceback.', e, file=log, do_not_exit=True)
@@ -149,6 +150,7 @@ def run(config_file: str = None, skip_sim: bool = False):
             progress.current = 0
             progress.total = config['simulations']
             lock = manager.Lock()
+            display_progress(progress.current / progress.total, text='\tProgress: ')
             if config['use_parallel_processing']:
                 with multiprocessing.Pool(processes=(min(cpu_count - 2, config['simulations']))) as pool:
                     jobs = [(i, input_data, config, os.path.join(sim_res_dir, f'sim_res_{i}.xlsx'), os.path.join(log_dir, f'log_{i}.txt'), progress, lock) for i in range(config['simulations'])]
@@ -156,7 +158,7 @@ def run(config_file: str = None, skip_sim: bool = False):
             else:
                 for i in range(config['simulations']):
                     run_sim(i, input_data, config, os.path.join(sim_res_dir, f'sim_res_{i}.xlsx'), os.path.join(log_dir, f'log_{i}.txt'), progress, lock)
-            display_progress(progress.current / progress.total)
+            display_progress(progress.current / progress.total, text='\tProgress: ')
     
     #
     # process results
@@ -166,7 +168,7 @@ def run(config_file: str = None, skip_sim: bool = False):
         print('\tCalculating means and errors...')
         res = som_app.build_results(sim_res_dir, input_data)
         print('\tProducing plots...')
-        som_app.build_display(res, input_data, out_dir)
+        som_plots.build_display(res, input_data, out_dir, config['use_parallel_processing'])   # needs to be before excel export
         print('\tExporting results to excel...')
         with pd.ExcelWriter(export_path) as writer:
             new_res = som_app.set_id_columns(res, input_data)
