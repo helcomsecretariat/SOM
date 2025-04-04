@@ -730,11 +730,11 @@ def process_input_data(config: dict) -> dict[str, pd.DataFrame]:
             'measure_effects' (DataFrame): measure effects on activities / pressures / states
             'pressure_contributions' (DataFrame): pressure contributions to states
             'thresholds' (DataFrame): changes in states required to meet specific target thresholds
-            'cases'
-            'activity_contributions'
-            'overlaps'
-            'development_scenarios'
-            'subpressures'
+            'cases' (DataFrame): measure implementations in areas
+            'activity_contributions': activity contributions to pressures
+            'overlaps': measure-measure interactions
+            'development_scenarios': changes in human activities
+            'subpressures': pressure-pressure interactions
     """
     #
     # measure survey data
