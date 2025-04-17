@@ -11,7 +11,8 @@ import os
 import helcom_api.gis_tools as gis_tools
 
 def make_preprocessing(config_file, file_dir):
-    """ wrapper function for preprocessing
+    """
+    Wrapper function for preprocessing
     """
 
     config = gis_tools.read_config(config_file)
@@ -34,7 +35,7 @@ if __name__ == '__main__':
 
     file_dir = None
 
-    config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'configuration.toml')
+    config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'gis_config.toml')
     layer_paths = make_preprocessing(config_file=config_file, file_dir=file_dir)
 
 

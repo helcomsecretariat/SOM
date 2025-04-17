@@ -1,0 +1,23 @@
+# helcom_api configuration file
+
+# rest api accessed from http://maps.helcom.fi/arcgis/rest/services/MADS
+
+####################################
+
+use_legacy_input_data = false
+[input_data]
+    # path= './data/input_data.xlsx'
+    path = './data/example/exampleInputData.xlsx'
+
+####################################
+
+[layers]
+
+    service_url = 'https://maps.helcom.fi/arcgis/rest/services/MADS/Biodiversity/MapServer/'
+
+    [layers.area]
+    id = '54'
+    measure_attr = 'Measures'
+    id_attr = 'MPA_ID'
+
+
