@@ -19,19 +19,22 @@ def link_areas(config: dict, data: dict[str, pd.DataFrame]):
     """
     Links MPAs to subbasin data
     """
-    mpa_id = config['layers']['area']['id_attr']
-    subbasin_id = 'SUB_ID'
+    mpa_id = config['layers']['mpa']['id_attr']
+    subbasin_id = config['layers']['subbasin']['id_attr']
 
     #
     # Get subbasin-country combinations
     #
 
-    path = config['layers']['subbasins']
-    if not os.path.isfile(path): path = os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
-    subbasins = gpd.read_file(path)
+    if 'path' in config['layers']['subbasin'] and config['layers']['subbasin']['path'] != "":
+        path = config['layers']['subbasin']['path']
+        if not os.path.isfile(path): path = os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
+        if not os.path.exists(path): path = config['layers']['subbasin']['url']
+    else:
+        path = config['layers']['subbasin']['url']
 
-    subbasins[subbasin_id] = subbasins['OBJECTID']
-    subbasins = subbasins.drop(columns=['OBJECTID', 'fid'])
+    # read from path
+    subbasins = gpd.read_file(path)
 
     # fix geometries if needed
     subbasins['geometry'] = subbasins.geometry.make_valid()
@@ -40,11 +43,14 @@ def link_areas(config: dict, data: dict[str, pd.DataFrame]):
     # Get areas from MPA layer
     #
 
-    if 'path' in config['layers']['area'] and config['layers']['area']['path'] != "":
-        path = config['layers']['area']['path']
+    if 'path' in config['layers']['mpa'] and config['layers']['mpa']['path'] != "":
+        path = config['layers']['mpa']['path']
         if not os.path.isfile(path): path = os.path.join(os.path.dirname(os.path.realpath(__file__)), path)
+        if not os.path.exists(path): path = config['layers']['mpa']['url']
     else:
-        path = config['layers']['area']['url']
+        path = config['layers']['mpa']['url']
+
+    # read from path
     mpa = gpd.read_file(path)
 
     # fix geometries if needed
@@ -56,12 +62,12 @@ def link_areas(config: dict, data: dict[str, pd.DataFrame]):
     #
 
     # create mock data
-    mpa[config['layers']['area']['measure_attr']] = None
-    mpa[config['layers']['area']['measure_attr']] = mpa[config['layers']['area']['measure_attr']].apply(lambda x: config['layers']['area']['measure_delimiter'].join(np.unique([str(random.randint(0, 9)) for i in range(10)])))
+    mpa[config['layers']['mpa']['measure_attr']] = None
+    mpa[config['layers']['mpa']['measure_attr']] = mpa[config['layers']['mpa']['measure_attr']].apply(lambda x: config['layers']['mpa']['measure_delimiter'].join(np.unique([str(random.randint(0, 9)) for i in range(10)])))
 
     # explode so there's only one measure per row
-    mpa[config['layers']['area']['measure_attr']] = mpa[config['layers']['area']['measure_attr']].apply(lambda x: x.split(config['layers']['area']['measure_delimiter']))
-    measures = mpa.explode(column=config['layers']['area']['measure_attr'])
+    mpa[config['layers']['mpa']['measure_attr']] = mpa[config['layers']['mpa']['measure_attr']].apply(lambda x: x.split(config['layers']['mpa']['measure_delimiter']))
+    measures = mpa.explode(column=config['layers']['mpa']['measure_attr'])
 
     #
     # identify links between mpas and subbasins
@@ -107,13 +113,13 @@ def link_areas(config: dict, data: dict[str, pd.DataFrame]):
     # create the cases dataframe for the input data
     cases = {
         'ID': np.arange(len(measures)), 
-        'measure': measures[config['layers']['area']['measure_attr']], 
+        'measure': measures[config['layers']['mpa']['measure_attr']], 
         'activity': np.zeros(len(measures)), 
         'pressure': np.zeros(len(measures)), 
         'state': np.zeros(len(measures)), 
         'coverage': np.ones(len(measures)), 
         'implementation': np.ones(len(measures)), 
-        'area_id': measures[config['layers']['area']['id_attr']]
+        'area_id': measures[config['layers']['mpa']['id_attr']]
     }
 
     data['cases'] = pd.DataFrame(cases)
@@ -122,7 +128,7 @@ def link_areas(config: dict, data: dict[str, pd.DataFrame]):
     areas = pd.DataFrame({
         'ID': mpa[mpa_id].unique()
     })
-    areas['area'] = areas['ID'].apply(lambda x: mpa.loc[(mpa[mpa_id] == x), config['layers']['area']['name_attr']].values[0])
+    areas['area'] = areas['ID'].apply(lambda x: mpa.loc[(mpa[mpa_id] == x), config['layers']['mpa']['name_attr']].values[0])
     data['area'] = areas
 
     for key in ['activity_contributions', 'pressure_contributions', 'thresholds']:
