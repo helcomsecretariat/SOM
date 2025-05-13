@@ -63,27 +63,6 @@ def link_areas(config: dict, data: dict[str, pd.DataFrame]):
     mpa[config['layers']['area']['measure_attr']] = mpa[config['layers']['area']['measure_attr']].apply(lambda x: x.split(config['layers']['area']['measure_delimiter']))
     measures = mpa.explode(column=config['layers']['area']['measure_attr'])
 
-    # create the cases dataframe for the input data
-    cases = {
-        'ID': np.arange(len(measures)), 
-        'measure': measures[config['layers']['area']['measure_attr']], 
-        'activity': np.zeros(len(measures)), 
-        'pressure': np.zeros(len(measures)), 
-        'state': np.zeros(len(measures)), 
-        'coverage': np.ones(len(measures)), 
-        'implementation': np.ones(len(measures)), 
-        'area_id': measures[config['layers']['area']['id_attr']]
-    }
-
-    data['cases'] = pd.DataFrame(cases)
-
-    # create the area dataframe
-    areas = pd.DataFrame({
-        'ID': mpa[mpa_id].unique()
-    })
-    areas['area'] = areas['ID'].apply(lambda x: mpa.loc[(mpa[mpa_id] == x), config['layers']['area']['name_attr']].values[0])
-    data['area'] = areas
-
     #
     # identify links between mpas and subbasins
     #
@@ -125,12 +104,33 @@ def link_areas(config: dict, data: dict[str, pd.DataFrame]):
     # change area ids to match MPAs
     #
 
+    # create the cases dataframe for the input data
+    cases = {
+        'ID': np.arange(len(measures)), 
+        'measure': measures[config['layers']['area']['measure_attr']], 
+        'activity': np.zeros(len(measures)), 
+        'pressure': np.zeros(len(measures)), 
+        'state': np.zeros(len(measures)), 
+        'coverage': np.ones(len(measures)), 
+        'implementation': np.ones(len(measures)), 
+        'area_id': measures[config['layers']['area']['id_attr']]
+    }
+
+    data['cases'] = pd.DataFrame(cases)
+
+    # create the area dataframe
+    areas = pd.DataFrame({
+        'ID': mpa[mpa_id].unique()
+    })
+    areas['area'] = areas['ID'].apply(lambda x: mpa.loc[(mpa[mpa_id] == x), config['layers']['area']['name_attr']].values[0])
+    data['area'] = areas
+
     for key in ['activity_contributions', 'pressure_contributions', 'thresholds']:
         df = data[key]
         df = df.rename(columns={'area_id': subbasin_id})
         merged = df.merge(links, on=subbasin_id, how='inner')
         merged = merged.rename(columns={mpa_id: 'area_id'})
         merged = merged.drop(columns=[subbasin_id])
-        print(merged)
+        data[key] = merged
 
     return data
