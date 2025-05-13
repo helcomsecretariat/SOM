@@ -6,18 +6,19 @@
 
 use_legacy_input_data = false
 [input_data]
-    # path= './data/input_data.xlsx'
-    path = './data/example/exampleInputData.xlsx'
+    path= './data/input_data.xlsx'
+    # path = './data/example/exampleInputData.xlsx'
 
 ####################################
 
 [layers]
 
-    service_url = 'https://maps.helcom.fi/arcgis/rest/services/MADS/Biodiversity/MapServer/'
+    subbasins = 'subbasins_by_country/subbasins_by_country.shp'
 
     [layers.area]
-    id = '54'
+    url = 'https://maps.helcom.fi/arcgis/rest/services/MADS/Biodiversity/MapServer/54/query?where=1%3D1&outFields=%2A&f=geoJSON'
+    path = "mpas/mpas.shp"
     measure_attr = 'Measures'
     id_attr = 'MPA_ID'
-
-
+    name_attr = "Name"
+    measure_delimiter = ";"

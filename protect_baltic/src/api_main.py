@@ -39,10 +39,10 @@ def main():
         fail_with_message(f'ERROR! Something went wrong while processing input data! Check traceback.', e)
 
     #
-    # load areas from layer and create cases
+    # load areas from layers and adjust area ids
     #
 
-    cases = api_tools.create_cases(config, input_data)
+    input_data = api_tools.link_areas(config, input_data)
 
     print(f'\nProgram terminated successfully after {timer.get_hhmmss()}')
 
