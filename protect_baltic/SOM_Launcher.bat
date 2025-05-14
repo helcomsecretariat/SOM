@@ -1,1 +1,1 @@
-start "SOM" python src -c configExample.toml
+start "SOM" python src/main.py -c config.toml
