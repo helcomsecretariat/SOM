@@ -15,12 +15,12 @@ use_legacy_input_data = false
 
     [layers.subbasin]
     url = ""
-    path = "subbasins_by_country/subbasins_by_country.shp"
+    path = "data/layers/subbasins_by_country/subbasins_by_country.shp"
     id_attr = "OBJECTID"
 
     [layers.mpa]
     url = "https://maps.helcom.fi/arcgis/rest/services/MADS/Biodiversity/MapServer/54/query?where=1%3D1&outFields=%2A&f=geoJSON"
-    path = "mpas/mpas.shp"
+    path = "data/layers/mpas/mpas.shp"
     measure_attr = "Measures"
     id_attr = "MPA_ID"
     name_attr = "Name"
