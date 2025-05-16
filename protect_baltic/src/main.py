@@ -19,6 +19,7 @@ import sys
 import copy
 import shutil
 import multiprocessing
+import pickle
 
 
 som_logo = r"""
@@ -72,6 +73,7 @@ def run_sim(id: int, input_data: dict[str, pd.DataFrame], config: dict, out_path
             'activity_contributions': 'ActivityContributions', 
             'pressure_contributions': 'PressureContributions'
         }
+        # export to excel
         with pd.ExcelWriter(out_path) as writer:
             for key in conversions:
                 if type(conversions[key]) is list:
@@ -79,6 +81,9 @@ def run_sim(id: int, input_data: dict[str, pd.DataFrame], config: dict, out_path
                         data[key][j].to_excel(writer, sheet_name=k, index=False)
                 else:
                     data[key].to_excel(writer, sheet_name=conversions[key], index=False)
+        # export to pickle
+        with open(out_path.replace('xlsx', 'p'), 'wb') as f:
+            pickle.dump(data, f)
 
         with lock:
             progress.current += 1
@@ -120,7 +125,7 @@ def run(config_file: str = None, skip_sim: bool = False):
     if not os.path.isdir(os.path.dirname(export_path)): export_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['export_path'])
     sim_res_dir = os.path.join(os.path.dirname(export_path), 'sim_res')
     if os.path.exists(sim_res_dir):
-        for f in [x for x in os.listdir(sim_res_dir) if x.endswith('.xlsx') and 'sim_res' in x]:
+        for f in [x for x in os.listdir(sim_res_dir) if x.endswith('.xlsx') or x.endswith('.p') and 'sim_res' in x]:
             if not skip_sim:
                 os.remove(os.path.join(sim_res_dir, f))
     os.makedirs(sim_res_dir, exist_ok=True)

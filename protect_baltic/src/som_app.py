@@ -229,6 +229,9 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
     # represents the reduction observed in the total pressure load ('ID' column)
     total_pressure_load_reductions = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(0.0)
 
+    # same as pressure_levels, but one dataframe for each separate state, so that state specific reductions on the pressures are captured
+    state_pressure_levels = {s: pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0) for s in data['state']['ID']}
+
     # make sure activity contributions don't exceed 100 %
     for area in areas:
         for p_i, p in pressure_levels.iterrows():
@@ -350,26 +353,30 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
                     #
                     total_pressure_load_levels.at[s_i, area] = total_pressure_load_levels.at[s_i, area] * (1 - reduction)
 
+        # update state pressures from pressure levels
+        for s_i, s in total_pressure_load_levels.iterrows():
+            state_pressure_levels[s['ID']].loc[:, :] = pressure_levels.loc[:, :]
+
         # pressure contributions
         for area in areas:
-            a_i = pressure_levels.columns.get_loc(area)     # column index of current area column
             for s_i, s in total_pressure_load_levels.iterrows():    # for each state
+                a_i = state_pressure_levels[s['ID']].columns.get_loc(area)     # column index of current area column
                 relevant_pressures = data['pressure_contributions'].loc[(data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID']), :]  # select contributions of pressures affecting current state in current area
                 for p_i, p in relevant_pressures.iterrows():
                     #
                     # main pressure reduction
                     #
-                    row_i = pressure_levels.loc[pressure_levels['ID'] == p['pressure']].index[0]
-                    reduction = 1 - pressure_levels.iloc[row_i, a_i]    # reduction = 100 % - the part that is left of the pressure
+                    row_i = state_pressure_levels[s['ID']].loc[state_pressure_levels[s['ID']]['ID'] == p['pressure']].index[0]
+                    reduction = 1 - state_pressure_levels[s['ID']].iloc[row_i, a_i]    # reduction = 100 % - the part that is left of the pressure
                     contribution = data['pressure_contributions'].loc[(data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID']) & (data['pressure_contributions']['pressure'] == p['pressure']), 'contribution'].values[0]
                     #
                     # subpressures
                     #
                     relevant_subpressures = data['subpressures'].loc[(data['subpressures']['State'] == s['ID']) & (data['subpressures']['State pressure'] == p['pressure']), :]     # find all rows where the current pressure acts as a state pressure for the current state
                     for sp_i, sp in relevant_subpressures.iterrows():   # for each subpressure of the current pressure
-                        sp_row_i = pressure_levels.loc[pressure_levels['ID'] == sp['Reduced pressure']].index[0]
+                        sp_row_i = state_pressure_levels[s['ID']].loc[state_pressure_levels[s['ID']]['ID'] == sp['Reduced pressure']].index[0]
                         multiplier = sp['Multiplier']   # by how much does the subpressure affect the current pressure
-                        red = 1 - pressure_levels.iloc[sp_row_i, a_i]    # subpressure reduction = 100 % - the part that is left of the subpressure
+                        red = 1 - state_pressure_levels[s['ID']].iloc[sp_row_i, a_i]    # subpressure reduction = 100 % - the part that is left of the subpressure
                         reduction = reduction + multiplier * red    # the new current pressure reduction is increased by the calculated subpressure reduction
                     try: assert reduction <= 1 + allowed_error
                     except Exception as e: fail_with_message(f'Failed on area {area}, state {s["ID"]}, pressure {p["pressure"]} with reduction {reduction}', e)
@@ -406,9 +413,10 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
                 continue
             for col in cols:
                 thresholds[col].iloc[s_i, a_i] = row.loc[:, col].values[0]
-    
+
     data.update({
         'pressure_levels': pressure_levels, 
+        'state_pressure_levels': state_pressure_levels, 
         'total_pressure_load_levels': total_pressure_load_levels, 
         'total_pressure_load_reductions': total_pressure_load_reductions, 
         'thresholds': thresholds
@@ -440,6 +448,17 @@ def build_results(sim_res: str, data: dict[str, pd.DataFrame]) -> dict[str, pd.D
         arr[:, :, i] = df.values[:, 1:]
     pressure_levels_average.iloc[:, 1:] = np.mean(arr, axis=2)
     pressure_levels_error.iloc[:, 1:] = np.std(arr, axis=2, ddof=1) / np.sqrt(arr.shape[2])    # calculate standard error
+    #
+    # state pressure levels
+    #
+    # state_pressure_levels_average = pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
+    # state_pressure_levels_error = pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
+    # arr = np.empty(shape=(len(pressures.tolist()), len(areas.tolist()), len(files)))
+    # for i in range(len(files)):
+    #     df = pd.read_excel(io=files[i], sheet_name='StatePressureLevels')
+    #     arr[:, :, i] = df.values[:, 1:]
+    # state_pressure_levels_average.iloc[:, 1:] = np.mean(arr, axis=2)
+    # state_pressure_levels_error.iloc[:, 1:] = np.std(arr, axis=2, ddof=1) / np.sqrt(arr.shape[2])    # calculate standard error
     #
     # total pressure load levels
     #
