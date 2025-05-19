@@ -38,7 +38,7 @@ def plot_total_pressure_load_levels(area, res, data, out_dir, progress, lock):
 
     # adjust data
     suffixes = ('_mean', '_error')
-    df = pd.merge(res['TPLMean'].loc[:, ['ID', area]], res['TPLError'].loc[:, ['ID', area]], on='ID', suffixes=suffixes)
+    df = pd.merge(res['TPL']['Mean'].loc[:, ['ID', area]], res['TPL']['Error'].loc[:, ['ID', area]], on='ID', suffixes=suffixes)
     x_vals = data['state'].loc[:, 'state'].values
     x_vals = np.array([x[:char_limit]+'...' if len(x) > char_limit else x for x in x_vals])     # limit characters to char_limit
     y_vals = df[str(area)+'_mean'] * 100    # convert to %
@@ -91,7 +91,7 @@ def plot_pressure_levels(area, res, data, out_dir, progress, lock):
 
     # adjust data
     suffixes = ('_mean', '_error')
-    df = pd.merge(res['PressureMean'].loc[:, ['ID', area]], res['PressureError'].loc[:, ['ID', area]], on='ID', suffixes=suffixes)
+    df = pd.merge(res['Pressure']['Mean'].loc[:, ['ID', area]], res['Pressure']['Error'].loc[:, ['ID', area]], on='ID', suffixes=suffixes)
     x_vals = data['pressure'].loc[:, 'pressure'].values
     x_vals = np.array([x[:char_limit]+'...' if len(x) > char_limit else x for x in x_vals])     # limit characters to char_limit
     y_vals = df[str(area)+'_mean'] * 100    # convert to %
@@ -147,10 +147,10 @@ def plot_thresholds(area, res, data, out_dir, progress, lock):
     x_labels = np.array([x[:char_limit]+'...' if len(x) > char_limit else x for x in data['state'].loc[:, 'state'].values])     # limit characters to char_limit
     x_vals = np.arange(len(x_labels))
     suffixes = ('_mean', '_error')
-    df = pd.merge(res['TPLRedMean'].loc[:, ['ID', area]], res['TPLRedError'].loc[:, ['ID', area]], on='ID', suffixes=suffixes)
+    df = pd.merge(res['TPLRed']['Mean'].loc[:, ['ID', area]], res['TPLRed']['Error'].loc[:, ['ID', area]], on='ID', suffixes=suffixes)
     y_vals_tpl = df[str(area)+'_mean'] * 100    # convert to %
     y_err_tpl = df[str(area)+'_error'] * 100    # conver to %
-    df = pd.merge(res['ThresholdsMean'].loc[:, ['ID', area]], res['ThresholdsError'].loc[:, ['ID', area]], on='ID', suffixes=suffixes)
+    df = pd.merge(res['Thresholds']['Mean'].loc[:, ['ID', area]], res['Thresholds']['Error'].loc[:, ['ID', area]], on='ID', suffixes=suffixes)
     y_vals_ges = df[str(area)+'_mean'] * 100    # convert to %
     y_err_ges = df[str(area)+'_error'] * 100    # convert to %
 
@@ -183,7 +183,7 @@ def plot_thresholds(area, res, data, out_dir, progress, lock):
         display_progress(progress.current / progress.total, text='\t\tThresholds: ')
 
 
-def build_display(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame], out_dir: str, use_parallel_processing: bool = False):
+def build_display(res: dict[str, dict[str, pd.DataFrame]], data: dict[str, pd.DataFrame], out_dir: str, use_parallel_processing: bool = False):
     """
     Constructs plots to visualize results.
     """
@@ -250,7 +250,8 @@ def build_display(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame], o
     activity_font_size = 8
 
     # adjust data
-    df = res['MeasureEffects'].sort_values(by=['measure', 'pressure', 'state', 'activity'])
+    df = res['MeasureEffects']['Mean'].merge(res['MeasureEffects']['Error'], on=['measure', 'pressure', 'state', 'activity'], how='left', suffixes=('_mean', '_error'))
+    df = df.sort_values(by=['measure', 'pressure', 'state', 'activity'])
     suffixes = ('', '_name')
     for col in ['measure', 'activity', 'pressure', 'state']:
         df = df.merge(data[col].loc[:, [col, 'ID']], left_on=col, right_on='ID', how='left', suffixes=suffixes)

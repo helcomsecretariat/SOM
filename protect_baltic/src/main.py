@@ -171,10 +171,9 @@ def run(config_file: str = None, skip_sim: bool = False):
     print('\nProcessing results...')
     try:
         print('\tCalculating means and errors...')
-        res = som_app.build_results(sim_res_dir, input_data)
         p_res = som_app.build_results_from_pickle(sim_res_dir, input_data)
         print('\tProducing plots...')
-        som_plots.build_display(res, input_data, out_dir, config['use_parallel_processing'])   # needs to be before excel export
+        som_plots.build_display(p_res, input_data, out_dir, config['use_parallel_processing'])   # needs to be before excel export
         print('\tExporting results to excel...')
         with pd.ExcelWriter(export_path) as writer:
             new_res = som_app.set_id_columns(p_res, input_data)
