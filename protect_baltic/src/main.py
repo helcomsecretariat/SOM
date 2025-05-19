@@ -177,9 +177,10 @@ def run(config_file: str = None, skip_sim: bool = False):
         som_plots.build_display(res, input_data, out_dir, config['use_parallel_processing'])   # needs to be before excel export
         print('\tExporting results to excel...')
         with pd.ExcelWriter(export_path) as writer:
-            new_res = som_app.set_id_columns(res, input_data)
+            new_res = som_app.set_id_columns(p_res, input_data)
             for key in new_res:
-                new_res[key].to_excel(writer, sheet_name=key, index=False)
+                for r in ['Mean', 'Error']:
+                    new_res[key][r].to_excel(writer, sheet_name=key+r, index=False)
     except Exception as e:
         fail_with_message(f'ERROR! Something went wrong while processing results! Check traceback.', e)
 

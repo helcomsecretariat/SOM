@@ -550,20 +550,17 @@ def set_id_columns(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame]) 
     Replaces id column values with the name of the corresponding measure/activity/pressure/state in the result dataframes
     """
     relations = {
-        'PressureMean': 'pressure', 
-        'PressureError': 'pressure', 
-        'TPLMean': 'state', 
-        'TPLError': 'state', 
-        'TPLRedMean': 'state', 
-        'TPLRedError': 'state', 
-        'ThresholdsMean': 'state', 
-        'ThresholdsError': 'state'
+        'Pressure': 'pressure', 
+        'TPL': 'state', 
+        'TPLRed': 'state', 
+        'Thresholds': 'state', 
     }
     def replace_ids(id, k):
         return data[k].loc[data[k]['ID'] == id, k].values[0]
     for key in relations:
-        res[key]['ID'] = res[key]['ID'].apply(lambda x: replace_ids(x, relations[key]))
-        res[key] = res[key].rename(columns={col: data['area'].loc[data['area']['ID'] == col, 'area'].values[0] for col in [c for c in res[key].columns if c != 'ID']})
+        for r in ['Mean', 'Error']:
+            res[key][r]['ID'] = res[key][r]['ID'].apply(lambda x: replace_ids(x, relations[key]))
+            res[key][r] = res[key][r].rename(columns={col: data['area'].loc[data['area']['ID'] == col, 'area'].values[0] for col in [c for c in res[key][r].columns if c != 'ID']})
     relations = {
         'MeasureEffects': ['measure', 'activity', 'pressure', 'state'], 
         'ActivityContributions': ['Activity', 'Pressure', 'area_id'], 
@@ -576,9 +573,10 @@ def set_id_columns(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame]) 
         'area_id': 'area'
     }
     for key in relations:
-        for col in relations[key]:
-            k = conversions[col] if col in conversions else col
-            res[key][col] = res[key][col].apply(lambda id: data[k].loc[data[k]['ID'] == id, k].values[0] if id != 0 else '-')
+        for r in ['Mean', 'Error']:
+            for col in relations[key]:
+                k = conversions[col] if col in conversions else col
+                res[key][r][col] = res[key][r][col].apply(lambda id: data[k].loc[data[k]['ID'] == id, k].values[0] if id != 0 else '-')
 
     return res
 
