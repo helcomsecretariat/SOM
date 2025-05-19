@@ -82,7 +82,7 @@ def run_sim(id: int, input_data: dict[str, pd.DataFrame], config: dict, out_path
                 else:
                     data[key].to_excel(writer, sheet_name=conversions[key], index=False)
         # export to pickle
-        with open(out_path.replace('xlsx', 'p'), 'wb') as f:
+        with open(out_path.replace('xlsx', 'pickle'), 'wb') as f:
             pickle.dump(data, f)
 
         with lock:
@@ -125,7 +125,7 @@ def run(config_file: str = None, skip_sim: bool = False):
     if not os.path.isdir(os.path.dirname(export_path)): export_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['export_path'])
     sim_res_dir = os.path.join(os.path.dirname(export_path), 'sim_res')
     if os.path.exists(sim_res_dir):
-        for f in [x for x in os.listdir(sim_res_dir) if x.endswith('.xlsx') or x.endswith('.p') and 'sim_res' in x]:
+        for f in [x for x in os.listdir(sim_res_dir) if x.endswith('.xlsx') or x.endswith('.pickle') and 'sim_res' in x]:
             if not skip_sim:
                 os.remove(os.path.join(sim_res_dir, f))
     os.makedirs(sim_res_dir, exist_ok=True)
@@ -172,6 +172,7 @@ def run(config_file: str = None, skip_sim: bool = False):
     try:
         print('\tCalculating means and errors...')
         res = som_app.build_results(sim_res_dir, input_data)
+        p_res = som_app.build_results_from_pickle(sim_res_dir, input_data)
         print('\tProducing plots...')
         som_plots.build_display(res, input_data, out_dir, config['use_parallel_processing'])   # needs to be before excel export
         print('\tExporting results to excel...')

@@ -229,7 +229,7 @@ def process_measure_survey_data(file_name: str) -> pd.DataFrame:
     #
 
     # add a new column for the probability
-    survey_df['probability'] = pd.Series([np.nan] * len(survey_df), dtype='object')
+    survey_df['reduction'] = pd.Series([np.nan] * len(survey_df), dtype='object')
 
     # access expert answer columns, separate rows by type of answer
     expecteds = survey_df[expert_ids].loc[survey_df['title'] == 'expected value']
@@ -251,7 +251,7 @@ def process_measure_survey_data(file_name: str) -> pd.DataFrame:
                                   upper_boundaries=u, 
                                   weights=w)
         
-        survey_df.at[num, 'probability'] = prob_dist
+        survey_df.at[num, 'reduction'] = prob_dist
 
     #
     # Remove rows and columns that are not needed anymore

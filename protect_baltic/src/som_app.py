@@ -12,6 +12,7 @@ import os
 from som_tools import *
 from utilities import *
 import matplotlib.pyplot as plt
+import pickle
 
 def build_input(config: dict) -> dict[str, pd.DataFrame]:
     """
@@ -27,7 +28,7 @@ def build_input(config: dict) -> dict[str, pd.DataFrame]:
     else:
         input_data = pd.read_excel(io=path, sheet_name=None)
         conversion_sheet = [
-            ('measure_effects', 'probability'), 
+            ('measure_effects', 'reduction'), 
             ('activity_contributions', 'contribution'), 
             ('pressure_contributions', 'contribution'), 
             ('thresholds', 'PR'), 
@@ -62,14 +63,8 @@ def build_links(data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     try: assert len(data['measure_effects'][data['measure_effects'].duplicated(['measure', 'activity', 'pressure', 'state'])]) == 0
     except Exception as e: fail_with_message(f'Duplicate measure effects in input data!', e)
 
-    # create a new dataframe for links
-    links = pd.DataFrame(data['measure_effects'])
-
     # get picks from cumulative distribution
-    links['reduction'] = links['probability'].apply(get_pick)
-    links = links.drop(columns=['probability'])
-
-    data['measure_effects'] = links
+    data['measure_effects']['reduction'] = data['measure_effects']['reduction'].apply(get_pick)
     
     #
     # activity contributions
@@ -495,8 +490,8 @@ def build_results(sim_res: str, data: dict[str, pd.DataFrame]) -> dict[str, pd.D
     #
     # measure effects
     #
-    measure_effects_mean = pd.DataFrame(data['measure_effects']).drop(columns=['probability'])
-    measure_effects_error = pd.DataFrame(data['measure_effects']).drop(columns=['probability'])
+    measure_effects_mean = pd.DataFrame(data['measure_effects'])
+    measure_effects_error = pd.DataFrame(data['measure_effects'])
     arr = np.empty(shape=([x for x in data['measure_effects'].values.shape]+[len(files)]))
     for i in range(len(files)):
         df = pd.read_excel(io=files[i], sheet_name='MeasureEffects')
@@ -586,5 +581,61 @@ def set_id_columns(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame]) 
             res[key][col] = res[key][col].apply(lambda id: data[k].loc[data[k]['ID'] == id, k].values[0] if id != 0 else '-')
 
     return res
+
+
+def build_results_from_pickle(sim_res: str, input_data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
+    """
+    Process the simulated results to calculate uncertainties.
+
+    Uncertainty is determined as standard error of the mean.
+    """
+    files = [os.path.join(sim_res, x) for x in os.listdir(sim_res) if x.endswith('.pickle') and 'sim_res' in x]
+
+    areas = input_data['area']['ID']
+    pressures = input_data['pressure']['ID']
+    states = input_data['state']['ID']
+
+    res = {}
+
+    for key, val, ids in [
+        ('Pressure', 'pressure_levels', pressures), 
+        ('TPL', 'total_pressure_load_levels', states), 
+        ('TPLRed', 'total_pressure_load_reductions', states), 
+        ('Thresholds', ('thresholds', 'PR'), states)
+    ]:
+        res[key] = {
+            'Mean': pd.DataFrame(ids).reindex(columns=['ID']+areas.tolist()).fillna(1.0), 
+            'Error': pd.DataFrame(ids).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
+        }
+        arr = np.empty(shape=(len(ids.tolist()), len(areas.tolist()), len(files)))
+        for i in range(len(files)):
+            with open(files[i], 'rb') as f:
+                data = pickle.load(f)
+            if type(val) == str:
+                arr[:, :, i] = data[val].values[:, 1:]
+            else:
+                arr[:, :, i] = data[val[0]][val[1]].values[:, 1:]
+        res[key]['Mean'].iloc[:, 1:] = np.mean(arr, axis=2)
+        res[key]['Error'].iloc[:, 1:] = np.std(arr, axis=2, ddof=1) / np.sqrt(arr.shape[2])    # calculate standard error
+    
+    for key, val, col in [
+        ('MeasureEffects', 'measure_effects', 'reduction'), 
+        ('ActivityContributions', 'activity_contributions', 'contribution'), 
+        ('PressureContributions', 'pressure_contributions', 'contribution')
+    ]:
+        res[key] = {
+            'Mean': pd.DataFrame(input_data[val]), 
+            'Error': pd.DataFrame(input_data[val])
+        }
+        arr = np.empty(shape=([x for x in input_data[val].values.shape]+[len(files)]))
+        for i in range(len(files)):
+            with open(files[i], 'rb') as f:
+                data = pickle.load(f)
+            arr[:, :, i] = data[val].values
+        res[key]['Mean'][col] = np.mean(arr[:, -1, :], axis=1)
+        res[key]['Error'][col] = np.std(arr[:, -1, :], axis=1, ddof=1) / np.sqrt(arr.shape[2])
+
+    return res
+
 
 #EOF
