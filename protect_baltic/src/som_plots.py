@@ -158,7 +158,7 @@ def plot_thresholds(area, res, data, out_dir, progress, lock):
     label_tpl = 'Reduction with measures'
     ax.bar(x_vals-bar_width/2, y_vals_tpl, width=bar_width, align='center', color=bar_color_1, label=label_tpl, edgecolor=edge_color)
     ax.errorbar(x_vals-bar_width/2, y_vals_tpl, yerr=y_err_tpl, linestyle='None', marker='None', capsize=capsize, capthick=capthick, elinewidth=elinewidth, ecolor=ecolor)
-    label_ges = 'GES'
+    label_ges = 'Target'
     ax.bar(x_vals+bar_width/2, y_vals_ges, width=bar_width, align='center', color=bar_color_2, label=label_ges, edgecolor=edge_color)
     ax.errorbar(x_vals+bar_width/2, y_vals_ges, yerr=y_err_ges, linestyle='None', marker='None', capsize=capsize, capthick=capthick, elinewidth=elinewidth, ecolor=ecolor)
     ax.set_xlabel('Environmental State')

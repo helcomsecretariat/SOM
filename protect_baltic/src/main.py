@@ -64,23 +64,6 @@ def run_sim(id: int, input_data: dict[str, pd.DataFrame], config: dict, out_path
         # export results
         #
         print('\tExporting results...', file=log)
-        conversions = {
-            'pressure_levels': 'PressureLevels', 
-            'total_pressure_load_levels': 'TPLLevels', 
-            'total_pressure_load_reductions': 'TPLReductions', 
-            'thresholds': ['RequiredReductionsForGES', 'RequiredReductionsFor10', 'RequiredReductionsFor25', 'RequiredReductionsFor50'], 
-            'measure_effects': 'MeasureEffects', 
-            'activity_contributions': 'ActivityContributions', 
-            'pressure_contributions': 'PressureContributions'
-        }
-        # export to excel
-        with pd.ExcelWriter(out_path) as writer:
-            for key in conversions:
-                if type(conversions[key]) is list:
-                    for j, k in zip(list(data[key].keys()), conversions[key]):
-                        data[key][j].to_excel(writer, sheet_name=k, index=False)
-                else:
-                    data[key].to_excel(writer, sheet_name=conversions[key], index=False)
         # export to pickle
         with open(out_path.replace('xlsx', 'pickle'), 'wb') as f:
             pickle.dump(data, f)
@@ -171,7 +154,7 @@ def run(config_file: str = None, skip_sim: bool = False):
     print('\nProcessing results...')
     try:
         print('\tCalculating means and errors...')
-        p_res = som_app.build_results_from_pickle(sim_res_dir, input_data)
+        p_res = som_app.build_results(sim_res_dir, input_data)
         print('\tProducing plots...')
         som_plots.build_display(p_res, input_data, out_dir, config['use_parallel_processing'])   # needs to be before excel export
         print('\tExporting results to excel...')
