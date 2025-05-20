@@ -11,6 +11,7 @@ import pandas as pd
 import os
 import matplotlib.pyplot as plt
 import multiprocessing
+import copy
 from utilities import display_progress
 
 
@@ -183,10 +184,18 @@ def plot_thresholds(area, res, data, out_dir, progress, lock):
         display_progress(progress.current / progress.total, text='\t\tThresholds: ')
 
 
-def build_display(res: dict[str, dict[str, pd.DataFrame]], data: dict[str, pd.DataFrame], out_dir: str, use_parallel_processing: bool = False):
+def build_display(res: dict[str, dict[str, pd.DataFrame]], data: dict[str, pd.DataFrame], out_dir: str, use_parallel_processing: bool = False, selection: dict[str, list] = None):
     """
     Constructs plots to visualize results.
     """
+    res = copy.deepcopy(res)
+    data = copy.deepcopy(data)
+
+    if selection is not None:
+        print('\t\tFiltering results...')
+        res = filter_results(res, selection)
+        data = filter_ids(data, selection)
+    
     areas = data['area']['ID']
 
     cpu_count = multiprocessing.cpu_count()     # available cpu cores
@@ -297,4 +306,57 @@ def build_display(res: dict[str, dict[str, pd.DataFrame]], data: dict[str, pd.Da
 
     plt.close(fig)
 
+
+def filter_results(res: dict[str, pd.DataFrame], selection: dict[str, list]) -> dict[str, pd.DataFrame]:
+    """
+    Filter results for more selective output
+    """
+    for key, values in [
+        ('Pressure', selection['pressure']), 
+        ('TPL', selection['state']), 
+        ('TPLRed', selection['state']), 
+        ('Thresholds', selection['state'])
+    ]:
+        for r in ['Mean', 'Error']:
+            if values != []:
+                res[key][r] = res[key][r].loc[res[key][r]['ID'].isin(values), ['ID'] + values]
+    for key, cols in {
+        'MeasureEffects': {
+            'measure': selection['measure'], 
+            'activity': selection['activity'], 
+            'pressure': selection['pressure'], 
+            'state': selection['state']
+        }, 
+        'ActivityContributions': {
+            'Activity': selection['activity'], 
+            'Pressure': selection['pressure'], 
+            'area_id': selection['area']
+        }, 
+        'PressureContributions': {
+            'State': selection['state'], 
+            'pressure': selection['pressure'], 
+            'area_id': selection['area']
+        }
+    }.items():
+        for r in ['Mean', 'Error']:
+            for col, values in cols.items():
+                if values != []:
+                    res[key][r] = res[key][r].loc[res[key][r][col].isin(values), :]
+    return res
+
+
+def filter_ids(input_data: dict[str, pd.DataFrame], selection: dict[str, list]) -> dict[str, pd.DataFrame]:
+    """
+    Filter input data id dataframes
+    """
+    for key, values in [
+        ('measure', selection['measure']), 
+        ('activity', selection['activity']), 
+        ('pressure', selection['pressure']), 
+        ('state', selection['state']), 
+        ('area', selection['area'])
+    ]:
+        if values != []:
+            input_data[key] = input_data[key].loc[input_data[key]['ID'].isin(values), :]
+    return input_data
 

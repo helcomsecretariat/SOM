@@ -154,15 +154,15 @@ def run(config_file: str = None, skip_sim: bool = False):
     print('\nProcessing results...')
     try:
         print('\tCalculating means and errors...')
-        p_res = som_app.build_results(sim_res_dir, input_data)
-        print('\tProducing plots...')
-        som_plots.build_display(p_res, input_data, out_dir, config['use_parallel_processing'])   # needs to be before excel export
+        res = som_app.build_results(sim_res_dir, input_data)
         print('\tExporting results to excel...')
         with pd.ExcelWriter(export_path) as writer:
-            new_res = som_app.set_id_columns(p_res, input_data)
+            new_res = som_app.set_id_columns(res, input_data)
             for key in new_res:
                 for r in ['Mean', 'Error']:
                     new_res[key][r].to_excel(writer, sheet_name=key+r, index=False)
+        print('\tProducing plots...')
+        som_plots.build_display(res, input_data, out_dir, config['use_parallel_processing'], config['filter'])   # needs to be before excel export
     except Exception as e:
         fail_with_message(f'ERROR! Something went wrong while processing results! Check traceback.', e)
 

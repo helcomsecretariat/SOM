@@ -13,6 +13,7 @@ from som_tools import *
 from utilities import *
 import matplotlib.pyplot as plt
 import pickle
+import copy
 
 def build_input(config: dict) -> dict[str, pd.DataFrame]:
     """
@@ -424,6 +425,7 @@ def set_id_columns(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame]) 
     """
     Replaces id column values with the name of the corresponding measure/activity/pressure/state in the result dataframes
     """
+    res = copy.deepcopy(res)
     relations = {
         'Pressure': 'pressure', 
         'TPL': 'state', 
