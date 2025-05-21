@@ -156,12 +156,7 @@ def run(config_file: str = None, skip_sim: bool = False):
         print('\tCalculating means and errors...')
         res = som_app.build_results(sim_res_dir, input_data)
         print('\tExporting results to excel...')
-        with pd.ExcelWriter(export_path) as writer:
-            new_res = som_app.set_id_columns(res, input_data)
-            for key in new_res:
-                if key != 'StatePressure':
-                    for r in ['Mean', 'Error']:
-                        new_res[key][r].to_excel(writer, sheet_name=key+r, index=False)
+        som_app.export_results_to_excel(res, input_data, export_path)
         print('\tProducing plots...')
         som_plots.build_display(res, input_data, out_dir, config['use_parallel_processing'], config['filter'])   # needs to be before excel export
     except Exception as e:

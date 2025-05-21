@@ -535,4 +535,16 @@ def build_results(sim_res: str, input_data: dict[str, pd.DataFrame]) -> dict[str
     return res
 
 
+def export_results_to_excel(res: dict[str, pd.DataFrame], input_data: dict[str, pd.DataFrame], export_path: str):
+    """
+    Exports simulation results as excel file
+    """
+    with pd.ExcelWriter(export_path) as writer:
+        new_res = set_id_columns(res, input_data)
+        for key in new_res:
+            if key != 'StatePressure':
+                for r in ['Mean', 'Error']:
+                    new_res[key][r].to_excel(writer, sheet_name=key+r, index=False)
+
+
 #EOF
