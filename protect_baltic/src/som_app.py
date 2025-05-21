@@ -428,6 +428,7 @@ def set_id_columns(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame]) 
     res = copy.deepcopy(res)
     relations = {
         'Pressure': 'pressure', 
+        'StatePressure': 'pressure', 
         'TPL': 'state', 
         'TPLRed': 'state', 
         'Thresholds': 'state', 
@@ -435,9 +436,15 @@ def set_id_columns(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame]) 
     def replace_ids(id, k):
         return data[k].loc[data[k]['ID'] == id, k].values[0]
     for key in relations:
-        for r in ['Mean', 'Error']:
-            res[key][r]['ID'] = res[key][r]['ID'].apply(lambda x: replace_ids(x, relations[key]))
-            res[key][r] = res[key][r].rename(columns={col: data['area'].loc[data['area']['ID'] == col, 'area'].values[0] for col in [c for c in res[key][r].columns if c != 'ID']})
+        if key == 'StatePressure':
+            for s in data['state']['ID']:
+                for r in ['Mean', 'Error']:
+                    res[key][s][r]['ID'] = res[key][s][r]['ID'].apply(lambda x: replace_ids(x, relations[key]))
+                    res[key][s][r] = res[key][s][r].rename(columns={col: data['area'].loc[data['area']['ID'] == col, 'area'].values[0] for col in [c for c in res[key][s][r].columns if c != 'ID']})
+        else:
+            for r in ['Mean', 'Error']:
+                res[key][r]['ID'] = res[key][r]['ID'].apply(lambda x: replace_ids(x, relations[key]))
+                res[key][r] = res[key][r].rename(columns={col: data['area'].loc[data['area']['ID'] == col, 'area'].values[0] for col in [c for c in res[key][r].columns if c != 'ID']})
     relations = {
         'MeasureEffects': ['measure', 'activity', 'pressure', 'state'], 
         'ActivityContributions': ['Activity', 'Pressure', 'area_id'], 
@@ -493,6 +500,21 @@ def build_results(sim_res: str, input_data: dict[str, pd.DataFrame]) -> dict[str
         res[key]['Mean'].iloc[:, 1:] = np.mean(arr, axis=2)
         res[key]['Error'].iloc[:, 1:] = np.std(arr, axis=2, ddof=1) / np.sqrt(arr.shape[2])    # calculate standard error
     
+    res['StatePressure'] = {
+        s: {
+            'Mean': pd.DataFrame(pressures).reindex(columns=['ID']+areas.tolist()).fillna(1.0), 
+            'Error': pd.DataFrame(pressures).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
+        } for s in states
+    }
+    for s in res['StatePressure']:
+        arr = np.empty(shape=(len(pressures.tolist()), len(areas.tolist()), len(files)))
+        for i in range(len(files)):
+            with open(files[i], 'rb') as f:
+                data = pickle.load(f)
+            arr[:, :, i] = data['state_pressure_levels'][s].values[:, 1:]
+        res['StatePressure'][s]['Mean'].iloc[:, 1:] = np.mean(arr, axis=2)
+        res['StatePressure'][s]['Error'].iloc[:, 1:] = np.std(arr, axis=2, ddof=1) / np.sqrt(arr.shape[2])
+
     for key, val, col in [
         ('MeasureEffects', 'measure_effects', 'reduction'), 
         ('ActivityContributions', 'activity_contributions', 'contribution'), 
