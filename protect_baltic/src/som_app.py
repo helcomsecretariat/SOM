@@ -220,8 +220,6 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
     # 1 = unchanged pressure load, 0 = no pressure load left affecting the state
     total_pressure_load_levels = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
 
-    # represents the reduction observed in the pressure ('ID' column)
-    pressure_reductions = pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(0.0)
     # represents the reduction observed in the total pressure load ('ID' column)
     total_pressure_load_reductions = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(0.0)
 

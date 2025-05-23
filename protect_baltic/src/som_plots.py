@@ -121,6 +121,64 @@ def plot_pressure_levels(area, res, data, out_dir, progress, lock):
         display_progress(progress.current / progress.total, text='\t\tPressures: ')
 
 
+def plot_state_pressure_levels(area, res, data, out_dir, progress, lock):
+    """
+    Plots state pressures
+    """
+    # create new directory for the plots
+    area_name = data['area'].loc[data['area']['ID'] == area, 'area'].values[0]
+    out_dir = os.path.join(out_dir, f'{area}_{area_name}', 'state')
+    os.makedirs(out_dir, exist_ok=True)
+
+    # plot settings
+    marker = 's'
+    markersize = 5
+    markercolor = 'black'
+    capsize = 3
+    capthick = 1
+    elinewidth = 1
+    ecolor = 'salmon'
+    label_angle = 60
+    char_limit = 25
+
+    for state in res['StatePressure']:
+        state_name = data['state'].loc[data['state']['ID'] == state, 'state'].values[0]
+
+        out_path = os.path.join(out_dir, f'{area}_{area_name}_state_{state}_PressureLevels.png')
+    
+        fig, ax = plt.subplots(figsize=(25, 12), constrained_layout=True)
+
+        # adjust data
+        suffixes = ('_mean', '_error')
+        df = pd.merge(res['StatePressure'][state]['Mean'].loc[:, ['ID', area]], res['StatePressure'][state]['Error'].loc[:, ['ID', area]], on='ID', suffixes=suffixes)
+        x_vals = data['pressure'].loc[:, 'pressure'].values
+        x_vals = np.array([x[:char_limit]+'...' if len(x) > char_limit else x for x in x_vals])     # limit characters to char_limit
+        y_vals = df[str(area)+'_mean'] * 100    # convert to %
+        y_err = df[str(area)+'_error'] * 100    # conver to %
+
+        # create plot
+        ax.errorbar(np.arange(len(x_vals)), y_vals, yerr=y_err, linestyle='None', marker=marker, capsize=capsize, capthick=capthick, elinewidth=elinewidth, markersize=markersize, color=markercolor, ecolor=ecolor)
+        ax.set_xlabel('Pressure')
+        ax.set_ylabel('Level (%)')
+        ax.set_title(f'Pressure Levels ({state_name})\n({area_name})')
+        ax.set_xticks(np.arange(len(x_vals)), x_vals, rotation=label_angle, ha='right')
+        ax.yaxis.grid(True, linestyle='--', color='lavender')
+
+        # adjust axis limits
+        x_lim = [- 0.5, len(x_vals) - 0.5]
+        ax.set_xlim(x_lim)
+        y_lim = [-5, 105]
+        ax.set_ylim(y_lim)
+
+        # export
+        plt.savefig(out_path, dpi=200)
+        plt.close(fig)
+    
+    with lock:
+        progress.current += 1
+        display_progress(progress.current / progress.total, text='\t\tStatePressures: ')
+
+
 def plot_thresholds(area, res, data, out_dir, progress, lock):
     """
     Plots thresholds comparison
@@ -207,18 +265,22 @@ def build_display(res: dict[str, dict[str, pd.DataFrame]], data: dict[str, pd.Da
         if use_parallel_processing:
             with multiprocessing.Pool(processes=(min(cpu_count - 2, len(areas)))) as pool:
                 jobs = [(area, res, data, out_dir, progress, lock) for area in areas]
-                display_progress(progress.current / progress.total, text='\t\tTPL: ')
                 progress.current = 0
+                display_progress(progress.current / progress.total, text='\t\tTPL: ')
                 pool.starmap(plot_total_pressure_load_levels, jobs)
                 display_progress(progress.current / progress.total, text='\t\tTPL: ')
-                display_progress(progress.current / progress.total, text='\n\t\tPressures: ')
                 progress.current = 0
+                display_progress(progress.current / progress.total, text='\n\t\tPressures: ')
                 pool.starmap(plot_pressure_levels, jobs)
                 display_progress(progress.current / progress.total, text='\t\tPressures: ')
-                display_progress(progress.current / progress.total, text='\n\t\tThresholds: ')
                 progress.current = 0
+                display_progress(progress.current / progress.total, text='\n\t\tThresholds: ')
                 pool.starmap(plot_thresholds, jobs)
                 display_progress(progress.current / progress.total, text='\t\tThresholds: ')
+                progress.current = 0
+                display_progress(progress.current / progress.total, text='\n\t\tStatePressures: ')
+                pool.starmap(plot_state_pressure_levels, jobs)
+                display_progress(progress.current / progress.total, text='\t\tStatePressures: ')
         else:
             progress.current = 0
             display_progress(progress.current / progress.total, text='\t\tTPL: ')
@@ -235,6 +297,11 @@ def build_display(res: dict[str, dict[str, pd.DataFrame]], data: dict[str, pd.Da
             for area in areas:
                 plot_thresholds(area, res, data, out_dir, progress, lock)
             display_progress(progress.current / progress.total, text='\t\tThresholds: ')
+            progress.current = 0
+            display_progress(progress.current / progress.total, text='\n\t\tStatePressures: ')
+            for area in areas:
+                plot_state_pressure_levels(area, res, data, out_dir, progress, lock)
+            display_progress(progress.current / progress.total, text='\t\tStatePressures: ')
 
     #
     # Measure effects
@@ -311,6 +378,7 @@ def filter_results(res: dict[str, pd.DataFrame], selection: dict[str, list]) -> 
     """
     Filter results for more selective output
     """
+    # Pressure, TPL, TPLRed, Thresholds
     for key, values in [
         ('Pressure', selection['pressure']), 
         ('TPL', selection['state']), 
@@ -319,7 +387,19 @@ def filter_results(res: dict[str, pd.DataFrame], selection: dict[str, list]) -> 
     ]:
         for r in ['Mean', 'Error']:
             if values != []:
-                res[key][r] = res[key][r].loc[res[key][r]['ID'].isin(values), ['ID'] + values]
+                if selection['area'] != []:
+                    res[key][r] = res[key][r].loc[res[key][r]['ID'].isin(values), ['ID'] + selection['area']]
+                else:
+                    res[key][r] = res[key][r].loc[res[key][r]['ID'].isin(values), :]
+    # StatePressure
+    if selection['pressure'] != []:
+        for s in res['StatePressure']:
+            for r in ['Mean', 'Error']:
+                if selection['area'] != []:
+                    res['StatePressure'][s][r] = res['StatePressure'][s][r].loc[res['StatePressure'][s][r]['ID'].isin(selection['pressure']), ['ID'] + selection['area']]
+                else:
+                    res['StatePressure'][s][r] = res['StatePressure'][s][r].loc[res['StatePressure'][s][r]['ID'].isin(selection['pressure']), :]
+    # MeasureEffects, ActivityContributions, PressureContributions
     for key, cols in {
         'MeasureEffects': {
             'measure': selection['measure'], 
