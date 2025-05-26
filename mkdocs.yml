@@ -1,0 +1,19 @@
+site_name: SOM
+site_description: “Sufficiency of Measures Tool Documentation”
+repo_url: https://github.com/blobbeliblob/SOM
+theme:
+  name: material
+  palette:
+    scheme: default
+nav:
+  - Home: index.md
+  - API Reference:
+      - utils: modules/utils.md
+      - data_loader: modules/data_loader.md
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          setup_commands:
+            - pip install -e .
