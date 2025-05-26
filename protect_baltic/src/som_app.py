@@ -11,7 +11,6 @@ import pandas as pd
 import os
 from som_tools import *
 from utilities import *
-import matplotlib.pyplot as plt
 import pickle
 import copy
 
