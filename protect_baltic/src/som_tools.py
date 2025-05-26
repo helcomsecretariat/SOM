@@ -29,12 +29,12 @@ def process_measure_survey_data(file_name: str) -> pd.DataFrame:
         sheet_names (dict): dict of survey sheet ids in file_name
 
     Returns:
-        survey_df (DataFrame): processed survey data information
+        survey_df (DataFrame): processed survey data information:
             measure (int): measure id
             activity (int): activity id
             pressure (int): pressure id
             state (int): state id (if defined, [nan] if no state)
-            cumulative probability (list[float]): cum. prob. distribution represented as list
+            reduction (list[float]): probability distribution represented as list
     """
     #
     # read information sheet from input Excel file
@@ -229,7 +229,7 @@ def process_measure_survey_data(file_name: str) -> pd.DataFrame:
     #
 
     # add a new column for the probability
-    survey_df['probability'] = pd.Series([np.nan] * len(survey_df), dtype='object')
+    survey_df['reduction'] = pd.Series([np.nan] * len(survey_df), dtype='object')
 
     # access expert answer columns, separate rows by type of answer
     expecteds = survey_df[expert_ids].loc[survey_df['title'] == 'expected value']
@@ -251,7 +251,7 @@ def process_measure_survey_data(file_name: str) -> pd.DataFrame:
                                   upper_boundaries=u, 
                                   weights=w)
         
-        survey_df.at[num, 'probability'] = prob_dist
+        survey_df.at[num, 'reduction'] = prob_dist
 
     #
     # Remove rows and columns that are not needed anymore
@@ -701,7 +701,7 @@ def read_subpressures(file_name: str, sheet_name: str) -> pd.DataFrame:
     return subpressures
 
 
-def process_input_data(config: dict) -> dict[str, pd.DataFrame]:
+def process_input_data(config: dict) -> dict[str, pd.DataFrame | dict[str, pd.DataFrame]]:
     """
     Reads in data and processes to usable form.
 
@@ -709,32 +709,32 @@ def process_input_data(config: dict) -> dict[str, pd.DataFrame]:
         config (dict): dictionary loaded from configuration file
 
     Returns:
-        measure_survey_df (DataFrame): contains the measure survey data of expert panels
+        measure_survey_df (DataFrame): contains the measure survey data of expert panels        
         pressure_survey_df (DataFrame): contains the pressure survey data of expert panels
-        data (dict): container for general data dataframes
-            'measure' (DataFrame):
-                'ID': unique measure identifier
-                'measure': name / description column
-            'activity' (DataFrame):
-                'ID': unique activity identifier
-                'activity': name / description column
-            'pressure' (DataFrame):
-                'ID': unique pressure identifier
-                'pressure': name / description column
-            'state' (DataFrame):
-                'ID': unique state identifier
-                'state': name / description column
-            'area' (DataFrame):
-                'ID': unique area identifier
-                'area': name / description column
-            'measure_effects' (DataFrame): measure effects on activities / pressures / states
-            'pressure_contributions' (DataFrame): pressure contributions to states
-            'thresholds' (DataFrame): changes in states required to meet specific target thresholds
-            'cases' (DataFrame): measure implementations in areas
-            'activity_contributions': activity contributions to pressures
-            'overlaps': measure-measure interactions
-            'development_scenarios': changes in human activities
-            'subpressures': pressure-pressure interactions
+        data (dict): container for general data dataframes:
+            measure (DataFrame):
+                ID: unique measure identifier
+                measure: name / description column
+            activity (DataFrame):
+                ID: unique activity identifier
+                activity: name / description column
+            pressure (DataFrame):
+                ID: unique pressure identifier
+                pressure: name / description column
+            state (DataFrame):
+                ID: unique state identifier
+                state: name / description column
+            area (DataFrame):
+                ID: unique area identifier
+                area: name / description column
+            measure_effects (DataFrame): measure effects on activities, pressures, states
+            pressure_contributions (DataFrame): pressure contributions to states
+            thresholds (DataFrame): changes in states required to meet specific target thresholds
+            cases (DataFrame): measure implementations in areas
+            activity_contributions (DataFrame): activity contributions to pressures
+            overlaps (DataFrame): measure-measure interactions
+            development_scenarios (DataFrame): changes in human activities
+            subpressures (DataFrame): pressure-pressure interactions
     """
     #
     # measure survey data

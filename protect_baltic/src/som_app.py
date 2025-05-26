@@ -11,7 +11,8 @@ import pandas as pd
 import os
 from som_tools import *
 from utilities import *
-import matplotlib.pyplot as plt
+import pickle
+import copy
 
 def build_input(config: dict) -> dict[str, pd.DataFrame]:
     """
@@ -27,7 +28,7 @@ def build_input(config: dict) -> dict[str, pd.DataFrame]:
     else:
         input_data = pd.read_excel(io=path, sheet_name=None)
         conversion_sheet = [
-            ('measure_effects', 'probability'), 
+            ('measure_effects', 'reduction'), 
             ('activity_contributions', 'contribution'), 
             ('pressure_contributions', 'contribution'), 
             ('thresholds', 'PR'), 
@@ -62,14 +63,8 @@ def build_links(data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     try: assert len(data['measure_effects'][data['measure_effects'].duplicated(['measure', 'activity', 'pressure', 'state'])]) == 0
     except Exception as e: fail_with_message(f'Duplicate measure effects in input data!', e)
 
-    # create a new dataframe for links
-    links = pd.DataFrame(data['measure_effects'])
-
     # get picks from cumulative distribution
-    links['reduction'] = links['probability'].apply(get_pick)
-    links = links.drop(columns=['probability'])
-
-    data['measure_effects'] = links
+    data['measure_effects']['reduction'] = data['measure_effects']['reduction'].apply(get_pick)
     
     #
     # activity contributions
@@ -224,10 +219,11 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
     # 1 = unchanged pressure load, 0 = no pressure load left affecting the state
     total_pressure_load_levels = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
 
-    # represents the reduction observed in the pressure ('ID' column)
-    pressure_reductions = pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(0.0)
     # represents the reduction observed in the total pressure load ('ID' column)
     total_pressure_load_reductions = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(0.0)
+
+    # same as pressure_levels, but one dataframe for each separate state, so that state specific reductions on the pressures are captured
+    state_pressure_levels = {s: pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0) for s in data['state']['ID']}
 
     # make sure activity contributions don't exceed 100 %
     for area in areas:
@@ -350,10 +346,14 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
                     #
                     total_pressure_load_levels.at[s_i, area] = total_pressure_load_levels.at[s_i, area] * (1 - reduction)
 
+        # update state pressures from pressure levels
+        for s_i, s in total_pressure_load_levels.iterrows():
+            state_pressure_levels[s['ID']].loc[:, :] = pressure_levels.loc[:, :]
+
         # pressure contributions
         for area in areas:
-            a_i = pressure_levels.columns.get_loc(area)
-            for s_i, s in total_pressure_load_levels.iterrows():
+            for s_i, s in total_pressure_load_levels.iterrows():    # for each state
+                a_i = pressure_levels.columns.get_loc(area)     # column index of current area column
                 relevant_pressures = data['pressure_contributions'].loc[(data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID']), :]  # select contributions of pressures affecting current state in current area
                 for p_i, p in relevant_pressures.iterrows():
                     #
@@ -365,14 +365,15 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
                     #
                     # subpressures
                     #
-                    relevant_subpressures = data['subpressures'].loc[(data['subpressures']['State'] == s['ID']) & (data['subpressures']['State pressure'] == p['pressure']), :]
-                    for sp_i, sp in relevant_subpressures.iterrows():
+                    relevant_subpressures = data['subpressures'].loc[(data['subpressures']['State'] == s['ID']) & (data['subpressures']['State pressure'] == p['pressure']), :]     # find all rows where the current pressure acts as a state pressure for the current state
+                    for sp_i, sp in relevant_subpressures.iterrows():   # for each subpressure of the current pressure
                         sp_row_i = pressure_levels.loc[pressure_levels['ID'] == sp['Reduced pressure']].index[0]
-                        multiplier = sp['Multiplier']
-                        red = 1 - pressure_levels.iloc[sp_row_i, a_i]    # reduction = 100 % - the part that is left of the pressure
-                        reduction = reduction + multiplier * red
+                        multiplier = sp['Multiplier']   # by how much does the subpressure affect the current pressure
+                        red = 1 - pressure_levels.iloc[sp_row_i, a_i]    # subpressure reduction = 100 % - the part that is left of the subpressure
+                        reduction = reduction + multiplier * red    # the new current pressure reduction is increased by the calculated subpressure reduction
                     try: assert reduction <= 1 + allowed_error
                     except Exception as e: fail_with_message(f'Failed on area {area}, state {s["ID"]}, pressure {p["pressure"]} with reduction {reduction}', e)
+                    state_pressure_levels[s['ID']].iloc[row_i, a_i] = state_pressure_levels[s['ID']].iloc[row_i, a_i] * (1 - reduction)
                     #
                     # reduce total pressure load
                     #
@@ -406,9 +407,10 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
                 continue
             for col in cols:
                 thresholds[col].iloc[s_i, a_i] = row.loc[:, col].values[0]
-    
+
     data.update({
         'pressure_levels': pressure_levels, 
+        'state_pressure_levels': state_pressure_levels, 
         'total_pressure_load_levels': total_pressure_load_levels, 
         'total_pressure_load_reductions': total_pressure_load_reductions, 
         'thresholds': thresholds
@@ -417,139 +419,30 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
     return data
 
 
-def build_results(sim_res: str, data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
-    """
-    Process the simulated results to calculate uncertainties.
-
-    Uncertainty is determined as standard error of the mean.
-    """
-    files = [os.path.join(sim_res, x) for x in os.listdir(sim_res) if x.endswith('.xlsx') and 'sim_res' in x]
-
-    areas = data['area']['ID']
-    pressures = data['pressure']['ID']
-    states = data['state']['ID']
-
-    #
-    # pressure levels
-    #
-    pressure_levels_average = pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
-    pressure_levels_error = pd.DataFrame(data['pressure']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
-    arr = np.empty(shape=(len(pressures.tolist()), len(areas.tolist()), len(files)))
-    for i in range(len(files)):
-        df = pd.read_excel(io=files[i], sheet_name='PressureLevels')
-        arr[:, :, i] = df.values[:, 1:]
-    pressure_levels_average.iloc[:, 1:] = np.mean(arr, axis=2)
-    pressure_levels_error.iloc[:, 1:] = np.std(arr, axis=2, ddof=1) / np.sqrt(arr.shape[2])    # calculate standard error
-    #
-    # total pressure load levels
-    #
-    total_pressure_load_levels_average = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
-    total_pressure_load_levels_error = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
-    arr = np.empty(shape=(len(states.tolist()), len(areas.tolist()), len(files)))
-    for i in range(len(files)):
-        df = pd.read_excel(io=files[i], sheet_name='TPLLevels')
-        arr[:, :, i] = df.values[:, 1:]
-    total_pressure_load_levels_average.iloc[:, 1:] = np.mean(arr, axis=2)
-    total_pressure_load_levels_error.iloc[:, 1:] = np.std(arr, axis=2, ddof=1) / np.sqrt(arr.shape[2])    # calculate standard error
-    #
-    # total pressure load reductions
-    #
-    total_pressure_load_reductions_average = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
-    total_pressure_load_reductions_error = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
-    arr = np.empty(shape=(len(states.tolist()), len(areas.tolist()), len(files)))
-    for i in range(len(files)):
-        df = pd.read_excel(io=files[i], sheet_name='TPLReductions')
-        arr[:, :, i] = df.values[:, 1:]
-    total_pressure_load_reductions_average.iloc[:, 1:] = np.mean(arr, axis=2)
-    total_pressure_load_reductions_error.iloc[:, 1:] = np.std(arr, axis=2, ddof=1) / np.sqrt(arr.shape[2])    # calculate standard error
-    #
-    # thresholds
-    #
-    thresholds_average = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist())
-    thresholds_error = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist())
-    arr = np.empty(shape=(len(states.tolist()), len(areas.tolist()), len(files)))
-    for i in range(len(files)):
-        df = pd.read_excel(io=files[i], sheet_name='RequiredReductionsForGES')
-        arr[:, :, i] = df.values[:, 1:]
-    thresholds_average.iloc[:, 1:] = np.mean(arr, axis=2)
-    thresholds_error.iloc[:, 1:] = np.std(arr, axis=2, ddof=1) / np.sqrt(arr.shape[2])    # calculate standard error
-    #
-    # measure effects
-    #
-    measure_effects_mean = pd.DataFrame(data['measure_effects']).drop(columns=['probability'])
-    measure_effects_error = pd.DataFrame(data['measure_effects']).drop(columns=['probability'])
-    arr = np.empty(shape=([x for x in data['measure_effects'].values.shape]+[len(files)]))
-    for i in range(len(files)):
-        df = pd.read_excel(io=files[i], sheet_name='MeasureEffects')
-        arr[:, :, i] = df.values
-    measure_effects_mean['reduction'] = np.mean(arr[:, -1, :], axis=1)
-    measure_effects_error['reduction'] = np.std(arr[:, -1, :], axis=1, ddof=1) / np.sqrt(arr.shape[2])
-    suffixes = ('_mean', '_error')
-    measure_effects = pd.merge(measure_effects_mean, measure_effects_error, on=['measure', 'activity', 'pressure', 'state'], suffixes=suffixes)
-    #
-    # activity contributions
-    #
-    activity_contributions_mean = pd.DataFrame(data['activity_contributions'])
-    activity_contributions_error = pd.DataFrame(data['activity_contributions'])
-    arr = np.empty(shape=([x for x in data['activity_contributions'].values.shape]+[len(files)]))
-    for i in range(len(files)):
-        df = pd.read_excel(io=files[i], sheet_name='ActivityContributions')
-        arr[:, :, i] = df.values
-    activity_contributions_mean['contribution'] = np.mean(arr[:, -1, :], axis=1)
-    activity_contributions_error['contribution'] = np.std(arr[:, -1, :], axis=1, ddof=1) / np.sqrt(arr.shape[2])
-    suffixes = ('_mean', '_error')
-    activity_contributions = pd.merge(activity_contributions_mean, activity_contributions_error, on=['Activity', 'Pressure', 'area_id'], suffixes=suffixes)
-    #
-    # pressure contributions
-    #
-    pressure_contributions_mean = pd.DataFrame(data['pressure_contributions'])
-    pressure_contributions_error = pd.DataFrame(data['pressure_contributions'])
-    arr = np.empty(shape=([x for x in data['pressure_contributions'].values.shape]+[len(files)]))
-    for i in range(len(files)):
-        df = pd.read_excel(io=files[i], sheet_name='PressureContributions')
-        arr[:, :, i] = df.values
-    pressure_contributions_mean['contribution'] = np.mean(arr[:, -1, :], axis=1)
-    pressure_contributions_error['contribution'] = np.std(arr[:, -1, :], axis=1, ddof=1) / np.sqrt(arr.shape[2])
-    suffixes = ('_mean', '_error')
-    pressure_contributions = pd.merge(pressure_contributions_mean, pressure_contributions_error, on=['State', 'pressure', 'area_id'], suffixes=suffixes)
-
-    # create new dict of dataframes
-    res = {
-        'PressureMean': pressure_levels_average, 
-        'PressureError': pressure_levels_error, 
-        'TPLMean': total_pressure_load_levels_average, 
-        'TPLError': total_pressure_load_levels_error, 
-        'TPLRedMean': total_pressure_load_reductions_average, 
-        'TPLRedError': total_pressure_load_reductions_error, 
-        'ThresholdsMean': thresholds_average, 
-        'ThresholdsError': thresholds_error, 
-        'MeasureEffects': measure_effects, 
-        'ActivityContributions': activity_contributions, 
-        'PressureContributions': pressure_contributions
-    }
-
-    return res
-
-
 def set_id_columns(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     """
     Replaces id column values with the name of the corresponding measure/activity/pressure/state in the result dataframes
     """
+    res = copy.deepcopy(res)
     relations = {
-        'PressureMean': 'pressure', 
-        'PressureError': 'pressure', 
-        'TPLMean': 'state', 
-        'TPLError': 'state', 
-        'TPLRedMean': 'state', 
-        'TPLRedError': 'state', 
-        'ThresholdsMean': 'state', 
-        'ThresholdsError': 'state'
+        'Pressure': 'pressure', 
+        'StatePressure': 'pressure', 
+        'TPL': 'state', 
+        'TPLRed': 'state', 
+        'Thresholds': 'state', 
     }
     def replace_ids(id, k):
         return data[k].loc[data[k]['ID'] == id, k].values[0]
     for key in relations:
-        res[key]['ID'] = res[key]['ID'].apply(lambda x: replace_ids(x, relations[key]))
-        res[key] = res[key].rename(columns={col: data['area'].loc[data['area']['ID'] == col, 'area'].values[0] for col in [c for c in res[key].columns if c != 'ID']})
+        if key == 'StatePressure':
+            for s in data['state']['ID']:
+                for r in ['Mean', 'Error']:
+                    res[key][s][r]['ID'] = res[key][s][r]['ID'].apply(lambda x: replace_ids(x, relations[key]))
+                    res[key][s][r] = res[key][s][r].rename(columns={col: data['area'].loc[data['area']['ID'] == col, 'area'].values[0] for col in [c for c in res[key][s][r].columns if c != 'ID']})
+        else:
+            for r in ['Mean', 'Error']:
+                res[key][r]['ID'] = res[key][r]['ID'].apply(lambda x: replace_ids(x, relations[key]))
+                res[key][r] = res[key][r].rename(columns={col: data['area'].loc[data['area']['ID'] == col, 'area'].values[0] for col in [c for c in res[key][r].columns if c != 'ID']})
     relations = {
         'MeasureEffects': ['measure', 'activity', 'pressure', 'state'], 
         'ActivityContributions': ['Activity', 'Pressure', 'area_id'], 
@@ -562,10 +455,94 @@ def set_id_columns(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame]) 
         'area_id': 'area'
     }
     for key in relations:
-        for col in relations[key]:
-            k = conversions[col] if col in conversions else col
-            res[key][col] = res[key][col].apply(lambda id: data[k].loc[data[k]['ID'] == id, k].values[0] if id != 0 else '-')
+        for r in ['Mean', 'Error']:
+            for col in relations[key]:
+                k = conversions[col] if col in conversions else col
+                res[key][r][col] = res[key][r][col].apply(lambda id: data[k].loc[data[k]['ID'] == id, k].values[0] if id != 0 else '-')
 
     return res
+
+
+def build_results(sim_res: str, input_data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
+    """
+    Process the simulated results to calculate uncertainties.
+
+    Uncertainty is determined as standard error of the mean.
+    """
+    files = [os.path.join(sim_res, x) for x in os.listdir(sim_res) if x.endswith('.pickle') and 'sim_res' in x]
+
+    areas = input_data['area']['ID']
+    pressures = input_data['pressure']['ID']
+    states = input_data['state']['ID']
+
+    res = {}
+
+    for key, val, ids in [
+        ('Pressure', 'pressure_levels', pressures), 
+        ('TPL', 'total_pressure_load_levels', states), 
+        ('TPLRed', 'total_pressure_load_reductions', states), 
+        ('Thresholds', ('thresholds', 'PR'), states)
+    ]:
+        res[key] = {
+            'Mean': pd.DataFrame(ids).reindex(columns=['ID']+areas.tolist()).fillna(1.0), 
+            'Error': pd.DataFrame(ids).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
+        }
+        arr = np.empty(shape=(len(ids.tolist()), len(areas.tolist()), len(files)))
+        for i in range(len(files)):
+            with open(files[i], 'rb') as f:
+                data = pickle.load(f)
+            if type(val) == str:
+                arr[:, :, i] = data[val].values[:, 1:]
+            else:
+                arr[:, :, i] = data[val[0]][val[1]].values[:, 1:]
+        res[key]['Mean'].iloc[:, 1:] = np.mean(arr, axis=2)
+        res[key]['Error'].iloc[:, 1:] = np.std(arr, axis=2, ddof=1) / np.sqrt(arr.shape[2])    # calculate standard error
+    
+    res['StatePressure'] = {
+        s: {
+            'Mean': pd.DataFrame(pressures).reindex(columns=['ID']+areas.tolist()).fillna(1.0), 
+            'Error': pd.DataFrame(pressures).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
+        } for s in states
+    }
+    for s in res['StatePressure']:
+        arr = np.empty(shape=(len(pressures.tolist()), len(areas.tolist()), len(files)))
+        for i in range(len(files)):
+            with open(files[i], 'rb') as f:
+                data = pickle.load(f)
+            arr[:, :, i] = data['state_pressure_levels'][s].values[:, 1:]
+        res['StatePressure'][s]['Mean'].iloc[:, 1:] = np.mean(arr, axis=2)
+        res['StatePressure'][s]['Error'].iloc[:, 1:] = np.std(arr, axis=2, ddof=1) / np.sqrt(arr.shape[2])
+
+    for key, val, col in [
+        ('MeasureEffects', 'measure_effects', 'reduction'), 
+        ('ActivityContributions', 'activity_contributions', 'contribution'), 
+        ('PressureContributions', 'pressure_contributions', 'contribution')
+    ]:
+        res[key] = {
+            'Mean': pd.DataFrame(input_data[val]), 
+            'Error': pd.DataFrame(input_data[val])
+        }
+        arr = np.empty(shape=([x for x in input_data[val].values.shape]+[len(files)]))
+        for i in range(len(files)):
+            with open(files[i], 'rb') as f:
+                data = pickle.load(f)
+            arr[:, :, i] = data[val].values
+        res[key]['Mean'][col] = np.mean(arr[:, -1, :], axis=1)
+        res[key]['Error'][col] = np.std(arr[:, -1, :], axis=1, ddof=1) / np.sqrt(arr.shape[2])
+
+    return res
+
+
+def export_results_to_excel(res: dict[str, pd.DataFrame], input_data: dict[str, pd.DataFrame], export_path: str):
+    """
+    Exports simulation results as excel file
+    """
+    with pd.ExcelWriter(export_path) as writer:
+        new_res = set_id_columns(res, input_data)
+        for key in new_res:
+            if key != 'StatePressure':
+                for r in ['Mean', 'Error']:
+                    new_res[key][r].to_excel(writer, sheet_name=key+r, index=False)
+
 
 #EOF

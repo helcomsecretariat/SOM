@@ -37,3 +37,11 @@ use_legacy_input_data = false
             pressure = 'Pressure ID'
             state = 'State ID'
             area = 'Area ID'
+
+# filter selection for results, include all if empty
+[filter]
+    area = []
+    measure = []
+    activity = []
+    pressure = []
+    state = []
