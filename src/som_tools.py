@@ -1,9 +1,5 @@
 """
-Copyright (c) 2024 Baltic Marine Environment Protection Commission
-
-LICENSE available under 
-local: 'SOM/protect_baltic/LICENSE'
-url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
+Methods to preprocess input data for SOM.
 """
 
 import os
@@ -14,7 +10,13 @@ from utilities import *
 
 def get_expert_ids(df: pd.DataFrame) -> list:
     '''
-    Returns list of expert id column names from dataframe using regex
+    Returns list of expert id column names from dataframe using regex.
+
+    Arguments:
+        df (DataFrame): dataframe containing expert idc columns.
+
+    Returns:
+        list
     '''
     return df.filter(regex='^(100|[1-9]?[0-9])$').columns
 
@@ -25,16 +27,16 @@ def process_measure_survey_data(file_name: str) -> pd.DataFrame:
     on activities, pressures and states.
 
     Arguments:
-        file_name (str): path of survey excel file
-        sheet_names (dict): dict of survey sheet ids in file_name
+        file_name (str): path of survey excel file.
 
     Returns:
         survey_df (DataFrame): processed survey data information:
-            measure (int): measure id
-            activity (int): activity id
-            pressure (int): pressure id
-            state (int): state id (if defined, [nan] if no state)
-            reduction (list[float]): probability distribution represented as list
+
+            - measure (int): measure id.
+            - activity (int): activity id.
+            - pressure (int): pressure id.
+            - state (int): state id (if defined, [nan] if no state).
+            - reduction (list[float]): probability distribution represented as list.
     """
     #
     # read information sheet from input Excel file
@@ -288,23 +290,25 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
     and the changes in state required to reach required thresholds of improvement.
 
     Arguments:
-        file_name (str): path of survey excel file
-        sheet_names (dict): dict of survey sheet ids in file_name
+        file_name (str): path of survey excel file.
 
     Returns:
         pressure_contributions (DataFrame):
-            State: state id
-            pressure: pressure id
-            area_id: area id
-            average: average contribution of pressure
-            uncertainty: standard deviation of pressure contribution
+
+            - State: state id.
+            - pressure: pressure id.
+            - area_id: area id.
+            - average: average contribution of pressure.
+            - uncertainty: standard deviation of pressure contribution.
+
         thresholds (DataFrame):
-            State: state id
-            area_id: area id
-            PR: reduction in state required to reach GES target
-            10: reduction in state required to reach 10 % improvement
-            25: reduction in state required to reach 25 % improvement
-            50: reduction in state required to reach 50 % improvement
+
+            - State: state id.
+            - area_id: area id.
+            - PR: reduction in state required to reach GES target.
+            - 10: reduction in state required to reach 10 % improvement.
+            - 25: reduction in state required to reach 25 % improvement.
+            - 50: reduction in state required to reach 50 % improvement.
     """
     #
     # set parameter values
@@ -514,14 +518,14 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
 
 def read_ids(file_name: str, id_sheets: dict) -> dict[str, dict]:
     """
-    Reads in model object descriptions from general input files
+    Reads in model component ids and descriptions from general input files.
 
     Arguments:
-        file_name (str): source excel file name containing measure, activity, pressure and state id sheets
-        id_sheets (dict): should have structure {'measure': sheet_name, 'activity': sheet_name, ...}
+        file_name (str): source excel file name containing measure, activity, pressure and state id sheets.
+        id_sheets (dict): should have structure {'measure': sheet_name, 'activity': sheet_name, ...}.
 
     Returns:
-        object_data (dict): dictionary containing measure, activity, pressure and state ids and descriptions in separate dataframes
+        object_data (dict): dictionary containing measure, activity, pressure and state ids and descriptions in separate dataframes.
     """
     # create dicts for each category
     object_data = {}
@@ -542,16 +546,16 @@ def read_ids(file_name: str, id_sheets: dict) -> dict[str, dict]:
 
 def read_cases(file_name: str, sheet_name: str) -> pd.DataFrame:
     """
-    Reading in and processing data for cases. Each row represents one case. 
+    Reads input data for cases. Each row represents one case. 
     
     In columns of 'ActMeas' sheet ('activities', 'pressure' and 'state') the value 0 == 'all relevant'.
 
     Arguments:
-        file_name (str): name of source excel file name
-        sheet_name (str): name of excel sheet
+        file_name (str): name of source excel file name.
+        sheet_name (str): name of excel sheet.
 
     Returns:
-        cases (DataFrame): case data
+        cases (DataFrame): case data.
     """
     cases = pd.read_excel(io=file_name, sheet_name=sheet_name)
 
@@ -574,14 +578,14 @@ def read_cases(file_name: str, sheet_name: str) -> pd.DataFrame:
 
 def read_activity_contributions(file_name: str, sheet_name: str) -> pd.DataFrame:
     """
-    Reads input data of activities to pressures in areas. 
+    Reads input data of activity contributions to pressures in areas. 
 
     Arguments:
-        file_name (str): name of source excel file name
-        sheet_name (str): name of excel sheet
+        file_name (str): name of source excel file name.
+        sheet_name (str): name of excel sheet.
 
     Returns:
-        act_to_press (DataFrame): dataframe containing mappings between activities and pressures
+        act_to_press (DataFrame): dataframe containing mappings between activities and pressures.
     """
     act_to_press = pd.read_excel(file_name, sheet_name=sheet_name)
 
@@ -621,14 +625,14 @@ def read_activity_contributions(file_name: str, sheet_name: str) -> pd.DataFrame
 
 def read_development_scenarios(file_name: str, sheet_name: str) -> pd.DataFrame:
     """
-    Reads input data of activity development scnearios. 
+    Reads input data of activity development scenarios. 
 
     Arguments:
-        file_name (str): name of source excel file name
-        sheet_name (str): name of sheet in excel file
+        file_name (str): name of source excel file name.
+        sheet_name (str): name of sheet in excel file.
 
     Returns:
-        development_scenarios (DataFrame): dataframe containing activity development scenarios
+        development_scenarios (DataFrame): dataframe containing activity development scenarios.
     """
     development_scenarios = pd.read_excel(file_name, sheet_name=sheet_name)
 
@@ -651,11 +655,11 @@ def read_overlaps(file_name: str, sheet_name: str) -> pd.DataFrame:
     Reads input data of measure-measure interactions. 
 
     Arguments:
-        file_name (str): name of source excel file name
-        sheet_name (str): name of sheet in excel file
+        file_name (str): name of source excel file name.
+        sheet_name (str): name of sheet in excel file.
 
     Returns:
-        overlaps (DataFrame): dataframe containing overlaps between individual measures
+        overlaps (DataFrame): dataframe containing overlaps between individual measures.
     """
     overlaps = pd.read_excel(file_name, sheet_name=sheet_name)
 
@@ -669,7 +673,14 @@ def read_overlaps(file_name: str, sheet_name: str) -> pd.DataFrame:
 
 def read_subpressures(file_name: str, sheet_name: str) -> pd.DataFrame:
     """
-    Reads input data of subpressures links to state pressures
+    Reads input data of subpressures links to state pressures.
+
+    Arguments:
+        file_name (str): name of source excel file name.
+        sheet_name (str): name of sheet in excel file.
+
+    Returns:
+        subpressures (DataFrame): dataframe containing subpressure links.
     """
     subpressures = pd.read_excel(file_name, sheet_name=sheet_name)
 
@@ -703,38 +714,44 @@ def read_subpressures(file_name: str, sheet_name: str) -> pd.DataFrame:
 
 def process_input_data(config: dict) -> dict[str, pd.DataFrame | dict[str, pd.DataFrame]]:
     """
-    Reads in data and processes to usable form.
+    Reads in data and processes raw input data to usable form.
 
     Arguments:
-        config (dict): dictionary loaded from configuration file
+        config (dict): dictionary loaded from configuration file.
 
     Returns:
-        measure_survey_df (DataFrame): contains the measure survey data of expert panels        
-        pressure_survey_df (DataFrame): contains the pressure survey data of expert panels
+        measure_survey_df (DataFrame): contains the measure survey data of expert panels.
+        pressure_survey_df (DataFrame): contains the pressure survey data of expert panels.
         data (dict): container for general data dataframes:
-            measure (DataFrame):
-                ID: unique measure identifier
-                measure: name / description column
-            activity (DataFrame):
-                ID: unique activity identifier
-                activity: name / description column
-            pressure (DataFrame):
-                ID: unique pressure identifier
-                pressure: name / description column
-            state (DataFrame):
-                ID: unique state identifier
-                state: name / description column
-            area (DataFrame):
-                ID: unique area identifier
-                area: name / description column
-            measure_effects (DataFrame): measure effects on activities, pressures, states
-            pressure_contributions (DataFrame): pressure contributions to states
-            thresholds (DataFrame): changes in states required to meet specific target thresholds
-            cases (DataFrame): measure implementations in areas
-            activity_contributions (DataFrame): activity contributions to pressures
-            overlaps (DataFrame): measure-measure interactions
-            development_scenarios (DataFrame): changes in human activities
-            subpressures (DataFrame): pressure-pressure interactions
+
+            - measure (DataFrame):
+                - ID: unique measure identifier.
+                - measure: name / description column.
+
+            - activity (DataFrame):
+                - ID: unique activity identifier.
+                - activity: name / description column.
+
+            - pressure (DataFrame):
+                - ID: unique pressure identifier.
+                - pressure: name / description column.
+
+            - state (DataFrame):
+                - ID: unique state identifier.
+                - state: name / description column.
+
+            - area (DataFrame):
+                - ID: unique area identifier.
+                - area: name / description column.
+                
+            - measure_effects (DataFrame): measure effects on activities, pressures, states.
+            - pressure_contributions (DataFrame): pressure contributions to states.
+            - thresholds (DataFrame): changes in states required to meet specific target thresholds.
+            - cases (DataFrame): measure implementations in areas.
+            - activity_contributions (DataFrame): activity contributions to pressures.
+            - overlaps (DataFrame): measure-measure interactions.
+            - development_scenarios (DataFrame): changes in human activities.
+            - subpressures (DataFrame): pressure-pressure interactions.
     """
     #
     # measure survey data

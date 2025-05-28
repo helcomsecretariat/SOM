@@ -1,9 +1,5 @@
 """
-Copyright (c) 2024 Baltic Marine Environment Protection Commission
-
-LICENSE available under 
-local: 'SOM/protect_baltic/LICENSE'
-url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
+Methods to plot SOM results.
 """
 
 import numpy as np
@@ -17,7 +13,7 @@ from utilities import display_progress
 
 def plot_total_pressure_load_levels(area, res, data, out_dir, progress, lock):
     """
-    Plots TPL
+    Plots Total Pressure Load.
     """
     # create new directory for the plots
     area_name = data['area'].loc[data['area']['ID'] == area, 'area'].values[0]
@@ -70,7 +66,7 @@ def plot_total_pressure_load_levels(area, res, data, out_dir, progress, lock):
 
 def plot_pressure_levels(area, res, data, out_dir, progress, lock):
     """
-    Plots pressures
+    Plots pressures.
     """
     # create new directory for the plots
     area_name = data['area'].loc[data['area']['ID'] == area, 'area'].values[0]
@@ -123,7 +119,7 @@ def plot_pressure_levels(area, res, data, out_dir, progress, lock):
 
 def plot_state_pressure_levels(area, res, data, out_dir, progress, lock):
     """
-    Plots state pressures
+    Plots state pressures.
     """
     # create new directory for the plots
     area_name = data['area'].loc[data['area']['ID'] == area, 'area'].values[0]
@@ -181,7 +177,7 @@ def plot_state_pressure_levels(area, res, data, out_dir, progress, lock):
 
 def plot_thresholds(area, res, data, out_dir, progress, lock):
     """
-    Plots thresholds comparison
+    Plots thresholds comparison.
     """
     # create new directory for the plots
     area_name = data['area'].loc[data['area']['ID'] == area, 'area'].values[0]
@@ -245,6 +241,13 @@ def plot_thresholds(area, res, data, out_dir, progress, lock):
 def build_display(res: dict[str, dict[str, pd.DataFrame]], data: dict[str, pd.DataFrame], out_dir: str, use_parallel_processing: bool = False, selection: dict[str, list] = None):
     """
     Constructs plots to visualize results.
+
+    Arguments:
+        res (dict): SOM results.
+        data (dict): SOM input data.
+        out_dir (str): plot output directory.
+        use_parallel_processing (bool): toggle for multiprocessing.
+        selection (dict): filtering options.
     """
     res = copy.deepcopy(res)
     data = copy.deepcopy(data)
@@ -376,7 +379,14 @@ def build_display(res: dict[str, dict[str, pd.DataFrame]], data: dict[str, pd.Da
 
 def filter_results(res: dict[str, pd.DataFrame], selection: dict[str, list]) -> dict[str, pd.DataFrame]:
     """
-    Filter results for more selective output
+    Filter results for more selective output.
+
+    Arguments:
+        res (dict): SOM results.
+        selection (dict): filtering options.
+
+    Returns:
+        res (dict): filtered results.
     """
     # Pressure, TPL, TPLRed, Thresholds
     for key, values in [
@@ -427,7 +437,14 @@ def filter_results(res: dict[str, pd.DataFrame], selection: dict[str, list]) -> 
 
 def filter_ids(input_data: dict[str, pd.DataFrame], selection: dict[str, list]) -> dict[str, pd.DataFrame]:
     """
-    Filter input data id dataframes
+    Filter input data id dataframes.
+
+    Arguments:
+        input_data (dict): SOM input data.
+        selection (dict): filtering options.
+
+    Returns:
+        input_data (dict): filtered input data.
     """
     for key, values in [
         ('measure', selection['measure']), 
