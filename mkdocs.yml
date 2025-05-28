@@ -1,6 +1,7 @@
 site_name: SOM
 site_description: “Sufficiency of Measures Tool Documentation”
 repo_url: https://github.com/helcomsecretariat/SOM
+repo_name: helcomsecretariat/SOM
 theme:
   name: material
   font:
@@ -63,9 +64,9 @@ plugins:
       handlers:
         python:
           paths: [src]
-  # - git-revision-date-localized:
-  #     type: date
-  # - git-authors
+  - git-revision-date-localized:
+      type: date
+  - git-authors
 
 copyright: Copyright &copy 2025 Baltic Marine Environment Protection Commission
 
