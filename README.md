@@ -2,11 +2,11 @@
 
 Model developed at HELCOM to assess what kind of improvements in environmental state and pressures can be achieved with existing measures [(more info)](https://helcom.fi/baltic-sea-action-plan/som/).
 
-This project continues on the work done on the SOM model in the [HELCOM BLUES](https://github.com/helcomsecretariat/SOM/tree/main/helcom_blues) project as part of the [HELCOM PROTECT BALTIC](https://protectbaltic.eu/) project. 
+This project continues on the work done on the SOM model in the [HELCOM BLUES](https://github.com/helcomsecretariat/SOM/tree/main/legacy/helcom_blues) project as part of the [HELCOM PROTECT BALTIC](https://protectbaltic.eu/) project. 
 
 ## Use
 
-See the [wiki](https://github.com/helcomsecretariat/SOM/wiki/Using-SOM).
+See the [wiki](https://helcomsecretariat.github.io/SOM/guide/using-the-tool).
 
 ## SOM
 
@@ -18,7 +18,7 @@ The model links measures, human activities, pressures, and environmental states 
 
 ### Input
 
-Information on the input data is explained in the [wiki](../../../wiki/Input-Data).
+Information on the input data is explained in the [wiki](https://helcomsecretariat.github.io/SOM/guide/input-data).
 
 ### Model flow
 
