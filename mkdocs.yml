@@ -46,6 +46,7 @@ nav:
     - Sufficiency of Measures: index.md
     - License: license.md
   - API Reference:
+    - main: modules/main.md
     - som_app: modules/som_app.md
     - som_tools: modules/som_tools.md
     - som_plots: modules/som_plots.md

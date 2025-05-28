@@ -1,9 +1,5 @@
 """
-Copyright (c) 2024 Baltic Marine Environment Protection Commission
-
-LICENSE available under 
-local: 'SOM/protect_baltic/LICENSE'
-url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
+Main script calling methods to do SOM calculations.
 """
 
 # main package script
@@ -35,22 +31,23 @@ Copyright (c) 2025 HELCOM
 
 def run_sim(id: int, input_data: dict[str, pd.DataFrame], config: dict, out_path: str, log_path: str, progress, lock):
     """
-    Runs a single simulation round
+    Runs a single simulation round.
 
     Arguments:
-        id (int): Simulation round identifier
-        input_data (dict[str, DataFrame]): Input data used for calculations
-        config (dict): User configuration settings
-        out_path (str): Output path for results
-        log_path (str): Output path for log
+        id (int): Simulation round identifier.
+        input_data (dict[str, DataFrame]): Input data used for calculations.
+        config (dict): User configuration settings.
+        out_path (str): Output path for results.
+        log_path (str): Output path for log.
         progress (Namespace): multiprocessing.Manager.Namespace:
-            current (int): Current amount of finished simulations
-            total (int): Total amount of simulations to calculate
-        lock (Lock): multiprocessing.Manager.Lock: 
-            used to manage concurrent processes updating progress
+
+            - current (int): Current amount of finished simulations.
+            - total (int): Total amount of simulations to calculate.
+        
+        lock (Lock): multiprocessing.Manager.Lock, used to manage concurrent processes updating progress.
 
     Returns:
-        0 | 1: Failure | Success
+        out (int): 0 (failure) | 1 (success)
     """
     log = open(log_path, 'w')
     
@@ -96,10 +93,14 @@ def run_sim(id: int, input_data: dict[str, pd.DataFrame], config: dict, out_path
     return 1
 
 
-def run(config_file: str = None, skip_sim: bool = False):
+def run(config_file: str = 'config.toml', skip_sim: bool = False):
     """
     Main function that loads input data and user confirguration, 
     runs simulations and processes results.
+
+    Arguments:
+        config_file (str): optional path to configuration file, defaults to 'config.toml'.
+        skip_sim (bool): toggle to skip SOM calculations and only process results.
     """
 
     timer = Timer()     # start a timer to track computation time
@@ -115,7 +116,6 @@ def run(config_file: str = None, skip_sim: bool = False):
     #
 
     try:
-        if not config_file: config_file = 'config.toml'
         if not os.path.isfile(config_file): config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), config_file)
         with open(config_file, 'r') as f:
             config = toml.load(f)

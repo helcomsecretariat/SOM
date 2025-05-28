@@ -1,9 +1,5 @@
 """
-Copyright (c) 2024 Baltic Marine Environment Protection Commission
-
-LICENSE available under 
-local: 'SOM/protect_baltic/LICENSE'
-url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
+Main SOM calculation methods.
 """
 
 import numpy as np
@@ -17,6 +13,12 @@ import copy
 def build_input(config: dict) -> dict[str, pd.DataFrame]:
     """
     Loads input data. If loading already processed data, probability distributions need to be converted back to arrays. 
+
+    Arguments:
+        config (dict): configuration settings.
+    
+    Returns:
+        input_data (dict): SOM input data.
     """
     path = os.path.realpath(config['input_data']['path'])
     if not os.path.isfile(path): path = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['input_data']['path'])
@@ -54,6 +56,12 @@ def build_input(config: dict) -> dict[str, pd.DataFrame]:
 def build_links(data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     """
     Build links by picking random samples using probability distributions.
+
+    Arguments:
+        data (dict): dict of dataframes containing all links and ids relevant to SOM calculations.
+
+    Returns:
+        data (dict): updated links and ids relevant to SOM calculations.
     """
     #
     # measure effects
@@ -114,7 +122,14 @@ def build_links(data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
 
 def build_scenario(data: dict[str, pd.DataFrame], scenario: str) -> pd.DataFrame:
     """
-    Build scenario
+    Build scenario. Updates activity contributions to pressures to reflect changes in the activities.
+
+    Arguments:
+        data (dict): dict of dataframes containing all links and ids relevant to SOM calculations.
+        scenario (str): name of scenario to be accessed from data.
+
+    Returns:
+        data (dict): updated links and ids relevant to SOM calculations.
     """
     act_to_press = data['activity_contributions']
     dev_scen = data['development_scenarios']
@@ -156,6 +171,12 @@ def build_scenario(data: dict[str, pd.DataFrame], scenario: str) -> pd.DataFrame
 def build_cases(data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     """
     Builds cases.
+
+    Arguments:
+        data (dict): dict of dataframes containing all links and ids relevant to SOM calculations.
+
+    Returns:
+        data (dict): updated links and ids relevant to SOM calculations.
     """
     cases = data['cases']
     links = data['measure_effects']
@@ -197,10 +218,18 @@ def build_cases(data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     return data
 
 
-def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings = False) -> dict[str, pd.DataFrame]:
+def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings: bool = False) -> dict[str, pd.DataFrame]:
     """
-    Simulate the reduction in activities and pressures caused by measures and 
+    Main calculation method. Simulate the reduction in activities and pressures caused by measures and 
     return the change observed in state. 
+
+    Arguments:
+        data (dict): dict of dataframes containing all links and ids relevant to SOM calculations.
+        time_steps (int): NOT IMPLEMENTED. amount of time steps to simulate, i.e. applications of measures several times.
+        warnings (bool): toggle for showing warnings related to calculations.
+
+    Returns:
+        data (dict): updated links and ids relevant to SOM calculations.
     """
     # this variable is used in assertions where float number error might affect comparisons
     allowed_error = 0.00001     
@@ -421,7 +450,13 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings =
 
 def set_id_columns(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     """
-    Replaces id column values with the name of the corresponding measure/activity/pressure/state in the result dataframes
+    Replaces id column values with the name of the corresponding measure/activity/pressure/state in the result dataframes.
+
+    Arguments:
+        res (dict): SOM calculation results.
+
+    Returns:
+        res (dict): updated results.
     """
     res = copy.deepcopy(res)
     relations = {
@@ -465,9 +500,15 @@ def set_id_columns(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame]) 
 
 def build_results(sim_res: str, input_data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     """
-    Process the simulated results to calculate uncertainties.
-
+    Process the simulated results to calculate uncertainties. 
     Uncertainty is determined as standard error of the mean.
+
+    Arguments:
+        sim_res (str): path to directory holding individual simulation run results.
+        input_data (dict): SOM input data.
+
+    Returns:
+        res (dict): SOM calculation results.
     """
     files = [os.path.join(sim_res, x) for x in os.listdir(sim_res) if x.endswith('.pickle') and 'sim_res' in x]
 
@@ -535,7 +576,12 @@ def build_results(sim_res: str, input_data: dict[str, pd.DataFrame]) -> dict[str
 
 def export_results_to_excel(res: dict[str, pd.DataFrame], input_data: dict[str, pd.DataFrame], export_path: str):
     """
-    Exports simulation results as excel file
+    Exports simulation results as excel file.
+
+    Arguments:
+        res (dict): SOM calculation results.
+        input_data (dict): SOM input data.
+        export_path (str): output path for exported results.
     """
     with pd.ExcelWriter(export_path) as writer:
         new_res = set_id_columns(res, input_data)
