@@ -1,3 +1,3 @@
-# `src.som_app`
+# `som_app`
 
 ::: src.som_app

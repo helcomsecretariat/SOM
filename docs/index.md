@@ -1,6 +1,6 @@
 # Sufficiency of Measures (SOM)
 
-[![Build Status](https://img.shields.io/...)](…)
+<!-- [![Build Status](https://img.shields.io/...)](…) -->
 
 Methodology developed at [HELCOM](https://helcom.fi/baltic-sea-action-plan/som/).
 Tool available on [GitHub](https://github.com/helcomsecretariat/SOM).

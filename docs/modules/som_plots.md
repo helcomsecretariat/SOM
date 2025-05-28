@@ -1,3 +1,3 @@
-# `src.som_plots`
+# `som_plots`
 
 ::: src.som_plots

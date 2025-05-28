@@ -1,3 +1,3 @@
-# `src.utilities`
+# `utilities`
 
 ::: src.utilities

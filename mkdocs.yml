@@ -61,9 +61,10 @@ nav:
 plugins:
   - search
   - mkdocstrings:
-      handlers:
-        python:
-          paths: [src]
+      default_handler: python
+      # handlers:
+      #   python:
+      #     paths: [src]
   - git-revision-date-localized:
       type: date
   - git-authors

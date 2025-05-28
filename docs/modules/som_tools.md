@@ -1,3 +1,3 @@
-# `src.som_tools`
+# `som_tools`
 
 ::: src.som_tools
