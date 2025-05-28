@@ -249,7 +249,7 @@
     
     
       <li class="md-tabs__item md-tabs__item--active">
-        <a href="../som_app/" class="md-tabs__link">
+        <a href="../main/" class="md-tabs__link">
           
   
   
@@ -473,6 +473,29 @@
             API Reference
           </label>
           <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../main/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    main
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
             
               
                 
@@ -956,10 +979,7 @@
 <a id="src.som_tools"></a>
     <div class="doc doc-contents first">
 
-        <p>Copyright (c) 2024 Baltic Marine Environment Protection Commission</p>
-<p>LICENSE available under 
-local: 'SOM/protect_baltic/LICENSE'
-url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'</p>
+        <p>Methods to preprocess input data for SOM.</p>
 
 
 
@@ -990,18 +1010,84 @@ url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
 
     <div class="doc doc-contents ">
 
-        <p>Returns list of expert id column names from dataframe using regex</p>
+        <p>Returns list of expert id column names from dataframe using regex.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>df</code>
+            </td>
+            <td>
+                  <code><span title="DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>dataframe containing expert idc columns.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="list">list</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>list</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
             <details class="quote">
               <summary>Source code in <code>src/som_tools.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">15</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
 <span class="normal">16</span>
 <span class="normal">17</span>
 <span class="normal">18</span>
-<span class="normal">19</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_expert_ids</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_expert_ids</span><span class="p">(</span><span class="n">df</span><span class="p">:</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">list</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&#39;&#39;&#39;</span>
-<span class="sd">    Returns list of expert id column names from dataframe using regex</span>
+<span class="sd">    Returns list of expert id column names from dataframe using regex.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        df (DataFrame): dataframe containing expert idc columns.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        list</span>
 <span class="sd">    &#39;&#39;&#39;</span>
     <span class="k">return</span> <span class="n">df</span><span class="o">.</span><span class="n">filter</span><span class="p">(</span><span class="n">regex</span><span class="o">=</span><span class="s1">&#39;^(100|[1-9]?[0-9])$&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">columns</span>
 </code></pre></div></td></tr></table></div>
@@ -1021,7 +1107,7 @@ url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
 
     <div class="doc doc-contents ">
 
-        <p>Reads in data and processes to usable form.</p>
+        <p>Reads in data and processes raw input data to usable form.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -1044,7 +1130,7 @@ url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
             </td>
             <td>
               <div class="doc-md-description">
-                <p>dictionary loaded from configuration file</p>
+                <p>dictionary loaded from configuration file.</p>
               </div>
             </td>
             <td>
@@ -1070,7 +1156,7 @@ url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
             </td>
             <td>
               <div class="doc-md-description">
-                <p>contains the measure survey data of expert panels        </p>
+                <p>contains the measure survey data of expert panels.</p>
               </div>
             </td>
           </tr>
@@ -1080,7 +1166,7 @@ url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
             </td>
             <td>
               <div class="doc-md-description">
-                <p>contains the pressure survey data of expert panels</p>
+                <p>contains the pressure survey data of expert panels.</p>
               </div>
             </td>
           </tr>
@@ -1090,30 +1176,54 @@ url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
             </td>
             <td>
               <div class="doc-md-description">
-                <p>container for general data dataframes:
-measure (DataFrame):
-    ID: unique measure identifier
-    measure: name / description column
-activity (DataFrame):
-    ID: unique activity identifier
-    activity: name / description column
-pressure (DataFrame):
-    ID: unique pressure identifier
-    pressure: name / description column
-state (DataFrame):
-    ID: unique state identifier
-    state: name / description column
-area (DataFrame):
-    ID: unique area identifier
-    area: name / description column
-measure_effects (DataFrame): measure effects on activities, pressures, states
-pressure_contributions (DataFrame): pressure contributions to states
-thresholds (DataFrame): changes in states required to meet specific target thresholds
-cases (DataFrame): measure implementations in areas
-activity_contributions (DataFrame): activity contributions to pressures
-overlaps (DataFrame): measure-measure interactions
-development_scenarios (DataFrame): changes in human activities
-subpressures (DataFrame): pressure-pressure interactions</p>
+                <p>container for general data dataframes:</p>
+<ul>
+<li>
+<p>measure (DataFrame):</p>
+<ul>
+<li>ID: unique measure identifier.</li>
+<li>measure: name / description column.</li>
+</ul>
+</li>
+<li>
+<p>activity (DataFrame):</p>
+<ul>
+<li>ID: unique activity identifier.</li>
+<li>activity: name / description column.</li>
+</ul>
+</li>
+<li>
+<p>pressure (DataFrame):</p>
+<ul>
+<li>ID: unique pressure identifier.</li>
+<li>pressure: name / description column.</li>
+</ul>
+</li>
+<li>
+<p>state (DataFrame):</p>
+<ul>
+<li>ID: unique state identifier.</li>
+<li>state: name / description column.</li>
+</ul>
+</li>
+<li>
+<p>area (DataFrame):</p>
+<ul>
+<li>ID: unique area identifier.</li>
+<li>area: name / description column.</li>
+</ul>
+</li>
+<li>
+<p>measure_effects (DataFrame): measure effects on activities, pressures, states.</p>
+</li>
+<li>pressure_contributions (DataFrame): pressure contributions to states.</li>
+<li>thresholds (DataFrame): changes in states required to meet specific target thresholds.</li>
+<li>cases (DataFrame): measure implementations in areas.</li>
+<li>activity_contributions (DataFrame): activity contributions to pressures.</li>
+<li>overlaps (DataFrame): measure-measure interactions.</li>
+<li>development_scenarios (DataFrame): changes in human activities.</li>
+<li>subpressures (DataFrame): pressure-pressure interactions.</li>
+</ul>
               </div>
             </td>
           </tr>
@@ -1123,18 +1233,7 @@ subpressures (DataFrame): pressure-pressure interactions</p>
 
             <details class="quote">
               <summary>Source code in <code>src/som_tools.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">704</span>
-<span class="normal">705</span>
-<span class="normal">706</span>
-<span class="normal">707</span>
-<span class="normal">708</span>
-<span class="normal">709</span>
-<span class="normal">710</span>
-<span class="normal">711</span>
-<span class="normal">712</span>
-<span class="normal">713</span>
-<span class="normal">714</span>
-<span class="normal">715</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">715</span>
 <span class="normal">716</span>
 <span class="normal">717</span>
 <span class="normal">718</span>
@@ -1231,40 +1330,63 @@ subpressures (DataFrame): pressure-pressure interactions</p>
 <span class="normal">809</span>
 <span class="normal">810</span>
 <span class="normal">811</span>
-<span class="normal">812</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process_input_data</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]]:</span>
+<span class="normal">812</span>
+<span class="normal">813</span>
+<span class="normal">814</span>
+<span class="normal">815</span>
+<span class="normal">816</span>
+<span class="normal">817</span>
+<span class="normal">818</span>
+<span class="normal">819</span>
+<span class="normal">820</span>
+<span class="normal">821</span>
+<span class="normal">822</span>
+<span class="normal">823</span>
+<span class="normal">824</span>
+<span class="normal">825</span>
+<span class="normal">826</span>
+<span class="normal">827</span>
+<span class="normal">828</span>
+<span class="normal">829</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process_input_data</span><span class="p">(</span><span class="n">config</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span> <span class="o">|</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Reads in data and processes to usable form.</span>
+<span class="sd">    Reads in data and processes raw input data to usable form.</span>
 
 <span class="sd">    Arguments:</span>
-<span class="sd">        config (dict): dictionary loaded from configuration file</span>
+<span class="sd">        config (dict): dictionary loaded from configuration file.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        measure_survey_df (DataFrame): contains the measure survey data of expert panels        </span>
-<span class="sd">        pressure_survey_df (DataFrame): contains the pressure survey data of expert panels</span>
+<span class="sd">        measure_survey_df (DataFrame): contains the measure survey data of expert panels.</span>
+<span class="sd">        pressure_survey_df (DataFrame): contains the pressure survey data of expert panels.</span>
 <span class="sd">        data (dict): container for general data dataframes:</span>
-<span class="sd">            measure (DataFrame):</span>
-<span class="sd">                ID: unique measure identifier</span>
-<span class="sd">                measure: name / description column</span>
-<span class="sd">            activity (DataFrame):</span>
-<span class="sd">                ID: unique activity identifier</span>
-<span class="sd">                activity: name / description column</span>
-<span class="sd">            pressure (DataFrame):</span>
-<span class="sd">                ID: unique pressure identifier</span>
-<span class="sd">                pressure: name / description column</span>
-<span class="sd">            state (DataFrame):</span>
-<span class="sd">                ID: unique state identifier</span>
-<span class="sd">                state: name / description column</span>
-<span class="sd">            area (DataFrame):</span>
-<span class="sd">                ID: unique area identifier</span>
-<span class="sd">                area: name / description column</span>
-<span class="sd">            measure_effects (DataFrame): measure effects on activities, pressures, states</span>
-<span class="sd">            pressure_contributions (DataFrame): pressure contributions to states</span>
-<span class="sd">            thresholds (DataFrame): changes in states required to meet specific target thresholds</span>
-<span class="sd">            cases (DataFrame): measure implementations in areas</span>
-<span class="sd">            activity_contributions (DataFrame): activity contributions to pressures</span>
-<span class="sd">            overlaps (DataFrame): measure-measure interactions</span>
-<span class="sd">            development_scenarios (DataFrame): changes in human activities</span>
-<span class="sd">            subpressures (DataFrame): pressure-pressure interactions</span>
+
+<span class="sd">            - measure (DataFrame):</span>
+<span class="sd">                - ID: unique measure identifier.</span>
+<span class="sd">                - measure: name / description column.</span>
+
+<span class="sd">            - activity (DataFrame):</span>
+<span class="sd">                - ID: unique activity identifier.</span>
+<span class="sd">                - activity: name / description column.</span>
+
+<span class="sd">            - pressure (DataFrame):</span>
+<span class="sd">                - ID: unique pressure identifier.</span>
+<span class="sd">                - pressure: name / description column.</span>
+
+<span class="sd">            - state (DataFrame):</span>
+<span class="sd">                - ID: unique state identifier.</span>
+<span class="sd">                - state: name / description column.</span>
+
+<span class="sd">            - area (DataFrame):</span>
+<span class="sd">                - ID: unique area identifier.</span>
+<span class="sd">                - area: name / description column.</span>
+
+<span class="sd">            - measure_effects (DataFrame): measure effects on activities, pressures, states.</span>
+<span class="sd">            - pressure_contributions (DataFrame): pressure contributions to states.</span>
+<span class="sd">            - thresholds (DataFrame): changes in states required to meet specific target thresholds.</span>
+<span class="sd">            - cases (DataFrame): measure implementations in areas.</span>
+<span class="sd">            - activity_contributions (DataFrame): activity contributions to pressures.</span>
+<span class="sd">            - overlaps (DataFrame): measure-measure interactions.</span>
+<span class="sd">            - development_scenarios (DataFrame): changes in human activities.</span>
+<span class="sd">            - subpressures (DataFrame): pressure-pressure interactions.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1">#</span>
     <span class="c1"># measure survey data</span>
@@ -1381,23 +1503,7 @@ on activities, pressures and states.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>path of survey excel file</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>sheet_names</code>
-            </td>
-            <td>
-                  <code><span title="dict">dict</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>dict of survey sheet ids in file_name</p>
+                <p>path of survey excel file.</p>
               </div>
             </td>
             <td>
@@ -1423,12 +1529,14 @@ on activities, pressures and states.</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>processed survey data information:
-measure (int): measure id
-activity (int): activity id
-pressure (int): pressure id
-state (int): state id (if defined, [nan] if no state)
-reduction (list[float]): probability distribution represented as list</p>
+                <p>processed survey data information:</p>
+<ul>
+<li>measure (int): measure id.</li>
+<li>activity (int): activity id.</li>
+<li>pressure (int): pressure id.</li>
+<li>state (int): state id (if defined, [nan] if no state).</li>
+<li>reduction (list[float]): probability distribution represented as list.</li>
+</ul>
               </div>
             </td>
           </tr>
@@ -1438,9 +1546,7 @@ reduction (list[float]): probability distribution represented as list</p>
 
             <details class="quote">
               <summary>Source code in <code>src/som_tools.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 22</span>
-<span class="normal"> 23</span>
-<span class="normal"> 24</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 24</span>
 <span class="normal"> 25</span>
 <span class="normal"> 26</span>
 <span class="normal"> 27</span>
@@ -1698,22 +1804,24 @@ reduction (list[float]): probability distribution represented as list</p>
 <span class="normal">279</span>
 <span class="normal">280</span>
 <span class="normal">281</span>
-<span class="normal">282</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process_measure_survey_data</span><span class="p">(</span><span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="normal">282</span>
+<span class="normal">283</span>
+<span class="normal">284</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process_measure_survey_data</span><span class="p">(</span><span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    This method reads input from the excel file containing data about measure reduction efficiencies </span>
 <span class="sd">    on activities, pressures and states.</span>
 
 <span class="sd">    Arguments:</span>
-<span class="sd">        file_name (str): path of survey excel file</span>
-<span class="sd">        sheet_names (dict): dict of survey sheet ids in file_name</span>
+<span class="sd">        file_name (str): path of survey excel file.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        survey_df (DataFrame): processed survey data information:</span>
-<span class="sd">            measure (int): measure id</span>
-<span class="sd">            activity (int): activity id</span>
-<span class="sd">            pressure (int): pressure id</span>
-<span class="sd">            state (int): state id (if defined, [nan] if no state)</span>
-<span class="sd">            reduction (list[float]): probability distribution represented as list</span>
+
+<span class="sd">            - measure (int): measure id.</span>
+<span class="sd">            - activity (int): activity id.</span>
+<span class="sd">            - pressure (int): pressure id.</span>
+<span class="sd">            - state (int): state id (if defined, [nan] if no state).</span>
+<span class="sd">            - reduction (list[float]): probability distribution represented as list.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1">#</span>
     <span class="c1"># read information sheet from input Excel file</span>
@@ -2000,23 +2108,7 @@ and the changes in state required to reach required thresholds of improvement.</
             </td>
             <td>
               <div class="doc-md-description">
-                <p>path of survey excel file</p>
-              </div>
-            </td>
-            <td>
-                <em>required</em>
-            </td>
-          </tr>
-          <tr class="doc-section-item">
-            <td>
-                <code>sheet_names</code>
-            </td>
-            <td>
-                  <code><span title="dict">dict</span></code>
-            </td>
-            <td>
-              <div class="doc-md-description">
-                <p>dict of survey sheet ids in file_name</p>
+                <p>path of survey excel file.</p>
               </div>
             </td>
             <td>
@@ -2042,11 +2134,13 @@ and the changes in state required to reach required thresholds of improvement.</
             </td>
             <td>
               <div class="doc-md-description">
-                <p>State: state id
-pressure: pressure id
-area_id: area id
-average: average contribution of pressure
-uncertainty: standard deviation of pressure contribution</p>
+                <ul>
+<li>State: state id.</li>
+<li>pressure: pressure id.</li>
+<li>area_id: area id.</li>
+<li>average: average contribution of pressure.</li>
+<li>uncertainty: standard deviation of pressure contribution.</li>
+</ul>
               </div>
             </td>
           </tr>
@@ -2056,12 +2150,14 @@ uncertainty: standard deviation of pressure contribution</p>
             </td>
             <td>
               <div class="doc-md-description">
-                <p>State: state id
-area_id: area id
-PR: reduction in state required to reach GES target
-10: reduction in state required to reach 10 % improvement
-25: reduction in state required to reach 25 % improvement
-50: reduction in state required to reach 50 % improvement</p>
+                <ul>
+<li>State: state id.</li>
+<li>area_id: area id.</li>
+<li>PR: reduction in state required to reach GES target.</li>
+<li>10: reduction in state required to reach 10 % improvement.</li>
+<li>25: reduction in state required to reach 25 % improvement.</li>
+<li>50: reduction in state required to reach 50 % improvement.</li>
+</ul>
               </div>
             </td>
           </tr>
@@ -2071,9 +2167,7 @@ PR: reduction in state required to reach GES target
 
             <details class="quote">
               <summary>Source code in <code>src/som_tools.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">285</span>
-<span class="normal">286</span>
-<span class="normal">287</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">287</span>
 <span class="normal">288</span>
 <span class="normal">289</span>
 <span class="normal">290</span>
@@ -2298,29 +2392,35 @@ PR: reduction in state required to reach GES target
 <span class="normal">509</span>
 <span class="normal">510</span>
 <span class="normal">511</span>
-<span class="normal">512</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process_pressure_survey_data</span><span class="p">(</span><span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
+<span class="normal">512</span>
+<span class="normal">513</span>
+<span class="normal">514</span>
+<span class="normal">515</span>
+<span class="normal">516</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">process_pressure_survey_data</span><span class="p">(</span><span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">tuple</span><span class="p">[</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">,</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    This method reads input from the excel file containing data about pressure contributions to states </span>
 <span class="sd">    and the changes in state required to reach required thresholds of improvement.</span>
 
 <span class="sd">    Arguments:</span>
-<span class="sd">        file_name (str): path of survey excel file</span>
-<span class="sd">        sheet_names (dict): dict of survey sheet ids in file_name</span>
+<span class="sd">        file_name (str): path of survey excel file.</span>
 
 <span class="sd">    Returns:</span>
 <span class="sd">        pressure_contributions (DataFrame):</span>
-<span class="sd">            State: state id</span>
-<span class="sd">            pressure: pressure id</span>
-<span class="sd">            area_id: area id</span>
-<span class="sd">            average: average contribution of pressure</span>
-<span class="sd">            uncertainty: standard deviation of pressure contribution</span>
+
+<span class="sd">            - State: state id.</span>
+<span class="sd">            - pressure: pressure id.</span>
+<span class="sd">            - area_id: area id.</span>
+<span class="sd">            - average: average contribution of pressure.</span>
+<span class="sd">            - uncertainty: standard deviation of pressure contribution.</span>
+
 <span class="sd">        thresholds (DataFrame):</span>
-<span class="sd">            State: state id</span>
-<span class="sd">            area_id: area id</span>
-<span class="sd">            PR: reduction in state required to reach GES target</span>
-<span class="sd">            10: reduction in state required to reach 10 % improvement</span>
-<span class="sd">            25: reduction in state required to reach 25 % improvement</span>
-<span class="sd">            50: reduction in state required to reach 50 % improvement</span>
+
+<span class="sd">            - State: state id.</span>
+<span class="sd">            - area_id: area id.</span>
+<span class="sd">            - PR: reduction in state required to reach GES target.</span>
+<span class="sd">            - 10: reduction in state required to reach 10 % improvement.</span>
+<span class="sd">            - 25: reduction in state required to reach 25 % improvement.</span>
+<span class="sd">            - 50: reduction in state required to reach 50 % improvement.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1">#</span>
     <span class="c1"># set parameter values</span>
@@ -2543,7 +2643,7 @@ PR: reduction in state required to reach GES target
 
     <div class="doc doc-contents ">
 
-        <p>Reads input data of activities to pressures in areas. </p>
+        <p>Reads input data of activity contributions to pressures in areas. </p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2566,7 +2666,7 @@ PR: reduction in state required to reach GES target
             </td>
             <td>
               <div class="doc-md-description">
-                <p>name of source excel file name</p>
+                <p>name of source excel file name.</p>
               </div>
             </td>
             <td>
@@ -2582,7 +2682,7 @@ PR: reduction in state required to reach GES target
             </td>
             <td>
               <div class="doc-md-description">
-                <p>name of excel sheet</p>
+                <p>name of excel sheet.</p>
               </div>
             </td>
             <td>
@@ -2608,7 +2708,7 @@ PR: reduction in state required to reach GES target
             </td>
             <td>
               <div class="doc-md-description">
-                <p>dataframe containing mappings between activities and pressures</p>
+                <p>dataframe containing mappings between activities and pressures.</p>
               </div>
             </td>
           </tr>
@@ -2618,11 +2718,7 @@ PR: reduction in state required to reach GES target
 
             <details class="quote">
               <summary>Source code in <code>src/som_tools.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">575</span>
-<span class="normal">576</span>
-<span class="normal">577</span>
-<span class="normal">578</span>
-<span class="normal">579</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">579</span>
 <span class="normal">580</span>
 <span class="normal">581</span>
 <span class="normal">582</span>
@@ -2662,16 +2758,20 @@ PR: reduction in state required to reach GES target
 <span class="normal">616</span>
 <span class="normal">617</span>
 <span class="normal">618</span>
-<span class="normal">619</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">read_activity_contributions</span><span class="p">(</span><span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sheet_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="normal">619</span>
+<span class="normal">620</span>
+<span class="normal">621</span>
+<span class="normal">622</span>
+<span class="normal">623</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">read_activity_contributions</span><span class="p">(</span><span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sheet_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Reads input data of activities to pressures in areas. </span>
+<span class="sd">    Reads input data of activity contributions to pressures in areas. </span>
 
 <span class="sd">    Arguments:</span>
-<span class="sd">        file_name (str): name of source excel file name</span>
-<span class="sd">        sheet_name (str): name of excel sheet</span>
+<span class="sd">        file_name (str): name of source excel file name.</span>
+<span class="sd">        sheet_name (str): name of excel sheet.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        act_to_press (DataFrame): dataframe containing mappings between activities and pressures</span>
+<span class="sd">        act_to_press (DataFrame): dataframe containing mappings between activities and pressures.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">act_to_press</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">sheet_name</span><span class="o">=</span><span class="n">sheet_name</span><span class="p">)</span>
 
@@ -2724,7 +2824,7 @@ PR: reduction in state required to reach GES target
 
     <div class="doc doc-contents ">
 
-        <p>Reading in and processing data for cases. Each row represents one case. </p>
+        <p>Reads input data for cases. Each row represents one case. </p>
 <p>In columns of 'ActMeas' sheet ('activities', 'pressure' and 'state') the value 0 == 'all relevant'.</p>
 
 
@@ -2748,7 +2848,7 @@ PR: reduction in state required to reach GES target
             </td>
             <td>
               <div class="doc-md-description">
-                <p>name of source excel file name</p>
+                <p>name of source excel file name.</p>
               </div>
             </td>
             <td>
@@ -2764,7 +2864,7 @@ PR: reduction in state required to reach GES target
             </td>
             <td>
               <div class="doc-md-description">
-                <p>name of excel sheet</p>
+                <p>name of excel sheet.</p>
               </div>
             </td>
             <td>
@@ -2790,7 +2890,7 @@ PR: reduction in state required to reach GES target
             </td>
             <td>
               <div class="doc-md-description">
-                <p>case data</p>
+                <p>case data.</p>
               </div>
             </td>
           </tr>
@@ -2800,11 +2900,7 @@ PR: reduction in state required to reach GES target
 
             <details class="quote">
               <summary>Source code in <code>src/som_tools.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">543</span>
-<span class="normal">544</span>
-<span class="normal">545</span>
-<span class="normal">546</span>
-<span class="normal">547</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">547</span>
 <span class="normal">548</span>
 <span class="normal">549</span>
 <span class="normal">550</span>
@@ -2829,18 +2925,22 @@ PR: reduction in state required to reach GES target
 <span class="normal">569</span>
 <span class="normal">570</span>
 <span class="normal">571</span>
-<span class="normal">572</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">read_cases</span><span class="p">(</span><span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sheet_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="normal">572</span>
+<span class="normal">573</span>
+<span class="normal">574</span>
+<span class="normal">575</span>
+<span class="normal">576</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">read_cases</span><span class="p">(</span><span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sheet_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Reading in and processing data for cases. Each row represents one case. </span>
+<span class="sd">    Reads input data for cases. Each row represents one case. </span>
 
 <span class="sd">    In columns of &#39;ActMeas&#39; sheet (&#39;activities&#39;, &#39;pressure&#39; and &#39;state&#39;) the value 0 == &#39;all relevant&#39;.</span>
 
 <span class="sd">    Arguments:</span>
-<span class="sd">        file_name (str): name of source excel file name</span>
-<span class="sd">        sheet_name (str): name of excel sheet</span>
+<span class="sd">        file_name (str): name of source excel file name.</span>
+<span class="sd">        sheet_name (str): name of excel sheet.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        cases (DataFrame): case data</span>
+<span class="sd">        cases (DataFrame): case data.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">cases</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">io</span><span class="o">=</span><span class="n">file_name</span><span class="p">,</span> <span class="n">sheet_name</span><span class="o">=</span><span class="n">sheet_name</span><span class="p">)</span>
 
@@ -2876,7 +2976,7 @@ PR: reduction in state required to reach GES target
 
     <div class="doc doc-contents ">
 
-        <p>Reads input data of activity development scnearios. </p>
+        <p>Reads input data of activity development scenarios. </p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -2899,7 +2999,7 @@ PR: reduction in state required to reach GES target
             </td>
             <td>
               <div class="doc-md-description">
-                <p>name of source excel file name</p>
+                <p>name of source excel file name.</p>
               </div>
             </td>
             <td>
@@ -2915,7 +3015,7 @@ PR: reduction in state required to reach GES target
             </td>
             <td>
               <div class="doc-md-description">
-                <p>name of sheet in excel file</p>
+                <p>name of sheet in excel file.</p>
               </div>
             </td>
             <td>
@@ -2941,7 +3041,7 @@ PR: reduction in state required to reach GES target
             </td>
             <td>
               <div class="doc-md-description">
-                <p>dataframe containing activity development scenarios</p>
+                <p>dataframe containing activity development scenarios.</p>
               </div>
             </td>
           </tr>
@@ -2951,11 +3051,7 @@ PR: reduction in state required to reach GES target
 
             <details class="quote">
               <summary>Source code in <code>src/som_tools.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">622</span>
-<span class="normal">623</span>
-<span class="normal">624</span>
-<span class="normal">625</span>
-<span class="normal">626</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">626</span>
 <span class="normal">627</span>
 <span class="normal">628</span>
 <span class="normal">629</span>
@@ -2975,16 +3071,20 @@ PR: reduction in state required to reach GES target
 <span class="normal">643</span>
 <span class="normal">644</span>
 <span class="normal">645</span>
-<span class="normal">646</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">read_development_scenarios</span><span class="p">(</span><span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sheet_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="normal">646</span>
+<span class="normal">647</span>
+<span class="normal">648</span>
+<span class="normal">649</span>
+<span class="normal">650</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">read_development_scenarios</span><span class="p">(</span><span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sheet_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Reads input data of activity development scnearios. </span>
+<span class="sd">    Reads input data of activity development scenarios. </span>
 
 <span class="sd">    Arguments:</span>
-<span class="sd">        file_name (str): name of source excel file name</span>
-<span class="sd">        sheet_name (str): name of sheet in excel file</span>
+<span class="sd">        file_name (str): name of source excel file name.</span>
+<span class="sd">        sheet_name (str): name of sheet in excel file.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        development_scenarios (DataFrame): dataframe containing activity development scenarios</span>
+<span class="sd">        development_scenarios (DataFrame): dataframe containing activity development scenarios.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">development_scenarios</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">sheet_name</span><span class="o">=</span><span class="n">sheet_name</span><span class="p">)</span>
 
@@ -3017,7 +3117,7 @@ PR: reduction in state required to reach GES target
 
     <div class="doc doc-contents ">
 
-        <p>Reads in model object descriptions from general input files</p>
+        <p>Reads in model component ids and descriptions from general input files.</p>
 
 
 <p><span class="doc-section-title">Parameters:</span></p>
@@ -3040,7 +3140,7 @@ PR: reduction in state required to reach GES target
             </td>
             <td>
               <div class="doc-md-description">
-                <p>source excel file name containing measure, activity, pressure and state id sheets</p>
+                <p>source excel file name containing measure, activity, pressure and state id sheets.</p>
               </div>
             </td>
             <td>
@@ -3056,7 +3156,7 @@ PR: reduction in state required to reach GES target
             </td>
             <td>
               <div class="doc-md-description">
-                <p>should have structure {'measure': sheet_name, 'activity': sheet_name, ...}</p>
+                <p>should have structure {'measure': sheet_name, 'activity': sheet_name, ...}.</p>
               </div>
             </td>
             <td>
@@ -3082,7 +3182,7 @@ PR: reduction in state required to reach GES target
             </td>
             <td>
               <div class="doc-md-description">
-                <p>dictionary containing measure, activity, pressure and state ids and descriptions in separate dataframes</p>
+                <p>dictionary containing measure, activity, pressure and state ids and descriptions in separate dataframes.</p>
               </div>
             </td>
           </tr>
@@ -3092,11 +3192,7 @@ PR: reduction in state required to reach GES target
 
             <details class="quote">
               <summary>Source code in <code>src/som_tools.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">515</span>
-<span class="normal">516</span>
-<span class="normal">517</span>
-<span class="normal">518</span>
-<span class="normal">519</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">519</span>
 <span class="normal">520</span>
 <span class="normal">521</span>
 <span class="normal">522</span>
@@ -3117,16 +3213,20 @@ PR: reduction in state required to reach GES target
 <span class="normal">537</span>
 <span class="normal">538</span>
 <span class="normal">539</span>
-<span class="normal">540</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">read_ids</span><span class="p">(</span><span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">id_sheets</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
+<span class="normal">540</span>
+<span class="normal">541</span>
+<span class="normal">542</span>
+<span class="normal">543</span>
+<span class="normal">544</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">read_ids</span><span class="p">(</span><span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">id_sheets</span><span class="p">:</span> <span class="nb">dict</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">dict</span><span class="p">]:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Reads in model object descriptions from general input files</span>
+<span class="sd">    Reads in model component ids and descriptions from general input files.</span>
 
 <span class="sd">    Arguments:</span>
-<span class="sd">        file_name (str): source excel file name containing measure, activity, pressure and state id sheets</span>
-<span class="sd">        id_sheets (dict): should have structure {&#39;measure&#39;: sheet_name, &#39;activity&#39;: sheet_name, ...}</span>
+<span class="sd">        file_name (str): source excel file name containing measure, activity, pressure and state id sheets.</span>
+<span class="sd">        id_sheets (dict): should have structure {&#39;measure&#39;: sheet_name, &#39;activity&#39;: sheet_name, ...}.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        object_data (dict): dictionary containing measure, activity, pressure and state ids and descriptions in separate dataframes</span>
+<span class="sd">        object_data (dict): dictionary containing measure, activity, pressure and state ids and descriptions in separate dataframes.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="c1"># create dicts for each category</span>
     <span class="n">object_data</span> <span class="o">=</span> <span class="p">{}</span>
@@ -3183,7 +3283,7 @@ PR: reduction in state required to reach GES target
             </td>
             <td>
               <div class="doc-md-description">
-                <p>name of source excel file name</p>
+                <p>name of source excel file name.</p>
               </div>
             </td>
             <td>
@@ -3199,7 +3299,7 @@ PR: reduction in state required to reach GES target
             </td>
             <td>
               <div class="doc-md-description">
-                <p>name of sheet in excel file</p>
+                <p>name of sheet in excel file.</p>
               </div>
             </td>
             <td>
@@ -3225,7 +3325,7 @@ PR: reduction in state required to reach GES target
             </td>
             <td>
               <div class="doc-md-description">
-                <p>dataframe containing overlaps between individual measures</p>
+                <p>dataframe containing overlaps between individual measures.</p>
               </div>
             </td>
           </tr>
@@ -3235,11 +3335,7 @@ PR: reduction in state required to reach GES target
 
             <details class="quote">
               <summary>Source code in <code>src/som_tools.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">649</span>
-<span class="normal">650</span>
-<span class="normal">651</span>
-<span class="normal">652</span>
-<span class="normal">653</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">653</span>
 <span class="normal">654</span>
 <span class="normal">655</span>
 <span class="normal">656</span>
@@ -3253,16 +3349,20 @@ PR: reduction in state required to reach GES target
 <span class="normal">664</span>
 <span class="normal">665</span>
 <span class="normal">666</span>
-<span class="normal">667</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">read_overlaps</span><span class="p">(</span><span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sheet_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="normal">667</span>
+<span class="normal">668</span>
+<span class="normal">669</span>
+<span class="normal">670</span>
+<span class="normal">671</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">read_overlaps</span><span class="p">(</span><span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sheet_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">    Reads input data of measure-measure interactions. </span>
 
 <span class="sd">    Arguments:</span>
-<span class="sd">        file_name (str): name of source excel file name</span>
-<span class="sd">        sheet_name (str): name of sheet in excel file</span>
+<span class="sd">        file_name (str): name of source excel file name.</span>
+<span class="sd">        sheet_name (str): name of sheet in excel file.</span>
 
 <span class="sd">    Returns:</span>
-<span class="sd">        overlaps (DataFrame): dataframe containing overlaps between individual measures</span>
+<span class="sd">        overlaps (DataFrame): dataframe containing overlaps between individual measures.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">overlaps</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">sheet_name</span><span class="o">=</span><span class="n">sheet_name</span><span class="p">)</span>
 
@@ -3289,16 +3389,82 @@ PR: reduction in state required to reach GES target
 
     <div class="doc doc-contents ">
 
-        <p>Reads input data of subpressures links to state pressures</p>
+        <p>Reads input data of subpressures links to state pressures.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>file_name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>name of source excel file name.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>sheet_name</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>name of sheet in excel file.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>subpressures</code></td>            <td>
+                  <code><span title="DataFrame">DataFrame</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>dataframe containing subpressure links.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
 
 
             <details class="quote">
               <summary>Source code in <code>src/som_tools.py</code></summary>
-              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">670</span>
-<span class="normal">671</span>
-<span class="normal">672</span>
-<span class="normal">673</span>
-<span class="normal">674</span>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">674</span>
 <span class="normal">675</span>
 <span class="normal">676</span>
 <span class="normal">677</span>
@@ -3325,9 +3491,27 @@ PR: reduction in state required to reach GES target
 <span class="normal">698</span>
 <span class="normal">699</span>
 <span class="normal">700</span>
-<span class="normal">701</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">read_subpressures</span><span class="p">(</span><span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sheet_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
+<span class="normal">701</span>
+<span class="normal">702</span>
+<span class="normal">703</span>
+<span class="normal">704</span>
+<span class="normal">705</span>
+<span class="normal">706</span>
+<span class="normal">707</span>
+<span class="normal">708</span>
+<span class="normal">709</span>
+<span class="normal">710</span>
+<span class="normal">711</span>
+<span class="normal">712</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">read_subpressures</span><span class="p">(</span><span class="n">file_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">sheet_name</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Reads input data of subpressures links to state pressures</span>
+<span class="sd">    Reads input data of subpressures links to state pressures.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        file_name (str): name of source excel file name.</span>
+<span class="sd">        sheet_name (str): name of sheet in excel file.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        subpressures (DataFrame): dataframe containing subpressure links.</span>
 <span class="sd">    &quot;&quot;&quot;</span>
     <span class="n">subpressures</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">read_excel</span><span class="p">(</span><span class="n">file_name</span><span class="p">,</span> <span class="n">sheet_name</span><span class="o">=</span><span class="n">sheet_name</span><span class="p">)</span>
 
