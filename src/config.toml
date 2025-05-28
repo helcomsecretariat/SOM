@@ -1,7 +1,7 @@
 # Configuration file
 
 # export path
-export_path = './protect_baltic/src/data/results.xlsx'
+export_path = './src/data/results.xlsx'
 
 # scenario used for calculations
 use_scenario = false
@@ -20,11 +20,11 @@ use_parallel_processing = true
 # excel input files
 use_legacy_input_data = false
 [input_data]
-    path = './protect_baltic/src/data/input_data.xlsx'
+    path = './src/data/input_data.xlsx'
 [input_data_legacy]
-    general_input = './protect_baltic/src/data/generalInput.xlsx'
-    measure_effect_input = './protect_baltic/src/data/measureEffectInput.xlsx'
-    pressure_state_input = './protect_baltic/src/data/pressureStateInput.xlsx'
+    general_input = './src/data/generalInput.xlsx'
+    measure_effect_input = './src/data/measureEffectInput.xlsx'
+    pressure_state_input = './src/data/pressureStateInput.xlsx'
     [input_data_legacy.general_input_sheets]
         case = 'ActMeas'
         postprocess = 'ActPres'
@@ -43,5 +43,5 @@ use_legacy_input_data = false
     area = []
     measure = []
     activity = []
-    pressure = []
+    pressure = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]
     state = []
