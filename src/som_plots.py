@@ -17,7 +17,7 @@ def plot_total_pressure_load_levels(area, res, data, out_dir, progress, lock):
     """
     # create new directory for the plots
     area_name = data['area'].loc[data['area']['ID'] == area, 'area'].values[0]
-    out_path = os.path.join(out_dir, f'{area}_{area_name}', f'{area}_{area_name}_TotalPressureLoadLevels.png')
+    out_path = os.path.join(out_dir, f'area_{area}_{area_name}', f'area_{area}_{area_name}_TotalPressureLoadLevels.png')
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
     # plot settings
@@ -70,7 +70,7 @@ def plot_pressure_levels(area, res, data, out_dir, progress, lock):
     """
     # create new directory for the plots
     area_name = data['area'].loc[data['area']['ID'] == area, 'area'].values[0]
-    out_path = os.path.join(out_dir, f'{area}_{area_name}', f'{area}_{area_name}_PressureLevels.png')
+    out_path = os.path.join(out_dir, f'area_{area}_{area_name}', f'area_{area}_{area_name}_PressureLevels.png')
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
     # plot settings
@@ -123,7 +123,7 @@ def plot_state_pressure_levels(area, res, data, out_dir, progress, lock):
     """
     # create new directory for the plots
     area_name = data['area'].loc[data['area']['ID'] == area, 'area'].values[0]
-    out_dir = os.path.join(out_dir, f'{area}_{area_name}', 'state')
+    out_dir = os.path.join(out_dir, f'area_{area}_{area_name}', 'state')
     os.makedirs(out_dir, exist_ok=True)
 
     # plot settings
@@ -140,7 +140,7 @@ def plot_state_pressure_levels(area, res, data, out_dir, progress, lock):
     for state in res['StatePressure']:
         state_name = data['state'].loc[data['state']['ID'] == state, 'state'].values[0]
 
-        out_path = os.path.join(out_dir, f'{area}_{area_name}_state_{state}_PressureLevels.png')
+        out_path = os.path.join(out_dir, f'area_{area}_{area_name}_state_{state}_PressureLevels.png')
     
         fig, ax = plt.subplots(figsize=(25, 12), constrained_layout=True)
 
@@ -181,7 +181,7 @@ def plot_thresholds(area, res, data, out_dir, progress, lock):
     """
     # create new directory for the plots
     area_name = data['area'].loc[data['area']['ID'] == area, 'area'].values[0]
-    out_path = os.path.join(out_dir, f'{area}_{area_name}', f'{area}_{area_name}_Thresholds.png')
+    out_path = os.path.join(out_dir, f'area_{area}_{area_name}', f'area_{area}_{area_name}_Thresholds.png')
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
     # plot settings
@@ -238,6 +238,89 @@ def plot_thresholds(area, res, data, out_dir, progress, lock):
         display_progress(progress.current / progress.total, text='\t\tThresholds: ')
 
 
+def plot_activity_contributions(area, res, data, out_dir, progress, lock):
+    """
+    Plots activity contributions.
+    """
+    # create new directory for the plots
+    area_name = data['area'].loc[data['area']['ID'] == area, 'area'].values[0]
+    out_dir = os.path.join(out_dir, f'area_{area}_{area_name}', 'contributions', 'activity')
+    os.makedirs(out_dir, exist_ok=True)
+
+    # plot settings
+    char_limit = 25
+
+    for pressure in res['ActivityContributions']['Mean']['Pressure'].unique():
+        pressure_name = data['pressure'].loc[data['pressure']['ID'] == pressure, 'pressure'].values[0]
+
+        out_path = os.path.join(out_dir, f'area_{area}_{area_name}_pressure_{pressure}_ActivityContributions.png')
+    
+        fig, ax = plt.subplots(figsize=(12, 9), constrained_layout=True)
+
+        # adjust data
+        suffixes = ('_mean', '_error')
+        df = pd.merge(res['ActivityContributions']['Mean'].loc[:, :], res['ActivityContributions']['Error'].loc[:, :], on=['Activity', 'Pressure', 'area_id'], suffixes=suffixes)
+        contributions = df.loc[(df['area_id'] == area) & (df['Pressure'] == pressure), :]
+        labels = contributions['Activity']
+        labels = contributions['Activity'].apply(lambda x: data['activity'].loc[data['activity']['ID'] == x, 'activity'].values[0])
+        labels = np.array([x[:char_limit]+'...' if len(x) > char_limit else x for x in labels])     # limit characters to char_limit
+        vals = contributions['contribution_mean'] * 100    # convert to %
+
+        # create plot
+        ax.pie(vals, labels=labels, autopct='%1.1f%%')
+        ax.set_title(f'Activity Contributions to Pressure ({pressure_name})\n({area_name})')
+
+        # export
+        plt.savefig(out_path, dpi=200)
+        plt.close(fig)
+    
+    with lock:
+        progress.current += 1
+        display_progress(progress.current / progress.total, text='\t\tActivityContributions: ')
+
+
+def plot_pressure_contributions(area, res, data, out_dir, progress, lock):
+    """
+    Plots pressure contributions.
+    """
+    # create new directory for the plots
+    area_name = data['area'].loc[data['area']['ID'] == area, 'area'].values[0]
+    out_dir = os.path.join(out_dir, f'area_{area}_{area_name}', 'contributions', 'pressure')
+    os.makedirs(out_dir, exist_ok=True)
+
+    # plot settings
+    char_limit = 25
+
+    for state in res['PressureContributions']['Mean']['State'].unique():
+        state_name = data['state'].loc[data['state']['ID'] == state, 'state'].values[0]
+
+        out_path = os.path.join(out_dir, f'area_{area}_{area_name}_state_{state}_PressureContributions.png')
+    
+        fig, ax = plt.subplots(figsize=(12, 9), constrained_layout=True)
+
+        # adjust data
+        suffixes = ('_mean', '_error')
+        df = pd.merge(res['PressureContributions']['Mean'].loc[:, :], res['PressureContributions']['Error'].loc[:, :], on=['State', 'pressure', 'area_id'], suffixes=suffixes)
+        contributions = df.loc[(df['area_id'] == area) & (df['State'] == state) & (pd.notna(df['contribution_mean'])), :]
+        if len(contributions) > 0:
+            labels = contributions['pressure']
+            labels = contributions['pressure'].apply(lambda x: data['pressure'].loc[data['pressure']['ID'] == x, 'pressure'].values[0])
+            labels = np.array([x[:char_limit]+'...' if len(x) > char_limit else x for x in labels])     # limit characters to char_limit
+            vals = contributions['contribution_mean'] * 100    # convert to %
+
+            # create plot
+            ax.pie(vals, labels=labels, autopct='%1.1f%%')
+            ax.set_title(f'Pressure Contributions to State ({state_name})\n({area_name})')
+
+            # export
+            plt.savefig(out_path, dpi=200)
+        plt.close(fig)
+    
+    with lock:
+        progress.current += 1
+        display_progress(progress.current / progress.total, text='\t\tPressureContributions: ')
+
+
 def build_display(res: dict[str, dict[str, pd.DataFrame]], data: dict[str, pd.DataFrame], out_dir: str, use_parallel_processing: bool = False, selection: dict[str, list] = None):
     """
     Constructs plots to visualize results.
@@ -284,6 +367,14 @@ def build_display(res: dict[str, dict[str, pd.DataFrame]], data: dict[str, pd.Da
                 display_progress(progress.current / progress.total, text='\n\t\tStatePressures: ')
                 pool.starmap(plot_state_pressure_levels, jobs)
                 display_progress(progress.current / progress.total, text='\t\tStatePressures: ')
+                progress.current = 0
+                display_progress(progress.current / progress.total, text='\n\t\tActivityContributions: ')
+                pool.starmap(plot_activity_contributions, jobs)
+                display_progress(progress.current / progress.total, text='\t\tActivityContributions: ')
+                progress.current = 0
+                display_progress(progress.current / progress.total, text='\n\t\tPressureContributions: ')
+                pool.starmap(plot_pressure_contributions, jobs)
+                display_progress(progress.current / progress.total, text='\t\tPressureContributions: ')
         else:
             progress.current = 0
             display_progress(progress.current / progress.total, text='\t\tTPL: ')
@@ -305,6 +396,16 @@ def build_display(res: dict[str, dict[str, pd.DataFrame]], data: dict[str, pd.Da
             for area in areas:
                 plot_state_pressure_levels(area, res, data, out_dir, progress, lock)
             display_progress(progress.current / progress.total, text='\t\tStatePressures: ')
+            progress.current = 0
+            display_progress(progress.current / progress.total, text='\n\t\tActivityContributions: ')
+            for area in areas:
+                plot_activity_contributions(area, res, data, out_dir, progress, lock)
+            display_progress(progress.current / progress.total, text='\t\tActivityContributions: ')
+            progress.current = 0
+            display_progress(progress.current / progress.total, text='\n\t\tPressureContributions: ')
+            for area in areas:
+                plot_pressure_contributions(area, res, data, out_dir, progress, lock)
+            display_progress(progress.current / progress.total, text='\t\tPressureContributions: ')
 
     #
     # Measure effects
@@ -371,8 +472,8 @@ def build_display(res: dict[str, dict[str, pd.DataFrame]], data: dict[str, pd.Da
     # export
     for area in areas:
         area_name = data['area'].loc[areas == area, 'area'].values[0]
-        temp_dir = os.path.join(out_dir, f'{area}_{area_name}')
-        plt.savefig(os.path.join(temp_dir, f'{area}_{area_name}_MeasureEffects.png'), dpi=200)
+        temp_dir = os.path.join(out_dir, f'area_{area}_{area_name}')
+        plt.savefig(os.path.join(temp_dir, f'area_{area}_{area_name}_MeasureEffects.png'), dpi=200)
 
     plt.close(fig)
 
