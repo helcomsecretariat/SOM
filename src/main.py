@@ -198,7 +198,7 @@ def run(config_file: str = 'config.toml', skip_sim: bool = False):
 if __name__ == "__main__":
     # multiprocessing.freeze_support()
     print(som_logo)
-    config_file = None
+    config_file = 'config.toml'
     skip_sim = False
     for i in range(len(sys.argv)):
         if sys.argv[i] in ['-config', '-c']:
