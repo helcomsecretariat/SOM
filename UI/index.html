@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>py-web-ui</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="left-panel">
+    <h1>Parameters</h1>
+    <div id="parameters"></div>
+  </div>
+
+  <div class="right-panel">
+    <h1>Console Output</h1>
+    <pre id="output"></pre>
+
+    <div class="button-row">
+      <button id="runButton" onclick="run()">Run</button>
+      <button id="stopButton" onclick="stop()" disabled>Stop</button>
+      <button id="clearButton" onclick="clearOutput()">Clear</button>
+      <div class="spinner-wrapper">
+        <div id="spinner" class="spinner" style="visibility: hidden;"></div>
+      </div>
+    </div>
+
+    <div id="statusBar" class="status-bar"></div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>

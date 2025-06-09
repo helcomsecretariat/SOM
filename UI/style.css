@@ -1,0 +1,144 @@
+/* Body */
+body {
+    font-family: 'Roboto', sans-serif;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    height: 100vh;
+    background-color: #f5f5f5;
+    color: #333;
+}
+
+/* Panels */
+.left-panel, .right-panel {
+  box-sizing: border-box;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.left-panel {
+  width: 35%;
+  background-color: #ffffff;
+  border-right: 1px solid #ddd;
+  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.05);
+}
+
+.right-panel {
+  width: 65%;
+}
+
+/* Headings */
+h1 {
+  font-size: 1.4em;
+  margin-top: 0;
+  margin-bottom: 16px;
+}
+
+/* Parameter fields */
+#parameters div {
+  margin-bottom: 16px;
+}
+
+label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 6px;
+  color: #444;
+}
+
+input[type="text"], input[type="number"], select {
+  font-size: 1em;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+input[type="checkbox"] {
+  width: auto;
+  transform: scale(1.2);
+  margin-top: 6px;
+}
+
+/* Checkbox alignment */
+input[type="checkbox"] {
+  width: auto;
+  transform: scale(1.2);
+  margin-top: 6px;
+}
+
+/* Output console */
+#output {
+  flex-grow: 1;
+  padding: 16px;
+  background: #212121;
+  color: #00e676;
+  border-radius: 8px;
+  font-family: monospace;
+  white-space: pre-wrap;
+  overflow-y: auto;
+  max-height: 75vh;
+  margin-bottom: 16px;
+  border: 1px solid #444;
+}
+
+/* Buttons */
+.button-row {
+  display: flex;
+  gap: 10px;
+}
+
+.button-row button {
+  flex: 1;
+  padding: 12px 16px;
+  font-size: 1em;
+  background-color: #2e7d32;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  transition: background-color 0.2s ease;
+}
+
+.button-row button:hover {
+  background-color: #1b5e20;
+}
+
+.button-row button:disabled {
+  background-color: #a5d6a7;
+  color: #eee;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Spinner */
+.spinner-wrapper {
+  width: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 3px solid #ccc;
+  border-top-color: #2e7d32;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Status bar */
+.status-bar {
+  margin-top: 10px;
+  font-size: 0.9em;
+  color: #444;
+  height: 1.2em;
+}

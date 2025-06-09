@@ -1,0 +1,28 @@
+[
+  {
+    "name": "Text parameter",
+    "arg": "--text",
+    "type": "text"
+  },
+  {
+    "name": "Flag parameter",
+    "arg": "--flag",
+    "type": "flag"
+  },
+  {
+    "name": "Integer parameter",
+    "arg": "--int",
+    "type": "integer"
+  },
+  {
+    "name": "Float parameter",
+    "arg": "--float",
+    "type": "float"
+  },
+  {
+    "name": "Select parameter",
+    "arg": "--list",
+    "type": "select",
+    "options": ["option 1", "option 2", "option 3"]
+  }
+]
