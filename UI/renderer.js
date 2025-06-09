@@ -8,21 +8,30 @@ function createInputField(param) {
   label.textContent = param.name;
 
   let input;
+  let wrapper = document.createElement('div');
+  wrapper.style.marginBottom = '16px';
 
   switch (param.type) {
     case 'text':
-      input = document.createElement('input');
-      input.type = 'text';
-      break;
     case 'integer':
     case 'float':
       input = document.createElement('input');
       input.type = 'number';
-      input.step = param.type === 'integer' ? '1' : 'any';
+      if (param.type === 'text') input.type = 'text';
+      if (param.type === 'float') input.step = 'any';
+      if (param.type === 'integer') input.step = '1';
+      input.name = param.arg;
+      input.dataset.type = param.type;
+      wrapper.appendChild(label);
+      wrapper.appendChild(input);
       break;
     case 'flag':
       input = document.createElement('input');
       input.type = 'checkbox';
+      input.name = param.arg;
+      input.dataset.type = param.type;
+      wrapper.appendChild(label);
+      wrapper.appendChild(input);
       break;
     case 'select':
       input = document.createElement('select');
@@ -32,15 +41,36 @@ function createInputField(param) {
         option.textContent = opt;
         input.appendChild(option);
       });
+      input.name = param.arg;
+      input.dataset.type = param.type;
+      wrapper.appendChild(label);
+      wrapper.appendChild(input);
       break;
+    case 'filepath':
+      input = document.createElement('input');
+      input.type = 'text';
+      // input.readOnly = true;
+      input.placeholder = 'Select a file...';
+      input.name = param.arg;
+      input.dataset.type = param.type;
+      const fileButton = document.createElement('button');
+      fileButton.textContent = 'Browse';
+      fileButton.className = 'file-select-button';
+      fileButton.onclick = async () => {
+        const path = await window.api.selectFile();
+        if (path) input.value = path;
+      };
+      const fileWrapper = document.createElement('div');
+      fileWrapper.className = 'file-input-wrapper';
+      fileWrapper.appendChild(input);
+      fileWrapper.appendChild(fileButton);
+      wrapper.appendChild(label);
+      wrapper.appendChild(fileWrapper);
+      break;
+    default:
+      console.warn('Unknown input type:', param.type);
+      return;
   }
-
-  input.name = param.arg;
-  input.dataset.type = param.type;
-
-  const wrapper = document.createElement('div');
-  wrapper.appendChild(label);
-  wrapper.appendChild(input);
   container.appendChild(wrapper);
 }
 

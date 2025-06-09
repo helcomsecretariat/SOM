@@ -36,6 +36,10 @@ h1 {
 }
 
 /* Parameter fields */
+#parameters {
+  overflow-y: auto;
+}
+
 #parameters div {
   margin-bottom: 16px;
 }
@@ -67,6 +71,32 @@ input[type="checkbox"] {
   width: auto;
   transform: scale(1.2);
   margin-top: 6px;
+}
+
+/* File path input */
+.file-input-wrapper {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.file-input-wrapper input[type="text"] {
+  flex-grow: 1;
+}
+
+.file-select-button {
+  padding: 8px 12px;
+  font-size: 1em;
+  background-color: #2e7d32;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.file-select-button:hover {
+  background-color: #1b5e20;
 }
 
 /* Output console */

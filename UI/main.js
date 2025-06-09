@@ -2,11 +2,12 @@ const { app, BrowserWindow, ipcMain } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
+const { dialog } = require('electron');
 
 function createWindow() {
   const win = new BrowserWindow({
-    width: 900,
-    height: 600,
+    width: 1000,
+    height: 650,
     minWidth: 600,
     minHeight: 400,
     webPreferences: {
@@ -75,4 +76,12 @@ ipcMain.on('stop-python', (event) => {
     event.sender.send('python-output', 'Process terminated by user.\n');
     runningProcess = null;
   }
+});
+
+// handle file selection
+ipcMain.handle('select-file', async () => {
+  const result = await dialog.showOpenDialog({
+    properties: ['openFile']
+  });
+  return result.canceled ? null : result.filePaths[0];
 });

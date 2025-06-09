@@ -1,28 +1,62 @@
 [
   {
-    "name": "Text parameter",
-    "arg": "--text",
-    "type": "text"
-  },
-  {
-    "name": "Flag parameter",
-    "arg": "--flag",
+    "name": "Legacy input data",
+    "arg": "--legacy",
     "type": "flag"
   },
   {
-    "name": "Integer parameter",
-    "arg": "--int",
+    "name": "General Input",
+    "arg": "--general_input",
+    "type": "filepath"
+  },
+  {
+    "name": "Measure Effects",
+    "arg": "--measure_effects",
+    "type": "filepath"
+  },
+  {
+    "name": "Pressure State",
+    "arg": "--pressure_state",
+    "type": "filepath"
+  },
+  {
+    "name": "Input data",
+    "arg": "--input_data",
+    "type": "filepath"
+  },
+  {
+    "name": "Results",
+    "arg": "--export_path",
+    "type": "filepath"
+  },
+  {
+    "name": "Use scenario",
+    "arg": "--use_scenario",
+    "type": "flag"
+  },
+  {
+    "name": "Scenario",
+    "arg": "--scenario",
+    "type": "text"
+  },
+  {
+    "name": "Use random seed",
+    "arg": "--use_random_seed",
+    "type": "flag"
+  },
+  {
+    "name": "Random seed",
+    "arg": "--random_seed",
     "type": "integer"
   },
   {
-    "name": "Float parameter",
-    "arg": "--float",
-    "type": "float"
+    "name": "Simulations",
+    "arg": "--simulations",
+    "type": "integer"
   },
   {
-    "name": "Select parameter",
-    "arg": "--list",
-    "type": "select",
-    "options": ["option 1", "option 2", "option 3"]
+    "name": "Use parallell processing",
+    "arg": "--use_parallel_processing",
+    "type": "flag"
   }
 ]
