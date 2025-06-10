@@ -4,6 +4,7 @@ Parameter fields
 
 function createInputField(param) {
   const container = document.getElementById('parameters');
+  let wrapper = document.createElement('div');
 
   const label = document.createElement('label');
   label.textContent = param.name;
@@ -13,8 +14,6 @@ function createInputField(param) {
   else if (param.arg === '--random_seed') { label.classList.add('random-seed'); }
 
   let input;
-  let wrapper = document.createElement('div');
-  wrapper.style.marginBottom = '16px';
 
   switch (param.type) {
     case 'text':
@@ -32,7 +31,7 @@ function createInputField(param) {
       wrapper.appendChild(label);
       wrapper.appendChild(input);
       break;
-    case 'flag':
+    case 'boolean':
       input = document.createElement('input');
       input.type = 'checkbox';
       input.name = param.arg;
@@ -117,7 +116,7 @@ function gatherArgs() {
 
     if ((type === 'text' || type === 'integer' || type === 'float' || type === 'select') && input.value !== '') {
       args.push(arg, input.value);
-    } else if (type === 'flag' && input.checked) {
+    } else if (type === 'boolean' && input.checked) {
       args.push(arg);
     }
   });

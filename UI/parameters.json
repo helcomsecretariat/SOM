@@ -2,7 +2,7 @@
   {
     "name": "Legacy input data",
     "arg": "--legacy",
-    "type": "flag"
+    "type": "boolean"
   },
   {
     "name": "General Input",
@@ -37,7 +37,7 @@
   {
     "name": "Use scenario",
     "arg": "--use_scenario",
-    "type": "flag"
+    "type": "boolean"
   },
   {
     "name": "Scenario",
@@ -47,7 +47,7 @@
   {
     "name": "Use random seed",
     "arg": "--use_random_seed",
-    "type": "flag"
+    "type": "boolean"
   },
   {
     "name": "Random seed",
@@ -57,6 +57,6 @@
   {
     "name": "Use parallell processing",
     "arg": "--use_parallel_processing",
-    "type": "flag"
+    "type": "boolean"
   }
 ]
