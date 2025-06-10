@@ -106,6 +106,11 @@ function createInputField(param) {
   container.appendChild(wrapper);
 }
 
+
+/*
+Select arguments to send to python
+*/
+
 function gatherArgs() {
   const inputs = document.querySelectorAll('#parameters input, #parameters select');
   const args = [];
@@ -123,6 +128,7 @@ function gatherArgs() {
 
   return args;
 }
+
 
 /*
 Console related
@@ -170,6 +176,8 @@ function setStatus(msg) {
   document.getElementById('statusBar').textContent = msg;
 }
 
+
+// tell backend to run python with given arguments
 function run() {
   setStatus('▶️ Running...');
   document.getElementById('runButton').disabled = true;
@@ -179,12 +187,16 @@ function run() {
   window.api.runPython(args);
 }
 
+
+// tell backend to stop python
 function stop() {
   // stop current python process
   setStatus('⏹️ Stopping...');
   window.api.stopPython();
 }
 
+
+// what to do on stop
 window.api.onStop(() => {
   setStatus('✔️ Finished');
   document.getElementById('runButton').disabled = false;
@@ -192,12 +204,15 @@ window.api.onStop(() => {
   document.getElementById('spinner').style.visibility = 'hidden';
 });
 
+
+// clear terminal
 function clearOutput() {
   const output = document.getElementById('output');
   output.textContent = '';
   currentLine = '';
   visibleLines = [];
 }
+
 
 /*
 Resizer
@@ -230,6 +245,7 @@ document.addEventListener('mouseup', function () {
   isDragging = false;
   document.body.style.cursor = 'default';
 });
+
 
 /*
 Initialization
