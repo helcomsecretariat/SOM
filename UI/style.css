@@ -1,7 +1,12 @@
 /* variables */
 :root {
   --color-helcom-blue: #00497f;
+  --color-helcom-blue-secondary: #0075bf;
+  --color-helcom-blue-desaturated: #c5d5e6;
   --color-helcom-green: #00ab97;
+  --color-helcom-green-secondary: #008e5c;
+  --color-helcom-green-desaturated: #7daba6;
+  --color-helcom-green-secondary-terminal: #4eb051;
   --color-helcom-dark-grey: #9da9b1;
   --color-helcom-light-grey: #d1d7da;
 }
@@ -46,7 +51,7 @@ body {
 }
 
 .resizer {
-  width: 5px;
+  width: 3px;
   cursor: col-resize;
   background-color: #ccc;
   transition: background-color 0.2s;
@@ -115,7 +120,7 @@ input[type="checkbox"] {
 .file-select-button {
   padding: 8px 12px;
   font-size: 1em;
-  background-color: #2e7d32;
+  background-color: var(--color-helcom-green);
   color: #fff;
   border: none;
   border-radius: 6px;
@@ -124,7 +129,7 @@ input[type="checkbox"] {
 }
 
 .file-select-button:hover {
-  background-color: #1b5e20;
+  background-color: var(--color-helcom-green-secondary);
 }
 
 /* Output console */
@@ -132,7 +137,7 @@ input[type="checkbox"] {
   flex-grow: 1;
   padding: 16px;
   background: #212121;
-  color: #00e676;
+  color: var(--color-helcom-green-secondary-terminal);
   border-radius: 8px;
   font-family: monospace;
   white-space: pre-wrap;
@@ -152,7 +157,7 @@ input[type="checkbox"] {
   flex: 1;
   padding: 12px 16px;
   font-size: 1em;
-  background-color: #2e7d32;
+  background-color: var(--color-helcom-green);
   color: #fff;
   border: none;
   border-radius: 6px;
@@ -162,11 +167,11 @@ input[type="checkbox"] {
 }
 
 .button-row button:hover {
-  background-color: #1b5e20;
+  background-color: var(--color-helcom-green-secondary);
 }
 
 .button-row button:disabled {
-  background-color: #a5d6a7;
+  background-color: var(--color-helcom-green-desaturated);
   color: #eee;
   cursor: not-allowed;
   box-shadow: none;
@@ -184,7 +189,7 @@ input[type="checkbox"] {
   width: 20px;
   height: 20px;
   border: 3px solid #ccc;
-  border-top-color: #2e7d32;
+  border-top-color: var(--color-helcom-green-secondary);
   border-radius: 50%;
   animation: spin 0.8s linear infinite;
 }

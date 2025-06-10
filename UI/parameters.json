@@ -30,6 +30,11 @@
     "type": "filepath"
   },
   {
+    "name": "Simulations",
+    "arg": "--simulations",
+    "type": "integer"
+  },
+  {
     "name": "Use scenario",
     "arg": "--use_scenario",
     "type": "flag"
@@ -47,11 +52,6 @@
   {
     "name": "Random seed",
     "arg": "--random_seed",
-    "type": "integer"
-  },
-  {
-    "name": "Simulations",
-    "arg": "--simulations",
     "type": "integer"
   },
   {
