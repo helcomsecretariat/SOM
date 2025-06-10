@@ -2,13 +2,15 @@
 :root {
   --color-button: #00ab97;
   --color-button-hover: #008e5c;
-  --color-button-deactivated: #7daba6;
+  --color-button-deactivated: #83d0f5;
   --color-terminal-text: #4eb051;
+  --font-title: 'Share';
+  --font-body: 'Source Sans 3';
 }
 
 /* Body */
 body {
-    font-family: 'Roboto', sans-serif;
+    font-family: var(--font-title), sans-serif;
     margin: 0;
     padding: 0;
     display: flex;
@@ -80,8 +82,10 @@ label {
 }
 
 input[type="text"], input[type="number"], select {
+  font-family: var(--font-body), sans-serif;
+  font-weight: 400;
   font-size: 1em;
-  padding: 8px;
+  padding: 4px;
   border: 1px solid #ccc;
   border-radius: 6px;
   width: 100%;
@@ -113,12 +117,14 @@ input[type="checkbox"] {
 }
 
 .file-select-button {
-  padding: 8px 12px;
+  font-family: var(--font-body), sans-serif;
+  font-weight: 400;
   font-size: 1em;
+  padding: 4px 8px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
   background-color: var(--color-button);
   color: #fff;
-  border: none;
-  border-radius: 6px;
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
