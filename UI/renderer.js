@@ -4,8 +4,13 @@ Parameter fields
 
 function createInputField(param) {
   const container = document.getElementById('parameters');
+
   const label = document.createElement('label');
   label.textContent = param.name;
+  if (['--general_input', '--measure_effects', '--pressure_state'].includes(param.arg)) { label.classList.add('input-data-legacy'); } 
+  else if (param.arg === '--input_data') { label.classList.add('input-data'); }
+  else if (param.arg === '--scenario') { label.classList.add('scenario'); }
+  else if (param.arg === '--random_seed') { label.classList.add('random-seed'); }
 
   let input;
   let wrapper = document.createElement('div');
@@ -22,6 +27,8 @@ function createInputField(param) {
       if (param.type === 'integer') input.step = '1';
       input.name = param.arg;
       input.dataset.type = param.type;
+      if (param.arg === '--scenario') { input.classList.add('scenario'); }
+      else if (param.arg === '--random_seed') { input.classList.add('random-seed'); }
       wrapper.appendChild(label);
       wrapper.appendChild(input);
       break;
@@ -30,6 +37,30 @@ function createInputField(param) {
       input.type = 'checkbox';
       input.name = param.arg;
       input.dataset.type = param.type;
+      if (param.arg === '--legacy') {
+        input.addEventListener('change', function() {
+          if (this.checked) {
+            document.querySelectorAll('.input-data').forEach(function (element) { element.style.display = 'none'; });
+            document.querySelectorAll('.input-data-legacy').forEach(function (element) { element.style.display = 'flex'; });
+          } else {
+            document.querySelectorAll('.input-data').forEach(function (element) { element.style.display = 'flex'; });
+            document.querySelectorAll('.input-data-legacy').forEach(function (element) { element.style.display = 'none'; });
+          }
+        });
+        input.checked = true; // legacy input data checked by default
+      } else if (param.arg === '--use_scenario') {
+        input.addEventListener('change', function() {
+          if (this.checked) { document.querySelectorAll('.scenario').forEach(function (element) { element.style.display = 'flex'; }); }
+          else { document.querySelectorAll('.scenario').forEach(function (element) { element.style.display = 'none'; }); }
+        });
+        input.checked = false; // scenario unchecked by default
+      } else if (param.arg === '--use_random_seed') {
+        input.addEventListener('change', function() {
+          if (this.checked) { document.querySelectorAll('.random-seed').forEach(function (element) { element.style.display = 'flex'; }); }
+          else { document.querySelectorAll('.random-seed').forEach(function (element) { element.style.display = 'none'; }); }
+        });
+        input.checked = false; // random seed unchecked by default
+      }
       wrapper.appendChild(label);
       wrapper.appendChild(input);
       break;
@@ -62,6 +93,8 @@ function createInputField(param) {
       };
       const fileWrapper = document.createElement('div');
       fileWrapper.className = 'file-input-wrapper';
+      if (['--general_input', '--measure_effects', '--pressure_state'].includes(param.arg)) { fileWrapper.classList.add('input-data-legacy'); }
+      else if (param.arg === '--input_data') { fileWrapper.classList.add('input-data'); }
       fileWrapper.appendChild(input);
       fileWrapper.appendChild(fileButton);
       wrapper.appendChild(label);
@@ -173,6 +206,11 @@ Initialization
 
 // Initialize parameters
 window.addEventListener('DOMContentLoaded', async () => {
+  // create parameter fields
   const params = await window.api.loadParameters();
   params.forEach(createInputField);
+  // hide standard input data, scenario and random seed initially
+  document.querySelectorAll('.input-data').forEach(function (element) { element.style.display = 'none'; });
+  document.querySelectorAll('.scenario').forEach(function (element) { element.style.display = 'none'; });
+  document.querySelectorAll('.random-seed').forEach(function (element) { element.style.display = 'none'; });
 });
