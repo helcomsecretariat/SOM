@@ -201,6 +201,38 @@ function clearOutput() {
 }
 
 /*
+Resizer
+*/
+
+const dragbar = document.getElementById('dragbar');
+const leftPanel = document.querySelector('.left-panel');
+const rightPanel = document.querySelector('.right-panel');
+
+let isDragging = false;
+
+dragbar.addEventListener('mousedown', function (e) {
+  e.preventDefault();
+  isDragging = true;
+  document.body.style.cursor = 'col-resize';
+});
+
+document.addEventListener('mousemove', function (e) {
+  if (!isDragging) return;
+
+  const minWidth = 200;
+  const maxWidth = window.innerWidth * 0.7;
+  let newLeftWidth = e.clientX;
+
+  newLeftWidth = Math.max(minWidth, Math.min(newLeftWidth, maxWidth));
+  leftPanel.style.width = newLeftWidth + 'px';
+});
+
+document.addEventListener('mouseup', function () {
+  isDragging = false;
+  document.body.style.cursor = 'default';
+});
+
+/*
 Initialization
 */
 

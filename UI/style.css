@@ -1,3 +1,11 @@
+/* variables */
+:root {
+  --color-helcom-blue: #00497f;
+  --color-helcom-green: #00ab97;
+  --color-helcom-dark-grey: #9da9b1;
+  --color-helcom-light-grey: #d1d7da;
+}
+
 /* Body */
 body {
     font-family: 'Roboto', sans-serif;
@@ -10,6 +18,13 @@ body {
 }
 
 /* Panels */
+.main-container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+}
+
 .left-panel, .right-panel {
   box-sizing: border-box;
   padding: 24px;
@@ -18,6 +33,8 @@ body {
 }
 
 .left-panel {
+  min-width: 200px;
+  max-width: 70%;
   width: 35%;
   background-color: #ffffff;
   border-right: 1px solid #ddd;
@@ -25,7 +42,18 @@ body {
 }
 
 .right-panel {
-  width: 65%;
+  flex-grow: 1;
+}
+
+.resizer {
+  width: 5px;
+  cursor: col-resize;
+  background-color: #ccc;
+  transition: background-color 0.2s;
+}
+
+.resizer:hover {
+  background-color: #aaa;
 }
 
 /* Headings */
