@@ -6,7 +6,7 @@ function createInputField(param) {
   const container = document.getElementById('parameters');
   let wrapper = document.createElement('div');
 
-  const label = document.createElement('label');
+  const label = document.createElement((param.type === 'boolean') ? 'span' : 'label');
   label.textContent = param.name;
   if (['--general_input', '--measure_effects', '--pressure_state'].includes(param.arg)) { label.classList.add('input-data-legacy'); } 
   else if (param.arg === '--input_data') { label.classList.add('input-data'); }
@@ -31,7 +31,13 @@ function createInputField(param) {
       wrapper.appendChild(label);
       wrapper.appendChild(input);
       break;
+
     case 'boolean':
+      wrapper.classList.add('toggle-wrapper');
+      const toggleLabel = document.createElement('label');
+      toggleLabel.className = 'toggle';
+      const slider = document.createElement('span');
+      slider.className = 'slider';
       input = document.createElement('input');
       input.type = 'checkbox';
       input.name = param.arg;
@@ -60,9 +66,12 @@ function createInputField(param) {
         });
         input.checked = false; // random seed unchecked by default
       }
+      toggleLabel.appendChild(input);
+      toggleLabel.appendChild(slider);
       wrapper.appendChild(label);
-      wrapper.appendChild(input);
+      wrapper.appendChild(toggleLabel);
       break;
+
     case 'select':
       input = document.createElement('select');
       param.options.forEach(opt => {
@@ -76,7 +85,8 @@ function createInputField(param) {
       wrapper.appendChild(label);
       wrapper.appendChild(input);
       break;
-    case 'filepath':
+
+      case 'filepath':
       input = document.createElement('input');
       input.type = 'text';
       // input.readOnly = true;
@@ -103,6 +113,7 @@ function createInputField(param) {
       console.warn('Unknown input type:', param.type);
       return;
   }
+  // add wrapper to parameter div
   container.appendChild(wrapper);
 }
 
