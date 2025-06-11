@@ -262,6 +262,20 @@ document.addEventListener('mouseup', function () {
 Initialization
 */
 
+let som_logo = String.raw`
+   _____  ____  __  __ 
+  / ____|/ __ \|  \/  |
+ | (___ | |  | | \  / |
+  \___ \| |  | | |\/| |
+  ____) | |__| | |  | |
+ |_____/ \____/|_|  |_|
+                       
+Copyright (c) 2025 HELCOM
+
+Source: https://github.com/helcomsecretariat/SOM
+Documentation: https://helcomsecretariat.github.io/SOM/
+`;
+
 // Initialize parameters
 window.addEventListener('DOMContentLoaded', async () => {
   // create parameter fields
@@ -271,4 +285,6 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.querySelectorAll('.input-data').forEach(function (element) { element.style.display = 'none'; });
   document.querySelectorAll('.scenario').forEach(function (element) { element.style.display = 'none'; });
   document.querySelectorAll('.random-seed').forEach(function (element) { element.style.display = 'none'; });
+  // start console with logo printed
+  document.getElementById('output').textContent = som_logo;
 });
