@@ -42,7 +42,7 @@ ipcMain.handle('load-parameters', () => {
 /* 
 handle python console
 */
-let scriptName = 'src/main.py'
+let scriptName = '../src/main.py'
 
 let runningProcess = null;
 
@@ -54,7 +54,7 @@ ipcMain.on('run-python', (event, args) => {
   }
   // create a new process for the python script
   event.sender.send('python-output', `> python -u ${scriptName}\n\n`);
-  const py = spawn('python', ['-u', `${scriptName}`, ...args]);
+  const py = spawn('python', ['-u', `${scriptName}`, '--ui', ...args]);
   runningProcess = py;
   // handle the output from the script
   py.stdout.on('data', (data) => {

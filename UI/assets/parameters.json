@@ -58,5 +58,10 @@
     "name": "Use parallell processing",
     "arg": "--use_parallel_processing",
     "type": "boolean"
+  },
+  {
+    "name": "Plot results",
+    "arg": "--create_plots",
+    "type": "boolean"
   }
 ]

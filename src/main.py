@@ -18,6 +18,26 @@ import multiprocessing
 import pickle
 
 
+def read_config(config_file: str = 'config.toml'):
+    """
+    Reads configuration file.
+
+    Arguments:
+        config_file (str): path to configuration file, defaults to 'config.toml'.
+
+    Returns:
+        config (dict): configuration settings.
+    """
+    print('Reading configuration...')
+    try:
+        if not os.path.isfile(config_file): config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), config_file)
+        with open(config_file, 'r') as f:
+            config = toml.load(f)
+    except Exception as e:
+        fail_with_message('ERROR! Could not load config file!', e)
+    return config
+
+
 def run_sim(id: int, input_data: dict[str, pd.DataFrame], config: dict, out_path: str, log_path: str, progress, lock):
     """
     Runs a single simulation round.
@@ -82,34 +102,19 @@ def run_sim(id: int, input_data: dict[str, pd.DataFrame], config: dict, out_path
     return 1
 
 
-def run(config_file: str = 'config.toml', skip_sim: bool = False):
+def run(config: dict, skip_sim: bool = False):
     """
-    Main function that loads input data and user confirguration, 
+    Main function that loads input data and user configuration, 
     runs simulations and processes results.
 
     Arguments:
-        config_file (str): optional path to configuration file, defaults to 'config.toml'.
+        config (dict): configuration settings.
         skip_sim (bool): toggle to skip SOM calculations and only process results.
     """
-
-    timer = Timer()     # start a timer to track computation time
-    print('\nInitiating program...\n')
-
     # create log directory
     # NOTE! Existing logs are not deleted before new runs, only overwritten
     log_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'log')
     os.makedirs(log_dir, exist_ok=True)
-
-    #
-    # read configuration file
-    #
-
-    try:
-        if not os.path.isfile(config_file): config_file = os.path.join(os.path.dirname(os.path.realpath(__file__)), config_file)
-        with open(config_file, 'r') as f:
-            config = toml.load(f)
-    except Exception as e:
-        fail_with_message('ERROR! Could not load config file!', e)
 
     #
     # setup paths
@@ -175,22 +180,60 @@ def run(config_file: str = 'config.toml', skip_sim: bool = False):
         res = som_app.build_results(sim_res_dir, input_data)    # get condensed results from the individual simulation runs
         print('\tExporting results to excel...')
         som_app.export_results_to_excel(res, input_data, export_path)   # write results to file for human reading
-        print('\tProducing plots...')
-        som_plots.build_display(res, input_data, out_dir, config['use_parallel_processing'], config['filter'])   # plots various results for visual interpretation
+        if config['create_plots']:
+            print('\tProducing plots...')
+            som_plots.build_display(res, input_data, out_dir, config['use_parallel_processing'], config['filter'])   # plots various results for visual interpretation
     except Exception as e:
         fail_with_message(f'ERROR! Something went wrong while processing results! Check traceback.', e)
-
-    print(f'\nProgram terminated successfully after {timer.get_hhmmss()}')
 
     return
 
 if __name__ == "__main__":
-    # multiprocessing.freeze_support()
+    timer = Timer()     # start a timer to track computation time
+    print('\nInitiating program...\n')
+
     config_file = 'config.toml'
+    config = read_config(config_file)
+
     skip_sim = False
-    for i in range(len(sys.argv)):
-        if sys.argv[i] in ['-config', '-c']:
-            config_file = sys.argv[i+1]
-        if sys.argv[i] in ['-skip', '-s']:
-            skip_sim = True
-    run(config_file, skip_sim)
+
+    # parse arguments
+    if '--ui' in sys.argv:  # only if launched from UI
+        # verify validity of sys.argv
+        try:
+            assert ('--input_data' in sys.argv) or ('--general_input' in sys.argv and '--measure_effects' in sys.argv and '--pressure_state' in sys.argv)
+            assert ('--export_path' in sys.argv)
+            assert ('--simulations' in sys.argv)
+            if ('--use_scenario' in sys.argv): assert ('--scenario' in sys.argv)
+            if ('--use_random_seed' in sys.argv): assert ('--random_seed' in sys.argv)
+        except Exception as e:
+            print('ERROR! Empty parameter fields!')
+            exit()
+        # modify config
+        config['use_legacy_input_data'] = True if '--legacy' in sys.argv else False
+        config['use_scenario'] = True if '--use_scenario' in sys.argv else False
+        config['use_random_seed'] = True if '--use_random_seed' in sys.argv else False
+        config['use_parallel_processing'] = True if '--use_parallel_processing' in sys.argv else False
+        config['create_plots'] = True if '--create_plots' in sys.argv else False
+        for i in range(len(sys.argv)):
+            if sys.argv[i] in ['--general_input']:
+                config['input_data_legacy']['general_input'] = sys.argv[i+1]
+            if sys.argv[i] in ['--measure_effects']:
+                config['input_data_legacy']['measure_effect_input'] = sys.argv[i+1]
+            if sys.argv[i] in ['--pressure_state']:
+                config['input_data_legacy']['pressure_state_input'] = sys.argv[i+1]
+            if sys.argv[i] in ['--input_data']:
+                config['input_data']['path'] = sys.argv[i+1]
+            if sys.argv[i] in ['--export_path']:
+                config['export_path'] = sys.argv[i+1]
+            if sys.argv[i] in ['--simulations']:
+                config['simulations'] = int(sys.argv[i+1])
+            if sys.argv[i] in ['--scenario']:
+                config['scenario'] = sys.argv[i+1]
+            if sys.argv[i] in ['--random_seed']:
+                config['random_seed'] = int(sys.argv[i+1])
+    
+    # run analysis
+    run(config, skip_sim)
+
+    print(f'\nProgram terminated successfully after {timer.get_hhmmss()}')

@@ -5,7 +5,7 @@ export_path = './src/data/results.xlsx'
 
 # scenario used for calculations
 use_scenario = false
-scenario = 'ChangeML'
+scenario = 'BAU'
 
 # randomness setup
 use_random_seed = true
@@ -16,6 +16,9 @@ simulations = 10
 
 # performance options
 use_parallel_processing = true
+
+# plot results
+create_plots = true
 
 # excel input files
 use_legacy_input_data = false

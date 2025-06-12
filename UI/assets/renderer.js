@@ -130,7 +130,7 @@ function gatherArgs() {
     const arg = input.name;
     const type = input.dataset.type;
 
-    if ((type === 'text' || type === 'integer' || type === 'float' || type === 'select') && input.value !== '') {
+    if ((type === 'text' || type === 'integer' || type === 'float' || type === 'select' || type === 'filepath') && input.value !== '') {
       args.push(arg, input.value);
     } else if (type === 'boolean' && input.checked) {
       args.push(arg);
