@@ -13,7 +13,7 @@ function createWindow() {
     webPreferences: {
       contextIsolation: true, // true = safe
       nodeIntegration: false, // false = safe
-      preload: path.join(__dirname, 'preload.js')
+      preload: path.join(__dirname, 'assets/preload.js')
     }
   });
 
@@ -21,7 +21,7 @@ function createWindow() {
   win.setMenuBarVisibility(false);
   // win.removeMenu();
   
-  win.loadFile('index.html');
+  win.loadFile('assets/index.html');
 }
 
 // create the UI window when ready
@@ -42,7 +42,7 @@ ipcMain.handle('load-parameters', () => {
 /* 
 handle python console
 */
-let scriptName = 'script.py'
+let scriptName = 'src/main.py'
 
 let runningProcess = null;
 
@@ -54,7 +54,7 @@ ipcMain.on('run-python', (event, args) => {
   }
   // create a new process for the python script
   event.sender.send('python-output', `> python -u ${scriptName}\n\n`);
-  const py = spawn('python', ['-u', 'script.py', ...args]);
+  const py = spawn('python', ['-u', `${scriptName}`, ...args]);
   runningProcess = py;
   // handle the output from the script
   py.stdout.on('data', (data) => {

@@ -17,17 +17,6 @@ import shutil
 import multiprocessing
 import pickle
 
-# splash screen logo
-som_logo = r"""
-   _____  ____  __  __ 
-  / ____|/ __ \|  \/  |
- | (___ | |  | | \  / |
-  \___ \| |  | | |\/| |
-  ____) | |__| | |  | |
- |_____/ \____/|_|  |_|
-                       
-Copyright (c) 2025 HELCOM
-"""
 
 def run_sim(id: int, input_data: dict[str, pd.DataFrame], config: dict, out_path: str, log_path: str, progress, lock):
     """
@@ -197,7 +186,6 @@ def run(config_file: str = 'config.toml', skip_sim: bool = False):
 
 if __name__ == "__main__":
     # multiprocessing.freeze_support()
-    print(som_logo)
     config_file = 'config.toml'
     skip_sim = False
     for i in range(len(sys.argv)):
@@ -206,6 +194,3 @@ if __name__ == "__main__":
         if sys.argv[i] in ['-skip', '-s']:
             skip_sim = True
     run(config_file, skip_sim)
-
-    input('Press ENTER to exit.')
-
