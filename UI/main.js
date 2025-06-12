@@ -29,12 +29,12 @@ app.whenReady().then(createWindow);
 
 // handle parameter loading
 ipcMain.handle('load-parameters', () => {
-  const filePath = path.join(__dirname, 'parameters.json');
+  const filePath = path.join(__dirname, 'assets/parameters.json');
   try {
     const raw = fs.readFileSync(filePath);
     return JSON.parse(raw);
   } catch (err) {
-    console.error('Error loading parameters.json:', err);
+    console.error('Error loading assets/parameters.json:', err);
     return [];
   }
 });
