@@ -20,14 +20,18 @@ def build_input(config: dict) -> dict[str, pd.DataFrame]:
     Returns:
         input_data (dict): SOM input data.
     """
-    path = os.path.realpath(config['input_data']['path'])
-    if not os.path.isfile(path): path = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['input_data']['path'])
     if config['use_legacy_input_data']:
         input_data = process_input_data(config)
+        path = os.path.realpath(config['input_data_legacy']['general_input'])
+        if not os.path.isfile(path): path = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['input_data_legacy']['general_input'])
+        path = os.path.join(os.path.dirname(path), 'input_data.xlsx')
+        config['input_data']['path'] = path
         with pd.ExcelWriter(path) as writer:
             for key in input_data:
                 input_data[key].to_excel(writer, sheet_name=key, index=False)
     else:
+        path = os.path.realpath(config['input_data']['path'])
+        if not os.path.isfile(path): path = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['input_data']['path'])
         input_data = pd.read_excel(io=path, sheet_name=None)
         conversion_sheet = [
             ('measure_effects', 'reduction'), 
