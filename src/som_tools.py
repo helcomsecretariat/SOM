@@ -303,7 +303,7 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
 
         thresholds (DataFrame):
 
-            - State: state id.
+            - state: state id.
             - area_id: area id.
             - PR: reduction in state required to reach GES target.
             - 10: reduction in state required to reach 10 % improvement.
@@ -512,6 +512,11 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
     #
     pressure_contributions = pd.DataFrame(new_df.loc[:, ['State', 'pressure', 'area_id', 'contribution']])
     thresholds = pd.DataFrame(new_df.loc[:, ['State', 'area_id'] + threshold_cols])
+    #
+    # rename capitalized columns
+    #
+    pressure_contributions = pressure_contributions.rename(columns={'State': 'state'})
+    thresholds = thresholds.rename(columns={'State': 'state'})
 
     return pressure_contributions, thresholds
 
@@ -620,6 +625,9 @@ def read_activity_contributions(file_name: str, sheet_name: str) -> pd.DataFrame
 
     act_to_press = act_to_press.drop(columns=['expected', 'minimum', 'maximum'])
 
+    # rename columns
+    act_to_press = act_to_press.rename(columns={'Activity': 'activity', 'Pressure': 'pressure'})
+
     return act_to_press
 
 
@@ -646,6 +654,9 @@ def read_development_scenarios(file_name: str, sheet_name: str) -> pd.DataFrame:
     # change values from percentual change to multiplier type by adding 1
     for category in ['BAU', 'ChangeMin', 'ChangeML', 'ChangeMax']:
         development_scenarios[category] = development_scenarios[category] + 1
+    
+    # rename column
+    development_scenarios = development_scenarios.rename(columns={'Activity': 'activity'})
 
     return development_scenarios
 
@@ -667,6 +678,13 @@ def read_overlaps(file_name: str, sheet_name: str) -> pd.DataFrame:
     for category in ['Overlap', 'Pressure', 'Activity', 'Overlapping', 'Overlapped']:
         overlaps.loc[np.isnan(overlaps[category]), category] = 0
         overlaps[category] = overlaps[category].astype(int)
+    
+    overlaps = overlaps.rename(columns={'Overlap': 'overlap', 
+                                'Pressure': 'pressure', 
+                                'Activity': 'activity', 
+                                'Overlapping': 'overlapping', 
+                                'Overlapped': 'overlapped', 
+                                'Multiplier': 'multiplier'})
 
     return overlaps
 
@@ -708,6 +726,13 @@ def read_subpressures(file_name: str, sheet_name: str) -> pd.DataFrame:
             return 0
 
     subpressures['Multiplier'] = subpressures['Equivalence'].apply(assign_multiplier)
+
+    # rename columns
+    subpressures = subpressures.rename(columns={'Reduced pressure': 'reduced pressure', 
+                                        'State pressure': 'state pressure', 
+                                        'Equivalence': 'equivalence', 
+                                        'State': 'state', 
+                                        'Multiplier': 'multiplier'})
 
     return subpressures
 

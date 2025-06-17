@@ -250,7 +250,7 @@ def plot_activity_contributions(area, res, data, out_dir, progress, lock):
     # plot settings
     char_limit = 25
 
-    for pressure in res['ActivityContributions']['Mean']['Pressure'].unique():
+    for pressure in res['ActivityContributions']['Mean']['pressure'].unique():
         pressure_name = data['pressure'].loc[data['pressure']['ID'] == pressure, 'pressure'].values[0]
 
         out_path = os.path.join(out_dir, f'area_{area}_{area_name}_pressure_{pressure}_ActivityContributions.png')
@@ -259,10 +259,10 @@ def plot_activity_contributions(area, res, data, out_dir, progress, lock):
 
         # adjust data
         suffixes = ('_mean', '_error')
-        df = pd.merge(res['ActivityContributions']['Mean'].loc[:, :], res['ActivityContributions']['Error'].loc[:, :], on=['Activity', 'Pressure', 'area_id'], suffixes=suffixes)
-        contributions = df.loc[(df['area_id'] == area) & (df['Pressure'] == pressure), :]
-        labels = contributions['Activity']
-        labels = contributions['Activity'].apply(lambda x: data['activity'].loc[data['activity']['ID'] == x, 'activity'].values[0])
+        df = pd.merge(res['ActivityContributions']['Mean'].loc[:, :], res['ActivityContributions']['Error'].loc[:, :], on=['activity', 'pressure', 'area_id'], suffixes=suffixes)
+        contributions = df.loc[(df['area_id'] == area) & (df['pressure'] == pressure), :]
+        labels = contributions['activity']
+        labels = contributions['activity'].apply(lambda x: data['activity'].loc[data['activity']['ID'] == x, 'activity'].values[0])
         labels = np.array([x[:char_limit]+'...' if len(x) > char_limit else x for x in labels])     # limit characters to char_limit
         vals = contributions['contribution_mean'] * 100    # convert to %
 
@@ -291,7 +291,7 @@ def plot_pressure_contributions(area, res, data, out_dir, progress, lock):
     # plot settings
     char_limit = 25
 
-    for state in res['PressureContributions']['Mean']['State'].unique():
+    for state in res['PressureContributions']['Mean']['state'].unique():
         state_name = data['state'].loc[data['state']['ID'] == state, 'state'].values[0]
 
         out_path = os.path.join(out_dir, f'area_{area}_{area_name}_state_{state}_PressureContributions.png')
@@ -300,8 +300,8 @@ def plot_pressure_contributions(area, res, data, out_dir, progress, lock):
 
         # adjust data
         suffixes = ('_mean', '_error')
-        df = pd.merge(res['PressureContributions']['Mean'].loc[:, :], res['PressureContributions']['Error'].loc[:, :], on=['State', 'pressure', 'area_id'], suffixes=suffixes)
-        contributions = df.loc[(df['area_id'] == area) & (df['State'] == state) & (pd.notna(df['contribution_mean'])), :]
+        df = pd.merge(res['PressureContributions']['Mean'].loc[:, :], res['PressureContributions']['Error'].loc[:, :], on=['state', 'pressure', 'area_id'], suffixes=suffixes)
+        contributions = df.loc[(df['area_id'] == area) & (df['state'] == state) & (pd.notna(df['contribution_mean'])), :]
         if len(contributions) > 0:
             labels = contributions['pressure']
             labels = contributions['pressure'].apply(lambda x: data['pressure'].loc[data['pressure']['ID'] == x, 'pressure'].values[0])
@@ -519,12 +519,12 @@ def filter_results(res: dict[str, pd.DataFrame], selection: dict[str, list]) -> 
             'state': selection['state']
         }, 
         'ActivityContributions': {
-            'Activity': selection['activity'], 
-            'Pressure': selection['pressure'], 
+            'activity': selection['activity'], 
+            'pressure': selection['pressure'], 
             'area_id': selection['area']
         }, 
         'PressureContributions': {
-            'State': selection['state'], 
+            'state': selection['state'], 
             'pressure': selection['pressure'], 
             'area_id': selection['area']
         }
