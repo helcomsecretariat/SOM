@@ -745,6 +745,15 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#nodejs" class="md-nav__link">
+    <span class="md-ellipsis">
+      Node.js
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#setting-up-the-environment" class="md-nav__link">
     <span class="md-ellipsis">
       Setting up the environment
@@ -789,6 +798,29 @@
   
   <span class="md-ellipsis">
     Using the tool
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../using-the-gui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Using the UI
     
   </span>
   
@@ -920,22 +952,24 @@
   <h1>Installation</h1>
 
 <h2 id="download-the-model">Download the model</h2>
-<p>The code can be downloaded from the <a href="https://github.com/helcomsecretariat/SOM">repository</a> (steps highlighted in red).</p>
+<p>The code can be downloaded from the <a href="https://github.com/helcomsecretariat/SOM">repository</a> (steps highlighted in red). If you are using the graphical user interface (GUI), instead download the compiled tool from <a href="https://github.com/helcomsecretariat/SOM/releases">releases</a>.</p>
 <p><img alt="image" src="../images/install_github_1.png" />
 <img alt="image" src="../images/install_github_2.png" /></p>
 <p>Once downloaded, unzip the archive into your project directory.</p>
 <h2 id="installing-requirements">Installing requirements</h2>
 <h3 id="python">Python</h3>
 <p>Running the SOM tool requires Python version 3.12 or above, which can be downloaded <a href="https://www.python.org/downloads/">here</a>. Follow the installer instructions to set it up. </p>
+<h3 id="nodejs">Node.js</h3>
+<p>To run the script using the GUI from the terminal, Node.js is required, which can be downloaded <a href="https://nodejs.org/en">here</a>. Follow the installer instructions to set it up. Alternatively, download the standalone GUI from <a href="https://github.com/helcomsecretariat/SOM/releases">here</a> to skip this step.</p>
 <h3 id="setting-up-the-environment">Setting up the environment</h3>
 <p>Open up a terminal and enter the following:</p>
 <ol>
 <li>
 <p>Navigate to your directory</p>
-<p><code>cd "/path/to/som"</code></p>
+<p><code>cd "/path/to/SOM"</code></p>
 </li>
 <li>
-<p>Create a new python environment (optional):</p>
+<p>Create a new python environment (optional, not if using the GUI):</p>
 <p><code>python -m venv .
 source bin/activate</code></p>
 </li>
@@ -944,9 +978,24 @@ source bin/activate</code></p>
 <p><code>python -m pip install .</code></p>
 </li>
 </ol>
+<p>If Node.js was installed to run the GUI from the terminal, additionally install the required node modules:</p>
+<ol>
+<li>
+<p>Navigate to UI directory</p>
+<p><code>cd "/path/to/SOM/ui"</code></p>
+</li>
+<li>
+<p>Install dependencies:</p>
+<p><code>npm install</code></p>
+</li>
+</ol>
 <h2 id="running-the-tool">Running the tool</h2>
 <p>To run the tool from the terminal:</p>
-<pre><code>python &quot;/path/to/som/src&quot;
+<pre><code>python &quot;/path/to/SOM/src/main.py&quot;
+</code></pre>
+<p>To run the UI from the terminal:</p>
+<pre><code>cd &quot;/path/to/SOM/ui&quot;
+npm run start
 </code></pre>
 <p>Alternatively, see <a href="../using-the-tool/">Using the tool</a>.</p>
 
@@ -969,7 +1018,7 @@ source bin/activate</code></p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="May 28, 2025 07:09:42 UTC">May 28, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 18, 2025 08:44:24 UTC">June 18, 2025</span>
   </span>
 
     

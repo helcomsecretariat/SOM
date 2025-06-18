@@ -717,6 +717,29 @@
   
   
     <li class="md-nav__item">
+      <a href="../using-the-gui/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Using the UI
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../configuration/" class="md-nav__link">
         
   
@@ -1079,8 +1102,8 @@
 <p><img alt="image" src="../images/input_measure_effects_new.png" /></p>
 <ul>
 <li>Activity-Pressure links, how much the individual activities contribute to the pressures<ul>
-<li><code>column:Activity</code>: Activity ID, linked to <code>sheet:activity</code></li>
-<li><code>column:Pressure</code>: Pressure ID, linked to <code>sheet:pressure</code></li>
+<li><code>column:activity</code>: Activity ID, linked to <code>sheet:activity</code></li>
+<li><code>column:pressure</code>: Pressure ID, linked to <code>sheet:pressure</code></li>
 <li><code>column:area_id</code>: Area ID, linked to <code>sheet:area</code></li>
 <li><code>column:contribution</code>: Measure reduction effect, probability distribution, see <a href="#probability-distributions">Probability Distributions</a></li>
 </ul>
@@ -1102,7 +1125,7 @@
 <p><img alt="image" src="../images/input_pressure_contributions_new.png" /></p>
 <ul>
 <li>Pressure-State links, how much the individual pressures contribute to the states<ul>
-<li><code>column:State</code>: State ID, linked to <code>sheet:state</code></li>
+<li><code>column:state</code>: State ID, linked to <code>sheet:state</code></li>
 <li><code>column:pressure</code>: Pressure ID, linked to <code>sheet:pressure</code></li>
 <li><code>column:area_id</code>: Area ID, linked to <code>sheet:area</code></li>
 <li><code>column:contribution</code>: Pressure contribution, probability distribution, see <a href="#probability-distributions">Probability Distributions</a></li>
@@ -1113,7 +1136,7 @@
 <p><img alt="image" src="../images/input_thresholds_new.png" /></p>
 <ul>
 <li>Environmental target thresholds, how much the individual states need to be reduced to reach the set targets<ul>
-<li><code>column:State</code>: State ID, linked to <code>sheet:state</code></li>
+<li><code>column:state</code>: State ID, linked to <code>sheet:state</code></li>
 <li><code>column:area_id</code>: Area ID, linked to <code>sheet:area</code></li>
 <li><code>column:PR/10/25/50</code>: Probability distributions for GES (PR) and 10/25/50 % reduction thresholds, see <a href="#probability-distributions">Probability Distributions</a></li>
 </ul>
@@ -1123,12 +1146,12 @@
 <p><img alt="image" src="../images/input_overlaps_new.png" /></p>
 <ul>
 <li>Interaction between separate measures, how joint implementation affects measure efficiency<ul>
-<li><code>column:Overlap</code>: Overlap ID</li>
-<li><code>column:Pressure</code>: Pressure ID, linked to <code>sheet:pressure</code></li>
-<li><code>column:Activity</code>: Activity ID, linked to <code>sheet:activity</code></li>
-<li><code>column:Overlapping</code>: Overlapping measure ID, linked to <code>sheet:measure</code></li>
-<li><code>column:Overlapped</code>: Overlapped measure ID, linked to <code>sheet:measure</code></li>
-<li><code>column:Multiplier</code>: Multiplier (fraction), how much of the <code>column:Overlapped</code> measure's effect will be observed if <code>column:Overlapping</code> is also implemented</li>
+<li><code>column:overlap</code>: Overlap ID</li>
+<li><code>column:pressure</code>: Pressure ID, linked to <code>sheet:pressure</code></li>
+<li><code>column:activity</code>: Activity ID, linked to <code>sheet:activity</code></li>
+<li><code>column:overlapping</code>: Overlapping measure ID, linked to <code>sheet:measure</code></li>
+<li><code>column:overlapped</code>: Overlapped measure ID, linked to <code>sheet:measure</code></li>
+<li><code>column:multiplier</code>: Multiplier (fraction), how much of the <code>column:overlapped</code> measure's effect will be observed if <code>column:overlapping</code> is also implemented</li>
 </ul>
 </li>
 </ul>
@@ -1136,7 +1159,7 @@
 <p><img alt="image" src="../images/input_development_scenarios_new.png" /></p>
 <ul>
 <li>Activity development scenarios, how much each activity is expected to change during various scenarios, each value is a multiplier<ul>
-<li><code>column:Activity</code>: Activity ID, linked to <code>sheet:activity</code></li>
+<li><code>column:activity</code>: Activity ID, linked to <code>sheet:activity</code></li>
 <li><code>column:BAU</code>: Business As Usual, activity change without extra action (fraction)</li>
 <li><code>column:ChangeMin</code>: Lowest potential change (fraction)</li>
 <li><code>column:ChangeML</code>: Most likely change (fraction)</li>
@@ -1148,11 +1171,11 @@
 <p><img alt="image" src="../images/input_subpressures_new.png" /></p>
 <ul>
 <li>Links between separate pressures, where <em>subpressures</em> make up part of <em>state pressures</em><ul>
-<li><code>column:Reduced pressure</code>: Subpressure ID, linked to <code>sheet:pressure</code></li>
-<li><code>column:State pressure</code>: State pressure ID, linked to <code>sheet:pressure</code></li>
-<li><code>column:Equivalence</code>: Equivalence between <code>column:Reduced pressure</code> and <code>column:State pressure</code>, i.e. how much of the <em>state pressure</em> is made up of the <em>subpressure</em>, where values between 0 and 1 are treated as fractions, and other values as either no quantified equivalence or no reduction from pressures</li>
-<li><code>column:State</code>: State ID, linked to <code>sheet:state</code></li>
-<li><code>column:Multiplier</code>: Multiplier (fraction), how much of the reduction in <code>column:Reduced pressure</code> should be applied to <code>column:State pressure</code>, determined from <code>column:Equivalence</code></li>
+<li><code>column:reduced pressure</code>: Subpressure ID, linked to <code>sheet:pressure</code></li>
+<li><code>column:state pressure</code>: State pressure ID, linked to <code>sheet:pressure</code></li>
+<li><code>column:equivalence</code>: Equivalence between <code>column:reduced pressure</code> and <code>column:state pressure</code>, i.e. how much of the <em>state pressure</em> is made up of the <em>subpressure</em>, where values between 0 and 1 are treated as fractions, and other values as either no quantified equivalence or no reduction from pressures</li>
+<li><code>column:state</code>: State ID, linked to <code>sheet:state</code></li>
+<li><code>column:multiplier</code>: Multiplier (fraction), how much of the reduction in <code>column:reduced pressure</code> should be applied to <code>column:state pressure</code>, determined from <code>column:equivalence</code></li>
 </ul>
 </li>
 </ul>
@@ -1176,7 +1199,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="May 28, 2025 07:09:42 UTC">May 28, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 18, 2025 06:58:02 UTC">June 18, 2025</span>
   </span>
 
     
