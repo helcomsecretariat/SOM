@@ -2,6 +2,8 @@
 
 Before running the tool, make sure you have all dependencies installed (see [Installation](installation.md)).
 
+If you are using the GUI, see the instructions [here instead](using-the-gui.md).
+
 Your input data should be inside the ```data``` directory (or alternatively, edit the ```config.toml``` file).
 
 Set the settings in the ```config.toml``` file to your preferences, see [Configuration](configuration.md).
@@ -13,7 +15,7 @@ The tool can be executed by running the ```SOM_Launcher.bat``` app from the main
 Alternatively, navigate to the ```src``` directory and run the ```main.py``` directly:
 
 ```
-cd "/path/to/som/src"
+cd "/path/to/SOM/src"
 python main.py
 ```
 
