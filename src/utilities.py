@@ -71,7 +71,7 @@ def fail_with_message(m: str = None, e: Exception = None, file = None, do_not_ex
         exit()
 
 
-def display_progress(completion: float, size: int = 50, text: str = 'Progress: '):
+def display_progress(completion: float, size: int = 20, text: str = 'Progress: '):
     """
     Shows the current simulation progress as a percentage with a progress bar.
 

@@ -9,7 +9,7 @@ package-dir = {"" = "src"}
 
 [project]
 name = "helcom_protect_baltic_som"
-version = "0.0.1"
+version = "1.0.0"
 description = "A HELCOM Protect Baltic Application"
 readme = "README.md"
 authors = [{ name="Camilo Hernández", email="camilo.hernandez@helcom.fi" }]
@@ -20,13 +20,13 @@ classifiers = [
 ]
 
 dependencies = [
-    "numpy >= 1.21.5",
-    "pandas >= 1.4.2",
-    "geocube >= 0.3.3", 
-    "requests >= 2.31.0", 
-    "toml >= 0.10.2", 
-    "openpyxl >= 3.1.2", 
-    "matplotlib"
+    "numpy >= 1.26",
+    "pandas >= 2.2",
+    "geopandas >= 0.14", 
+    "requests >= 2.31", 
+    "toml >= 0.10", 
+    "openpyxl >= 3.1", 
+    "matplotlib >= 3.10"
 ]
 requires-python = ">=3.12"
 

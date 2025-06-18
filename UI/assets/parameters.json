@@ -1,0 +1,67 @@
+[
+  {
+    "name": "Legacy input data",
+    "arg": "--legacy",
+    "type": "boolean"
+  },
+  {
+    "name": "General Input",
+    "arg": "--general_input",
+    "type": "filepath"
+  },
+  {
+    "name": "Measure Effects",
+    "arg": "--measure_effects",
+    "type": "filepath"
+  },
+  {
+    "name": "Pressure State",
+    "arg": "--pressure_state",
+    "type": "filepath"
+  },
+  {
+    "name": "Input data",
+    "arg": "--input_data",
+    "type": "filepath"
+  },
+  {
+    "name": "Results",
+    "arg": "--export_path",
+    "type": "filepath"
+  },
+  {
+    "name": "Simulations",
+    "arg": "--simulations",
+    "type": "integer"
+  },
+  {
+    "name": "Use scenario",
+    "arg": "--use_scenario",
+    "type": "boolean"
+  },
+  {
+    "name": "Scenario",
+    "arg": "--scenario",
+    "type": "text"
+  },
+  {
+    "name": "Use random seed",
+    "arg": "--use_random_seed",
+    "type": "boolean"
+  },
+  {
+    "name": "Random seed",
+    "arg": "--random_seed",
+    "type": "integer"
+  },
+  {
+    "name": "Use parallell processing",
+    "arg": "--use_parallel_processing",
+    "type": "boolean"
+  },
+  {
+    "name": "Plot results",
+    "arg": "--create_plots",
+    "type": "boolean"
+  }
+]

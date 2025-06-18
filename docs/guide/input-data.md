@@ -63,8 +63,8 @@ When the input data contains probability distributions, they will follow this fo
 ![image](images/input_measure_effects_new.png)
 
 - Activity-Pressure links, how much the individual activities contribute to the pressures
-    - ```column:Activity```: Activity ID, linked to ```sheet:activity```
-    - ```column:Pressure```: Pressure ID, linked to ```sheet:pressure```
+    - ```column:activity```: Activity ID, linked to ```sheet:activity```
+    - ```column:pressure```: Pressure ID, linked to ```sheet:pressure```
     - ```column:area_id```: Area ID, linked to ```sheet:area```
     - ```column:contribution```: Measure reduction effect, probability distribution, see [Probability Distributions](#probability-distributions)
 
@@ -82,7 +82,7 @@ When the input data contains probability distributions, they will follow this fo
 ![image](images/input_pressure_contributions_new.png)
 
 - Pressure-State links, how much the individual pressures contribute to the states
-    - ```column:State```: State ID, linked to ```sheet:state```
+    - ```column:state```: State ID, linked to ```sheet:state```
     - ```column:pressure```: Pressure ID, linked to ```sheet:pressure```
     - ```column:area_id```: Area ID, linked to ```sheet:area```
     - ```column:contribution```: Pressure contribution, probability distribution, see [Probability Distributions](#probability-distributions)
@@ -91,7 +91,7 @@ When the input data contains probability distributions, they will follow this fo
 ![image](images/input_thresholds_new.png)
 
 - Environmental target thresholds, how much the individual states need to be reduced to reach the set targets
-    - ```column:State```: State ID, linked to ```sheet:state```
+    - ```column:state```: State ID, linked to ```sheet:state```
     - ```column:area_id```: Area ID, linked to ```sheet:area```
     - ```column:PR/10/25/50```: Probability distributions for GES (PR) and 10/25/50 % reduction thresholds, see [Probability Distributions](#probability-distributions)
 
@@ -99,18 +99,18 @@ When the input data contains probability distributions, they will follow this fo
 ![image](images/input_overlaps_new.png)
 
 - Interaction between separate measures, how joint implementation affects measure efficiency
-    - ```column:Overlap```: Overlap ID
-    - ```column:Pressure```: Pressure ID, linked to ```sheet:pressure```
-    - ```column:Activity```: Activity ID, linked to ```sheet:activity```
-    - ```column:Overlapping```: Overlapping measure ID, linked to ```sheet:measure```
-    - ```column:Overlapped```: Overlapped measure ID, linked to ```sheet:measure```
-    - ```column:Multiplier```: Multiplier (fraction), how much of the ```column:Overlapped``` measure's effect will be observed if ```column:Overlapping``` is also implemented
+    - ```column:overlap```: Overlap ID
+    - ```column:pressure```: Pressure ID, linked to ```sheet:pressure```
+    - ```column:activity```: Activity ID, linked to ```sheet:activity```
+    - ```column:overlapping```: Overlapping measure ID, linked to ```sheet:measure```
+    - ```column:overlapped```: Overlapped measure ID, linked to ```sheet:measure```
+    - ```column:multiplier```: Multiplier (fraction), how much of the ```column:overlapped``` measure's effect will be observed if ```column:overlapping``` is also implemented
 
 #### ```sheet:development_scenarios```
 ![image](images/input_development_scenarios_new.png)
 
 - Activity development scenarios, how much each activity is expected to change during various scenarios, each value is a multiplier
-    - ```column:Activity```: Activity ID, linked to ```sheet:activity```
+    - ```column:activity```: Activity ID, linked to ```sheet:activity```
     - ```column:BAU```: Business As Usual, activity change without extra action (fraction)
     - ```column:ChangeMin```: Lowest potential change (fraction)
     - ```column:ChangeML```: Most likely change (fraction)
@@ -120,9 +120,9 @@ When the input data contains probability distributions, they will follow this fo
 ![image](images/input_subpressures_new.png)
 
 - Links between separate pressures, where *subpressures* make up part of *state pressures*
-    - ```column:Reduced pressure```: Subpressure ID, linked to ```sheet:pressure```
-    - ```column:State pressure```: State pressure ID, linked to ```sheet:pressure```
-    - ```column:Equivalence```: Equivalence between ```column:Reduced pressure``` and ```column:State pressure```, i.e. how much of the *state pressure* is made up of the *subpressure*, where values between 0 and 1 are treated as fractions, and other values as either no quantified equivalence or no reduction from pressures
-    - ```column:State```: State ID, linked to ```sheet:state```
-    - ```column:Multiplier```: Multiplier (fraction), how much of the reduction in ```column:Reduced pressure``` should be applied to ```column:State pressure```, determined from ```column:Equivalence```
+    - ```column:reduced pressure```: Subpressure ID, linked to ```sheet:pressure```
+    - ```column:state pressure```: State pressure ID, linked to ```sheet:pressure```
+    - ```column:equivalence```: Equivalence between ```column:reduced pressure``` and ```column:state pressure```, i.e. how much of the *state pressure* is made up of the *subpressure*, where values between 0 and 1 are treated as fractions, and other values as either no quantified equivalence or no reduction from pressures
+    - ```column:state```: State ID, linked to ```sheet:state```
+    - ```column:multiplier```: Multiplier (fraction), how much of the reduction in ```column:reduced pressure``` should be applied to ```column:state pressure```, determined from ```column:equivalence```
 

@@ -1,4 +1,4 @@
-# Sufficiency of Measures model
+# Sufficiency and Efficiency of Measures model
 
 Model developed at HELCOM to assess what kind of improvements in environmental state and pressures can be achieved with existing measures [(more info)](https://helcom.fi/baltic-sea-action-plan/som/).
 

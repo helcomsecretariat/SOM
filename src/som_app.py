@@ -20,14 +20,18 @@ def build_input(config: dict) -> dict[str, pd.DataFrame]:
     Returns:
         input_data (dict): SOM input data.
     """
-    path = os.path.realpath(config['input_data']['path'])
-    if not os.path.isfile(path): path = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['input_data']['path'])
     if config['use_legacy_input_data']:
         input_data = process_input_data(config)
+        path = os.path.realpath(config['input_data_legacy']['general_input'])
+        if not os.path.isfile(path): path = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['input_data_legacy']['general_input'])
+        path = os.path.join(os.path.dirname(path), 'input_data.xlsx')
+        config['input_data']['path'] = path
         with pd.ExcelWriter(path) as writer:
             for key in input_data:
                 input_data[key].to_excel(writer, sheet_name=key, index=False)
     else:
+        path = os.path.realpath(config['input_data']['path'])
+        if not os.path.isfile(path): path = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['input_data']['path'])
         input_data = pd.read_excel(io=path, sheet_name=None)
         conversion_sheet = [
             ('measure_effects', 'reduction'), 
@@ -87,16 +91,16 @@ def build_links(data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     # get picks from cumulative distribution
     data['pressure_contributions']['contribution'] = data['pressure_contributions']['contribution'].apply(lambda x: get_pick(x) if not np.any(np.isnan(x)) else np.nan)
     
-    data['pressure_contributions'] = data['pressure_contributions'].drop_duplicates(subset=['State', 'pressure', 'area_id'], keep='first').reset_index(drop=True)
+    data['pressure_contributions'] = data['pressure_contributions'].drop_duplicates(subset=['state', 'pressure', 'area_id'], keep='first').reset_index(drop=True)
 
     # verify that there are no duplicate links
-    try: assert len(data['pressure_contributions'][data['pressure_contributions'].duplicated(['State', 'pressure', 'area_id'])]) == 0
+    try: assert len(data['pressure_contributions'][data['pressure_contributions'].duplicated(['state', 'pressure', 'area_id'])]) == 0
     except Exception as e: fail_with_message(f'Duplicate pressure contributions in input data!', e)
     
     # make sure pressure contributions for each state / area are 100 %
     for area in data['area']['ID']:
         for state in data['state']['ID']:
-            mask = (data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == state)
+            mask = (data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['state'] == state)
             relevant_contributions = data['pressure_contributions'].loc[mask, :]
             if len(relevant_contributions) > 0:
                 data['pressure_contributions'].loc[mask, 'contribution'] = relevant_contributions['contribution'] / relevant_contributions['contribution'].sum()
@@ -111,10 +115,10 @@ def build_links(data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     for col in threshold_cols:
         data['thresholds'][col] = data['thresholds'][col].apply(lambda x: get_pick(x) if not np.any(np.isnan(x)) else np.nan)
 
-    data['thresholds'] = data['thresholds'].drop_duplicates(subset=['State', 'area_id'], keep='first').reset_index(drop=True)
+    data['thresholds'] = data['thresholds'].drop_duplicates(subset=['state', 'area_id'], keep='first').reset_index(drop=True)
 
     # verify that there are no duplicate links
-    try: assert len(data['thresholds'][data['thresholds'].duplicated(['State', 'area_id'])]) == 0
+    try: assert len(data['thresholds'][data['thresholds'].duplicated(['state', 'area_id'])]) == 0
     except Exception as e: fail_with_message(f'Duplicate GES targets in input data!', e)
 
     return data
@@ -136,26 +140,26 @@ def build_scenario(data: dict[str, pd.DataFrame], scenario: str) -> pd.DataFrame
 
     # for each pressure, save the total contribution of activities for later normalization
     actual_sum = {}
-    for pressure_id in act_to_press['Pressure'].unique():
+    for pressure_id in act_to_press['pressure'].unique():
         actual_sum[pressure_id] = {}
-        activities = act_to_press.loc[act_to_press['Pressure'] == pressure_id, :]
+        activities = act_to_press.loc[act_to_press['pressure'] == pressure_id, :]
         for area in activities['area_id'].unique():
             actual_sum[pressure_id][area] = activities.loc[activities['area_id'] == area, 'contribution'].sum()
     
     # multiply activities by scenario multiplier
     def get_scenario(activity_id):
-        multiplier = dev_scen.loc[dev_scen['Activity'] == activity_id, scenario]
+        multiplier = dev_scen.loc[dev_scen['activity'] == activity_id, scenario]
         if len(multiplier) == 0:
             return 1
         multiplier = multiplier.values[0]
         return multiplier
-    act_to_press['contribution'] = act_to_press['contribution'] * act_to_press['Activity'].apply(get_scenario)
+    act_to_press['contribution'] = act_to_press['contribution'] * act_to_press['activity'].apply(get_scenario)
 
     # normalize
     normalize_factor = {}
-    for pressure_id in act_to_press['Pressure'].unique():
+    for pressure_id in act_to_press['pressure'].unique():
         normalize_factor[pressure_id] = {}
-        activities = act_to_press.loc[act_to_press['Pressure'] == pressure_id, :]
+        activities = act_to_press.loc[act_to_press['pressure'] == pressure_id, :]
         for area in activities['area_id'].unique():
             scenario_sum = activities.loc[activities['area_id'] == area, 'contribution'].sum()
             normalize_factor[pressure_id][area] = 1 + scenario_sum - actual_sum[pressure_id][area]
@@ -163,7 +167,7 @@ def build_scenario(data: dict[str, pd.DataFrame], scenario: str) -> pd.DataFrame
     def normalize(value, pressure_id, area_id):
         return value * normalize_factor[pressure_id][area_id]
 
-    act_to_press['contribution'] = act_to_press.apply(lambda x: normalize(x['contribution'], x['Pressure'], x['area_id']), axis=1)
+    act_to_press['contribution'] = act_to_press.apply(lambda x: normalize(x['contribution'], x['pressure'], x['area_id']), axis=1)
     
     return act_to_press
 
@@ -257,7 +261,7 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings: 
     # make sure activity contributions don't exceed 100 %
     for area in areas:
         for p_i, p in pressure_levels.iterrows():
-            mask = (data['activity_contributions']['area_id'] == area) & (data['activity_contributions']['Pressure'] == p['ID'])
+            mask = (data['activity_contributions']['area_id'] == area) & (data['activity_contributions']['pressure'] == p['ID'])
             relevant_contributions = data['activity_contributions'].loc[mask, :]
             if len(relevant_contributions) > 0:
                 contribution_sum = relevant_contributions['contribution'].sum()
@@ -269,7 +273,7 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings: 
     # make sure pressure contributions don't exceed 100 %
     for area in areas:
         for s_i, s in total_pressure_load_levels.iterrows():
-            mask = (data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID'])
+            mask = (data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['state'] == s['ID'])
             relevant_contributions = data['pressure_contributions'].loc[mask, :]
             if len(relevant_contributions) > 0:
                 contribution_sum = relevant_contributions['contribution'].sum()
@@ -293,7 +297,7 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings: 
             c = cases.loc[cases['area_id'] == area, :]  # select cases for current area
             for p_i, p in pressure_levels.iterrows():
                 relevant_measures = c.loc[c['pressure'] == p['ID'], :]  # select all measures affecting the current pressure in the current area
-                relevant_overlaps = data['overlaps'].loc[data['overlaps']['Pressure'] == p['ID'], :]    # select all overlaps affecting current pressure
+                relevant_overlaps = data['overlaps'].loc[data['overlaps']['pressure'] == p['ID'], :]    # select all overlaps affecting current pressure
                 for m_i, m in relevant_measures.iterrows():
                     #
                     # get measure effect (= reduction), and apply modifiers
@@ -311,16 +315,16 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings: 
                     #
                     # overlaps (measure-measure interaction)
                     #
-                    for o_i, o in relevant_overlaps.loc[(relevant_overlaps['Overlapped'] == m['measure']) & (relevant_overlaps['Activity'] == m['activity']), :].iterrows():
-                        if o['Overlapping'] in relevant_measures.loc[relevant_measures['activity'] == m['activity'], 'measure'].values: # ensure the overlapping measure is also for the current activity
-                            reduction = reduction * o['Multiplier']
+                    for o_i, o in relevant_overlaps.loc[(relevant_overlaps['overlapped'] == m['measure']) & (relevant_overlaps['activity'] == m['activity']), :].iterrows():
+                        if o['overlapping'] in relevant_measures.loc[relevant_measures['activity'] == m['activity'], 'measure'].values: # ensure the overlapping measure is also for the current activity
+                            reduction = reduction * o['multiplier']
                     #
                     # contribution
                     #
                     if m['activity'] == 0:
                         contribution = 1    # if activity is 0 (= straight to pressure), contribution will be 1
                     else:
-                        cont_mask = (data['activity_contributions']['Activity'] == m['activity']) & (data['activity_contributions']['Pressure'] == m['pressure']) & (data['activity_contributions']['area_id'] == area)
+                        cont_mask = (data['activity_contributions']['activity'] == m['activity']) & (data['activity_contributions']['pressure'] == m['pressure']) & (data['activity_contributions']['area_id'] == area)
                         contribution = data['activity_contributions'].loc[cont_mask, 'contribution']
                         if len(contribution) == 0:
                             if warnings: print(f'WARNING! Contribution of activity {m["activity"]} to pressure {m["pressure"]} not known! Measure {m["measure"]} will be skipped in area {area}.')
@@ -340,7 +344,7 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings: 
                     #
                     if abs(1 - contribution) > allowed_error and contribution != 0:     # only normalize if there is change in contributions
                         data['activity_contributions'].loc[cont_mask, 'contribution'] = contribution * (1 - reduction)   # reduce the current contribution before normalizing
-                        norm_mask = (data['activity_contributions']['area_id'] == area) & (data['activity_contributions']['Pressure'] == p['ID'])
+                        norm_mask = (data['activity_contributions']['area_id'] == area) & (data['activity_contributions']['pressure'] == p['ID'])
                         relevant_contributions = data['activity_contributions'].loc[norm_mask, 'contribution']
                         data['activity_contributions'].loc[norm_mask, 'contribution'] = relevant_contributions / (1 - reduction * contribution)
 
@@ -367,9 +371,9 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings: 
                     #
                     # overlaps (measure-measure interaction)
                     #
-                    for o_i, o in data['overlaps'].loc[(data['overlaps']['Overlapped'] == m['measure']) & (data['overlaps']['Activity'] == m['activity']) & (data['overlaps']['Pressure'] == m['pressure']), :].iterrows():
-                        if o['Overlapping'] in relevant_measures['measure'].values:
-                            reduction = reduction * o['Multiplier']
+                    for o_i, o in data['overlaps'].loc[(data['overlaps']['overlapped'] == m['measure']) & (data['overlaps']['activity'] == m['activity']) & (data['overlaps']['pressure'] == m['pressure']), :].iterrows():
+                        if o['overlapping'] in relevant_measures['measure'].values:
+                            reduction = reduction * o['multiplier']
                     #
                     # reduce pressure
                     #
@@ -383,21 +387,21 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings: 
         for area in areas:
             for s_i, s in total_pressure_load_levels.iterrows():    # for each state
                 a_i = pressure_levels.columns.get_loc(area)     # column index of current area column
-                relevant_pressures = data['pressure_contributions'].loc[(data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID']), :]  # select contributions of pressures affecting current state in current area
+                relevant_pressures = data['pressure_contributions'].loc[(data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['state'] == s['ID']), :]  # select contributions of pressures affecting current state in current area
                 for p_i, p in relevant_pressures.iterrows():
                     #
                     # main pressure reduction
                     #
                     row_i = pressure_levels.loc[pressure_levels['ID'] == p['pressure']].index[0]
                     reduction = 1 - pressure_levels.iloc[row_i, a_i]    # reduction = 100 % - the part that is left of the pressure
-                    contribution = data['pressure_contributions'].loc[(data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID']) & (data['pressure_contributions']['pressure'] == p['pressure']), 'contribution'].values[0]
+                    contribution = data['pressure_contributions'].loc[(data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['state'] == s['ID']) & (data['pressure_contributions']['pressure'] == p['pressure']), 'contribution'].values[0]
                     #
                     # subpressures
                     #
-                    relevant_subpressures = data['subpressures'].loc[(data['subpressures']['State'] == s['ID']) & (data['subpressures']['State pressure'] == p['pressure']), :]     # find all rows where the current pressure acts as a state pressure for the current state
+                    relevant_subpressures = data['subpressures'].loc[(data['subpressures']['state'] == s['ID']) & (data['subpressures']['state pressure'] == p['pressure']), :]     # find all rows where the current pressure acts as a state pressure for the current state
                     for sp_i, sp in relevant_subpressures.iterrows():   # for each subpressure of the current pressure
-                        sp_row_i = pressure_levels.loc[pressure_levels['ID'] == sp['Reduced pressure']].index[0]
-                        multiplier = sp['Multiplier']   # by how much does the subpressure affect the current pressure
+                        sp_row_i = pressure_levels.loc[pressure_levels['ID'] == sp['reduced pressure']].index[0]
+                        multiplier = sp['multiplier']   # by how much does the subpressure affect the current pressure
                         red = 1 - pressure_levels.iloc[sp_row_i, a_i]    # subpressure reduction = 100 % - the part that is left of the subpressure
                         reduction = reduction + multiplier * red    # the new current pressure reduction is increased by the calculated subpressure reduction
                     try: assert reduction <= 1 + allowed_error
@@ -411,8 +415,8 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings: 
                     # normalize pressure contributions to reflect pressure reduction
                     #
                     if abs(1 - contribution) > allowed_error and contribution != 0:     # only normalize if there is change in contributions
-                        data['pressure_contributions'].loc[(data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID']) & (data['pressure_contributions']['pressure'] == p['pressure']), 'contribution'] = contribution * (1 - reduction)   # reduce the current contribution before normalizing
-                        norm_mask = (data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['State'] == s['ID'])
+                        data['pressure_contributions'].loc[(data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['state'] == s['ID']) & (data['pressure_contributions']['pressure'] == p['pressure']), 'contribution'] = contribution * (1 - reduction)   # reduce the current contribution before normalizing
+                        norm_mask = (data['pressure_contributions']['area_id'] == area) & (data['pressure_contributions']['state'] == s['ID'])
                         relevant_contributions = data['pressure_contributions'].loc[norm_mask, 'contribution']
                         data['pressure_contributions'].loc[norm_mask, 'contribution'] = relevant_contributions / (1 - reduction * contribution)
                         try: assert abs(1 - data['pressure_contributions'].loc[norm_mask, 'contribution'].sum()) <= allowed_error
@@ -431,7 +435,7 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings: 
     for area in areas:
         a_i = total_pressure_load_levels.columns.get_loc(area)
         for s_i, s in total_pressure_load_levels.iterrows():
-            row = data['thresholds'].loc[(data['thresholds']['State'] == s['ID']) & (data['thresholds']['area_id'] == area), cols]
+            row = data['thresholds'].loc[(data['thresholds']['state'] == s['ID']) & (data['thresholds']['area_id'] == area), cols]
             if len(row) == 0:
                 continue
             for col in cols:
@@ -480,13 +484,13 @@ def set_id_columns(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame]) 
                 res[key][r] = res[key][r].rename(columns={col: data['area'].loc[data['area']['ID'] == col, 'area'].values[0] for col in [c for c in res[key][r].columns if c != 'ID']})
     relations = {
         'MeasureEffects': ['measure', 'activity', 'pressure', 'state'], 
-        'ActivityContributions': ['Activity', 'Pressure', 'area_id'], 
-        'PressureContributions': ['State', 'pressure', 'area_id']
+        'ActivityContributions': ['activity', 'pressure', 'area_id'], 
+        'PressureContributions': ['state', 'pressure', 'area_id']
     }
     conversions = {
-        'Activity': 'activity', 
-        'Pressure': 'pressure', 
-        'State': 'state', 
+        'activity': 'activity', 
+        'pressure': 'pressure', 
+        'state': 'state', 
         'area_id': 'area'
     }
     for key in relations:
