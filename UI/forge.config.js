@@ -1,5 +1,19 @@
 const { FusesPlugin } = require('@electron-forge/plugin-fuses');
 const { FuseV1Options, FuseVersion } = require('@electron/fuses');
+const path = require('path');
+const fse  = require('fs-extra');
+
+async function updateStartSOM() {
+  const src  = path.resolve(__dirname, '../src');
+  const dest = path.resolve(__dirname, 'src');
+  await fse.copy(src, dest, { overwrite: true });
+}
+
+async function updateMakeSOM() {
+  const src  = path.resolve(__dirname, '../src');
+  const dest = path.resolve(__dirname, 'out/application-win32-x64/src');
+  await fse.copy(src, dest, { overwrite: true });
+}
 
 module.exports = {
   packagerConfig: {
@@ -29,8 +43,6 @@ module.exports = {
       name: '@electron-forge/plugin-auto-unpack-natives',
       config: {},
     },
-    // Fuses are used to enable/disable various Electron functionality
-    // at package time, before code signing the application
     new FusesPlugin({
       version: FuseVersion.V1,
       [FuseV1Options.RunAsNode]: false,
@@ -41,4 +53,12 @@ module.exports = {
       [FuseV1Options.OnlyLoadAppFromAsar]: true,
     }),
   ],
+  hooks: {
+    postStart: async (forgeConfig) => {
+      await updateStartSOM();
+    }, 
+    postMake: async (forgeConfig, makeResults) => {
+      await updateMakeSOM();
+    }
+  }
 };

@@ -42,7 +42,7 @@ ipcMain.handle('load-parameters', () => {
 /* 
 handle python console
 */
-let scriptName = '../src/main.py'
+let scriptName = './src/main.py'
 
 let runningProcess = null;
 
