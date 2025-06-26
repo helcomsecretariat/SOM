@@ -14,7 +14,7 @@
         <link rel="prev" href="../som_plots/">
       
       
-        <link rel="next" href="../../guide/welcome/">
+        <link rel="next" href="../api_tools/">
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
@@ -763,10 +763,42 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#src.utilities.sanitize_string" class="md-nav__link">
+    <span class="md-ellipsis">
+      sanitize_string
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api_tools/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    api_tools
+    
+  </span>
+  
+
+      </a>
     </li>
   
 
@@ -998,6 +1030,29 @@
   
   <span class="md-ellipsis">
     Input data (legacy)
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guide/linking-areas/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Linking areas
     
   </span>
   
@@ -2386,6 +2441,82 @@ All arguments should be 1D arrays with percentage as unit.</p>
     <span class="n">x_vals</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="n">step</span><span class="p">)</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">x_vals</span><span class="p">,</span> <span class="n">y_vals</span><span class="p">)</span>
     <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="src.utilities.sanitize_string" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">sanitize_string</span><span class="p">(</span><span class="n">s</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Makes a string valid for file and directory names.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>s</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>string to sanitize.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="quote">
+              <summary>Source code in <code>src/utilities.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">262</span>
+<span class="normal">263</span>
+<span class="normal">264</span>
+<span class="normal">265</span>
+<span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span>
+<span class="normal">270</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">sanitize_string</span><span class="p">(</span><span class="n">s</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Makes a string valid for file and directory names.</span>
+
+<span class="sd">    Arguments:</span>
+<span class="sd">        s (str): string to sanitize.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">place_holder</span> <span class="o">=</span> <span class="s1">&#39;_&#39;</span>
+    <span class="k">for</span> <span class="n">invalid</span> <span class="ow">in</span> <span class="p">[</span><span class="s1">&#39;*&#39;</span><span class="p">,</span> <span class="s1">&#39;&quot;&#39;</span><span class="p">,</span> <span class="s1">&#39;/&#39;</span><span class="p">,</span> <span class="s1">&#39;</span><span class="se">\\</span><span class="s1">&#39;</span><span class="p">,</span> <span class="s1">&#39;&lt;&#39;</span><span class="p">,</span> <span class="s1">&#39;&gt;&#39;</span><span class="p">,</span> <span class="s1">&#39;:&#39;</span><span class="p">,</span> <span class="s1">&#39;|&#39;</span><span class="p">,</span> <span class="s1">&#39;?&#39;</span><span class="p">]:</span>
+        <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="n">invalid</span><span class="p">,</span> <span class="n">place_holder</span><span class="p">)</span>
+    <span class="n">s</span> <span class="o">=</span> <span class="n">s</span><span class="o">.</span><span class="n">strip</span><span class="p">()</span>   <span class="c1"># remove leading and trailing whitespace</span>
+    <span class="k">return</span> <span class="n">s</span>
 </code></pre></div></td></tr></table></div>
             </details>
     </div>
