@@ -17,4 +17,6 @@ Requires the following attributes:
 
 ## Subbasin layer
 
+Requires the following attributes:
+
 - ID: unique identifier field
