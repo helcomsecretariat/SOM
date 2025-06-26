@@ -8,7 +8,7 @@ import os
 import matplotlib.pyplot as plt
 import multiprocessing
 import copy
-from utilities import display_progress
+from utilities import display_progress, sanitize_string
 
 
 def plot_total_pressure_load_levels(area, res, data, out_dir, progress, lock):

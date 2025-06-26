@@ -258,3 +258,16 @@ def plot_dist(dist: np.ndarray):
     plt.plot(x_vals, y_vals)
     plt.show()
 
+
+def sanitize_string(s: str):
+    """
+    Makes a string valid for file and directory names.
+
+    Arguments:
+        s (str): string to sanitize.
+    """
+    place_holder = '_'
+    for invalid in ['*', '"', '/', '\\', '<', '>', ':', '|', '?']:
+        s = s.replace(invalid, place_holder)
+    s = s.strip()   # remove leading and trailing whitespace
+    return s

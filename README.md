@@ -1,4 +1,4 @@
-# Sufficiency and Efficiency of Measures model
+# Sufficiency of Measures
 
 Model developed at HELCOM to assess what kind of improvements in environmental state and pressures can be achieved with existing measures [(more info)](https://helcom.fi/baltic-sea-action-plan/som/).
 
@@ -65,9 +65,9 @@ Possible future development steps to implement (but are not yet due to lack of d
 #### ACTION
 
 [Project description](https://helcom.fi/helcom-at-work/projects/action/)  
-[Code](/legacy/helcom_action)
+[Code](/legacy/helcom_action.zip)
 
 #### BLUES
 
 [Project description](https://helcom.fi/helcom-at-work/projects/blues/)  
-[Code](/legacy/helcom_blues)
+[Code](/legacy/helcom_blues.zip)

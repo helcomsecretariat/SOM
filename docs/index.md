@@ -13,6 +13,7 @@ Tool available on [GitHub](https://github.com/helcomsecretariat/SOM).
 ## Project layout
 
     src/                # Project source code.
+    UI/                 # User interface source code.
     pyproject.toml      # Project build requirements file.
     mkdocs.yml          # Documentation configuration file.
     docs/               # Documentation resources.
