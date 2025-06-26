@@ -4,10 +4,11 @@ Main script calling methods to do SOM calculations.
 
 # main package script
 
-import toml
 import som_app
 import som_plots
 from utilities import Timer, fail_with_message, display_progress
+
+import toml
 import os
 import pandas as pd
 import numpy as np
@@ -114,6 +115,7 @@ def run(config: dict, skip_sim: bool = False):
     # create log directory
     # NOTE! Existing logs are not deleted before new runs, only overwritten
     log_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'log')
+    if os.path.exists(log_dir): shutil.rmtree(log_dir)
     os.makedirs(log_dir, exist_ok=True)
 
     #
@@ -206,6 +208,11 @@ if __name__ == "__main__":
             assert ('--simulations' in sys.argv)
             if ('--use_scenario' in sys.argv): assert ('--scenario' in sys.argv)
             if ('--use_random_seed' in sys.argv): assert ('--random_seed' in sys.argv)
+            if ('--link_mpas_to_subbasins' in sys.argv):
+                for arg in ['--mpa_layer_path', '--mpa_layer_id_attribute', '--mpa_layer_name_attribute', 
+                            '--mpa_layer_measure_attribute', '--mpa_layer_measure_delimiter', 
+                            '--subbasin_layer_path', '--subbasin_layer_id_attribute']:
+                    assert (arg in sys.argv)
         except Exception as e:
             print('ERROR! Empty parameter fields!')
             exit()
@@ -214,6 +221,7 @@ if __name__ == "__main__":
         config['use_scenario'] = True if '--use_scenario' in sys.argv else False
         config['use_random_seed'] = True if '--use_random_seed' in sys.argv else False
         config['use_parallel_processing'] = True if '--use_parallel_processing' in sys.argv else False
+        config['link_mpas_to_subbasins'] = True if '--link_mpas_to_subbasins' in sys.argv else False
         config['create_plots'] = True if '--create_plots' in sys.argv else False
         for i in range(len(sys.argv)):
             if sys.argv[i] in ['--general_input']:
@@ -232,6 +240,20 @@ if __name__ == "__main__":
                 config['scenario'] = sys.argv[i+1]
             if sys.argv[i] in ['--random_seed']:
                 config['random_seed'] = int(sys.argv[i+1])
+            if sys.argv[i] in ['--mpa_layer_path']:
+                config['layers']['mpa']['path'] = sys.argv[i+1]
+            if sys.argv[i] in ['--mpa_layer_id_attribute']:
+                config['layers']['mpa']['id_attr'] = sys.argv[i+1]
+            if sys.argv[i] in ['--mpa_layer_name_attribute']:
+                config['layers']['mpa']['name_attr'] = sys.argv[i+1]
+            if sys.argv[i] in ['--mpa_layer_measure_attribute']:
+                config['layers']['mpa']['measure_attr'] = sys.argv[i+1]
+            if sys.argv[i] in ['--mpa_layer_measure_delimiter']:
+                config['layers']['mpa']['measure_delimiter'] = sys.argv[i+1]
+            if sys.argv[i] in ['--subbasin_layer_path']:
+                config['layers']['subbasin']['path'] = sys.argv[i+1]
+            if sys.argv[i] in ['--subbasin_layer_id_attribute']:
+                config['layers']['subbasin']['id_attr'] = sys.argv[i+1]
     
     # run analysis
     run(config, skip_sim)

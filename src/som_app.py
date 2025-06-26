@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import os
 from som_tools import *
+import api_tools
 from utilities import *
 import pickle
 import copy
@@ -20,8 +21,17 @@ def build_input(config: dict) -> dict[str, pd.DataFrame]:
     Returns:
         input_data (dict): SOM input data.
     """
+    # process legacy input data to be usable by the tool
     if config['use_legacy_input_data']:
+        # process input data
         input_data = process_input_data(config)
+    
+        # load areas from layers and adjust area ids
+        if config['link_mpas_to_subbasins']:
+            print('Linking areas in input data...')
+            input_data = api_tools.link_areas(config, input_data)
+        
+        # export input data to excel
         path = os.path.realpath(config['input_data_legacy']['general_input'])
         if not os.path.isfile(path): path = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['input_data_legacy']['general_input'])
         path = os.path.join(os.path.dirname(path), 'input_data.xlsx')
@@ -29,31 +39,45 @@ def build_input(config: dict) -> dict[str, pd.DataFrame]:
         with pd.ExcelWriter(path) as writer:
             for key in input_data:
                 input_data[key].to_excel(writer, sheet_name=key, index=False)
-    else:
-        path = os.path.realpath(config['input_data']['path'])
-        if not os.path.isfile(path): path = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['input_data']['path'])
-        input_data = pd.read_excel(io=path, sheet_name=None)
-        conversion_sheet = [
-            ('measure_effects', 'reduction'), 
-            ('activity_contributions', 'contribution'), 
-            ('pressure_contributions', 'contribution'), 
-            ('thresholds', 'PR'), 
-            ('thresholds', '10'), 
-            ('thresholds', '25'), 
-            ('thresholds', '50')
-        ]
-        def str_to_arr(s):
-            if type(s) is float: return s
-            arr = []
-            for a in [x for x in s.replace('[', '').replace(']', '').split(' ')]:
-                if a != '':
-                    arr.append(a)
-            arr = np.array(arr)
-            arr = arr.astype(float)
-            arr = arr / np.sum(arr)
-            return arr
-        for sheet in conversion_sheet:
-            input_data[sheet[0]][sheet[1]] = input_data[sheet[0]][sheet[1]].apply(str_to_arr)
+    
+    # load processed input data used by the tool
+    path = os.path.realpath(config['input_data']['path'])
+    if not os.path.isfile(path): path = os.path.join(os.path.dirname(os.path.realpath(__file__)), config['input_data']['path'])
+    input_data = pd.read_excel(io=path, sheet_name=None)
+    conversion_sheet = [
+        ('measure_effects', 'reduction'), 
+        ('activity_contributions', 'contribution'), 
+        ('pressure_contributions', 'contribution'), 
+        ('thresholds', 'PR'), 
+        ('thresholds', '10'), 
+        ('thresholds', '25'), 
+        ('thresholds', '50')
+    ]
+    def str_to_arr(s):
+        if type(s) is float: return s
+        arr = []
+        for a in [x for x in s.replace('[', '').replace(']', '').split(' ')]:
+            if a != '':
+                arr.append(a)
+        arr = np.array(arr)
+        arr = arr.astype(float)
+        arr = arr / np.sum(arr)
+        return arr
+    for sheet in conversion_sheet:
+        input_data[sheet[0]][sheet[1]] = input_data[sheet[0]][sheet[1]].apply(str_to_arr)
+    
+    # load areas from layers and adjust area ids (if not using legacy data)
+    # if done this way, input data file is not updated
+    if config['link_mpas_to_subbasins'] and not config['use_legacy_input_data']:
+        print('Linking areas in input data...')
+        input_data = api_tools.link_areas(config, input_data)
+
+    # make sure areas do not go over 32 characters
+    # input_data['area']['area'] = input_data['area']['area'].apply(lambda x: x if len(x) <= 32 else x[:32])
+    # validate IDs
+    for key in ['measure', 'activity', 'pressure', 'state', 'area']:
+        input_data[key][key] = input_data[key][key].apply(sanitize_string)
+    
     return input_data
 
 

@@ -1,5 +1,7 @@
 # Configuration file
 
+####################################
+
 # export path
 export_path = './src/data/results.xlsx'
 
@@ -19,6 +21,8 @@ use_parallel_processing = true
 
 # plot results
 create_plots = true
+
+####################################
 
 # excel input files
 use_legacy_input_data = false
@@ -41,6 +45,8 @@ use_legacy_input_data = false
             state = 'State ID'
             area = 'Area ID'
 
+####################################
+
 # filter selection for results, include all if empty
 [filter]
     area = []
@@ -48,3 +54,23 @@ use_legacy_input_data = false
     activity = []
     pressure = []
     state = []
+
+####################################
+
+link_mpas_to_subbasins = false
+
+# used by the helcom api for linking MPAs to subbasins
+[layers]
+
+    [layers.subbasin]
+    url = ""
+    path = "data/layers/subbasins_by_country/subbasins_by_country.shp"
+    id_attr = "OBJECTID"
+
+    [layers.mpa]
+    url = "https://maps.helcom.fi/arcgis/rest/services/MADS/Biodiversity/MapServer/54/query?where=1%3D1&outFields=%2A&f=geoJSON"
+    path = "data/layers/mpas/mpas.shp"
+    measure_attr = "Measures"
+    id_attr = "MPA_ID"
+    name_attr = "Name"
+    measure_delimiter = ";"

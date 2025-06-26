@@ -1,9 +1,5 @@
 """
-Copyright (c) 2024 Baltic Marine Environment Protection Commission
-
-LICENSE available under 
-local: 'SOM/protect_baltic/LICENSE'
-url: 'https://github.com/helcomsecretariat/SOM/blob/main/protect_baltic/LICENCE'
+Methods for linking the data from one polygon layer to the SOM input data of another polygon layer.
 """
 
 from utilities import *
@@ -12,7 +8,6 @@ import numpy as np
 import pandas as pd
 import geopandas as gpd
 import os
-import random
 
 
 def link_areas(config: dict, data: dict[str, pd.DataFrame]):
@@ -58,12 +53,7 @@ def link_areas(config: dict, data: dict[str, pd.DataFrame]):
 
     #
     # Get measures in MPAs
-    # NOTE: modify this once actual layer structure is known
     #
-
-    # create mock data
-    mpa[config['layers']['mpa']['measure_attr']] = None
-    mpa[config['layers']['mpa']['measure_attr']] = mpa[config['layers']['mpa']['measure_attr']].apply(lambda x: config['layers']['mpa']['measure_delimiter'].join(np.unique([str(random.randint(0, 9)) for i in range(10)])))
 
     # explode so there's only one measure per row
     mpa[config['layers']['mpa']['measure_attr']] = mpa[config['layers']['mpa']['measure_attr']].apply(lambda x: x.split(config['layers']['mpa']['measure_delimiter']))

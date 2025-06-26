@@ -19,7 +19,7 @@ function createWindow() {
 
   // hide menu bar
   win.setMenuBarVisibility(false);
-  // win.removeMenu();
+  win.removeMenu();
   
   win.loadFile('assets/index.html');
 }

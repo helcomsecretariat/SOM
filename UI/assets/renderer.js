@@ -12,6 +12,9 @@ function createInputField(param) {
   else if (param.arg === '--input_data') { label.classList.add('input-data'); }
   else if (param.arg === '--scenario') { label.classList.add('scenario'); }
   else if (param.arg === '--random_seed') { label.classList.add('random-seed'); }
+  else if (['--mpa_layer_path', '--mpa_layer_id_attribute', '--mpa_layer_name_attribute', 
+            '--mpa_layer_measure_attribute', '--mpa_layer_measure_delimiter', 
+            '--subbasin_layer_path', '--subbasin_layer_id_attribute'].includes(param.arg)) { label.classList.add('mpas-subbasins'); }
 
   let input;
 
@@ -28,6 +31,9 @@ function createInputField(param) {
       input.dataset.type = param.type;
       if (param.arg === '--scenario') { input.classList.add('scenario'); }
       else if (param.arg === '--random_seed') { input.classList.add('random-seed'); }
+      else if (['--mpa_layer_id_attribute', '--mpa_layer_name_attribute', 
+                '--mpa_layer_measure_attribute', '--mpa_layer_measure_delimiter', 
+                '--subbasin_layer_id_attribute'].includes(param.arg)) { input.classList.add('mpas-subbasins'); }
       wrapper.appendChild(label);
       wrapper.appendChild(input);
       break;
@@ -63,6 +69,12 @@ function createInputField(param) {
         input.addEventListener('change', function() {
           if (this.checked) { document.querySelectorAll('.random-seed').forEach(function (element) { element.style.display = 'flex'; }); }
           else { document.querySelectorAll('.random-seed').forEach(function (element) { element.style.display = 'none'; }); }
+        });
+        input.checked = false; // random seed unchecked by default
+      } else if (param.arg === '--link_mpas_to_subbasins') {
+        input.addEventListener('change', function() {
+          if (this.checked) { document.querySelectorAll('.mpas-subbasins').forEach(function (element) { element.style.display = 'flex'; }); }
+          else { document.querySelectorAll('.mpas-subbasins').forEach(function (element) { element.style.display = 'none'; }); }
         });
         input.checked = false; // random seed unchecked by default
       }
@@ -104,6 +116,7 @@ function createInputField(param) {
       fileWrapper.className = 'file-input-wrapper';
       if (['--general_input', '--measure_effects', '--pressure_state'].includes(param.arg)) { fileWrapper.classList.add('input-data-legacy'); }
       else if (param.arg === '--input_data') { fileWrapper.classList.add('input-data'); }
+      else if (['--mpa_layer_path', '--subbasin_layer_path'].includes(param.arg)) { fileWrapper.classList.add('mpas-subbasins'); }
       fileWrapper.appendChild(input);
       fileWrapper.appendChild(fileButton);
       wrapper.appendChild(label);
@@ -285,6 +298,7 @@ window.addEventListener('DOMContentLoaded', async () => {
   document.querySelectorAll('.input-data').forEach(function (element) { element.style.display = 'none'; });
   document.querySelectorAll('.scenario').forEach(function (element) { element.style.display = 'none'; });
   document.querySelectorAll('.random-seed').forEach(function (element) { element.style.display = 'none'; });
+  document.querySelectorAll('.mpas-subbasins').forEach(function (element) { element.style.display = 'none'; });
   // start console with logo printed
   document.getElementById('output').textContent = som_logo;
 });

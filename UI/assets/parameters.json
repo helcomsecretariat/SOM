@@ -30,6 +30,46 @@
     "type": "filepath"
   },
   {
+    "name": "Link HELCOM MPAs to subbasins",
+    "arg": "--link_mpas_to_subbasins",
+    "type": "boolean"
+  },
+  {
+    "name": "MPA layer path",
+    "arg": "--mpa_layer_path",
+    "type": "filepath"
+  },
+  {
+    "name": "MPA layer ID attribute",
+    "arg": "--mpa_layer_id_attribute",
+    "type": "text"
+  },
+  {
+    "name": "MPA layer name attribute",
+    "arg": "--mpa_layer_name_attribute",
+    "type": "text"
+  },
+  {
+    "name": "MPA layer measure attribute",
+    "arg": "--mpa_layer_measure_attribute",
+    "type": "text"
+  },
+  {
+    "name": "MPA layer measure delimiter",
+    "arg": "--mpa_layer_measure_delimiter",
+    "type": "text"
+  },
+  {
+    "name": "Subbasin layer path",
+    "arg": "--subbasin_layer_path",
+    "type": "filepath"
+  },
+  {
+    "name": "Subbasin layer ID attribute",
+    "arg": "--subbasin_layer_id_attribute",
+    "type": "text"
+  },
+  {
     "name": "Simulations",
     "arg": "--simulations",
     "type": "integer"
