@@ -79,10 +79,7 @@ Please note that most column names are case sensitive.
 
 - Activity development scenarios
     - ```column:Activity```: Activity ID, linked to ```sheet:Activity ID```
-    - ```column:BAU```: Business As Usual, how much the activity will change without extra action (fraction)
-    - ```column:ChangeMin```: Lowest potential change (fraction)
-    - ```column:ChangeML```: Most likely change (fraction)
-    - ```column:ChangeMax```: Highest potential change (fraction)
+    - ```column:###```: Subsequent columns are treated as the change / scenarios (fraction)
 
 #### ```sheet:Overlaps```
 ![image](images/input_overlaps.png)
