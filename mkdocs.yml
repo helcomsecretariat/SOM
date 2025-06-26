@@ -51,6 +51,7 @@ nav:
     - som_tools: modules/som_tools.md
     - som_plots: modules/som_plots.md
     - utilities: modules/utilities.md
+    - api_tools: modules/api_tools.md
   - User Guide:
       - Welcome: guide/welcome.md
       - Installation: guide/installation.md
@@ -60,6 +61,7 @@ nav:
       - File structure: guide/file-structure.md
       - Input data: guide/input-data.md
       - Input data (legacy): guide/input-data-legacy.md
+      - Linking areas: guide/linking-areas.md
 plugins:
   - search
   - mkdocstrings:

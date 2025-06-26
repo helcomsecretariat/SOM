@@ -10,6 +10,10 @@ For the previous version of the input data, see [Input data (legacy)](input-data
 
 Please note that most column names are case sensitive.
 
+NOTE! Certain characters are not allowed in the name columns of the ID sheets due to OS restrictions, 
+and may lead to crashes or unexpected behavior. To avoid this, try to not use special characters or letters 
+in the names. 
+
 ## Probability Distributions
 
 When the input data contains probability distributions, they will follow this format:
