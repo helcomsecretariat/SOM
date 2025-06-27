@@ -14,7 +14,8 @@ function createWindow() {
       contextIsolation: true, // true = safe
       nodeIntegration: false, // false = safe
       preload: path.join(__dirname, 'assets/preload.js')
-    }
+    }, 
+    icon: path.join(__dirname, 'assets/Logo_icon_FINAL.jpg')
   });
 
   // hide menu bar
