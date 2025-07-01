@@ -1,4 +1,4 @@
-The documentation has been built using [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) as a static website, and are hosted on the GitHub Pages service.
+The documentation has been built using [Material for MkDocs](https://squidfunk.github.io/mkdocs-material/) as a static website, and is hosted on the GitHub Pages service.
 
 The doc files are located in the `docs/` directory and configured in the `mkdocs.yml` file.
 
