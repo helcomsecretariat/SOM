@@ -45,6 +45,17 @@ nav:
   - Home: 
     - Sufficiency of Measures: index.md
     - License: license.md
+  - User Guide:
+    - Welcome: guide/welcome.md
+    - Installation: guide/installation.md
+    - Using the tool: guide/using-the-tool.md
+    - Using the UI: guide/using-the-gui.md
+    - Configuration: guide/configuration.md
+    - File structure: guide/file-structure.md
+    - Input data: guide/input-data.md
+    - Input data (legacy): guide/input-data-legacy.md
+    - Linking areas: guide/linking-areas.md
+    - Interpreting the results: guide/interpreting-the-results.md
   - API Reference:
     - main: modules/main.md
     - som_app: modules/som_app.md
@@ -52,16 +63,11 @@ nav:
     - som_plots: modules/som_plots.md
     - utilities: modules/utilities.md
     - api_tools: modules/api_tools.md
-  - User Guide:
-      - Welcome: guide/welcome.md
-      - Installation: guide/installation.md
-      - Using the tool: guide/using-the-tool.md
-      - Using the UI: guide/using-the-gui.md
-      - Configuration: guide/configuration.md
-      - File structure: guide/file-structure.md
-      - Input data: guide/input-data.md
-      - Input data (legacy): guide/input-data-legacy.md
-      - Linking areas: guide/linking-areas.md
+  - Development:
+    - Welcome: development/welcome.md
+    - Documentation: development/documentation.md
+    - User interface: development/user-interface.md
+    - Further development: development/further-development.md
 plugins:
   - search
   - mkdocstrings:

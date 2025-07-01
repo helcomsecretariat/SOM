@@ -6,3 +6,4 @@ Model file structure (in ```src/``` directory):
 - ```som_tools.py```: Input data loading functions
 - ```som_plots.py```: Plot functions for results
 - ```utilities.py```: Small utility functions
+- ```api_tools.py```: Functions for linking areas

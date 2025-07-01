@@ -115,10 +115,7 @@ When the input data contains probability distributions, they will follow this fo
 
 - Activity development scenarios, how much each activity is expected to change during various scenarios, each value is a multiplier
     - ```column:activity```: Activity ID, linked to ```sheet:activity```
-    - ```column:BAU```: Business As Usual, activity change without extra action (fraction)
-    - ```column:ChangeMin```: Lowest potential change (fraction)
-    - ```column:ChangeML```: Most likely change (fraction)
-    - ```column:ChangeMax```: Highest potential change (fraction)
+    - ```column:###```: Subsequent columns are treated as the change / scenarios (fraction)
 
 #### ```sheet:subpressures```
 ![image](images/input_subpressures_new.png)

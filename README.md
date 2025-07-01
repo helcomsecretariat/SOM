@@ -4,9 +4,9 @@ Model developed at HELCOM to assess what kind of improvements in environmental s
 
 This project continues on the work done on the SOM model in the [HELCOM BLUES](https://github.com/helcomsecretariat/SOM/tree/main/legacy/helcom_blues) project as part of the [HELCOM PROTECT BALTIC](https://protectbaltic.eu/) project. 
 
-## Use
+## Usage & Installation
 
-See the [wiki](https://helcomsecretariat.github.io/SOM/guide/using-the-tool).
+The [wiki](https://helcomsecretariat.github.io/SOM/guide/installation) contains detailed instructions on installing the tool and its requirements, as well as instructions on how to use it. 
 
 ## SOM
 
@@ -24,9 +24,9 @@ Information on the input data is explained in the [wiki](https://helcomsecretari
 
 The model links together the various inputs as shown in the diagram below.
 
-![som-model-flowchart](som_model_flow.png)
+![som-model-flowchart](docs/development/images/SOM_diagram.png)
 
-The figure above details the links between each element of the model, both for the original model developed in the [ACTION](https://helcom.fi/helcom-at-work/projects/action/) project and further expanded on in the [BLUES](https://helcom.fi/helcom-at-work/projects/blues/) project. For each individual simulation run, these calculations occur:
+The figure above details the links between each element of the model. For each case area, a set of simulations are done. For each individual simulation run, these calculations occur:
 
 1. An individual random sample is picked from each of the probability distributions representing the measure reductions, activity and pressure contributions, and GES thresholds.
 
@@ -38,20 +38,11 @@ The figure above details the links between each element of the model, both for t
 4. Total pressure load levels on environmental states are reduced by the reduction in its respective pressure contributions (or directly through straight-to-state measures).
     - Reduction = Pressure level reduction * Pressure contribution
 
-### Next development steps
+Once complete, the means and standard errors of the observed changes are calculated from the simulation results to assess:
 
-The tool will implement the following aspects:
-
-- Multiple simulations to assess uncertainty of results
-- Incorporating GIS layers in determining cases and areas
-- Result visualisation
-
-Possible future development steps to implement (but are not yet due to lack of data):
-
-- Ecosystem services & Benefits
-- Impact on human well-being
-- Incentives
-- Drivers
+- Reduction in pressure levels in each case area.
+- Reduction in total pressure load on each environmental state for each case area.
+- Gap to target reduction (threshold) for the total pressure load on each environmental state for each case area.
 
 ## Current codebase
 

@@ -190,6 +190,7 @@ def run(config: dict, skip_sim: bool = False):
 
     return
 
+
 if __name__ == "__main__":
     timer = Timer()     # start a timer to track computation time
     print('\nInitiating program...\n')
