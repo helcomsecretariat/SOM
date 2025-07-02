@@ -1142,6 +1142,29 @@
   
   
     <li class="md-nav__item">
+      <a href="../../development/tool/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Tool
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../development/user-interface/" class="md-nav__link">
         
   
@@ -2800,7 +2823,7 @@ Uncertainty is determined as standard error of the mean.</p>
             <span class="n">normalize_factor</span><span class="p">[</span><span class="n">pressure_id</span><span class="p">][</span><span class="n">area</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="o">+</span> <span class="n">scenario_sum</span> <span class="o">-</span> <span class="n">actual_sum</span><span class="p">[</span><span class="n">pressure_id</span><span class="p">][</span><span class="n">area</span><span class="p">]</span>
 
     <span class="k">def</span><span class="w"> </span><span class="nf">normalize</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">pressure_id</span><span class="p">,</span> <span class="n">area_id</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">value</span> <span class="o">*</span> <span class="n">normalize_factor</span><span class="p">[</span><span class="n">pressure_id</span><span class="p">][</span><span class="n">area_id</span><span class="p">]</span>
+        <span class="k">return</span> <span class="n">value</span> <span class="o">/</span> <span class="n">normalize_factor</span><span class="p">[</span><span class="n">pressure_id</span><span class="p">][</span><span class="n">area_id</span><span class="p">]</span>
 
     <span class="n">act_to_press</span><span class="p">[</span><span class="s1">&#39;contribution&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="n">act_to_press</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="n">normalize</span><span class="p">(</span><span class="n">x</span><span class="p">[</span><span class="s1">&#39;contribution&#39;</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="s1">&#39;pressure&#39;</span><span class="p">],</span> <span class="n">x</span><span class="p">[</span><span class="s1">&#39;area_id&#39;</span><span class="p">]),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
 
