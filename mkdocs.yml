@@ -66,6 +66,7 @@ nav:
   - Development:
     - Welcome: development/welcome.md
     - Documentation: development/documentation.md
+    - Tool: development/tool.md
     - User interface: development/user-interface.md
     - Further development: development/further-development.md
 plugins:
