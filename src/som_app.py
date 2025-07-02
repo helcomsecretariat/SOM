@@ -189,7 +189,7 @@ def build_scenario(data: dict[str, pd.DataFrame], scenario: str) -> pd.DataFrame
             normalize_factor[pressure_id][area] = 1 + scenario_sum - actual_sum[pressure_id][area]
 
     def normalize(value, pressure_id, area_id):
-        return value * normalize_factor[pressure_id][area_id]
+        return value / normalize_factor[pressure_id][area_id]
 
     act_to_press['contribution'] = act_to_press.apply(lambda x: normalize(x['contribution'], x['pressure'], x['area_id']), axis=1)
     
