@@ -1,72 +1,67 @@
-## Download the model
+These steps go through the installation of the SOM package for normal users on a Windows system. 
+For developers, see [Installation (developers)](installation-developers.md).
 
-The code can be downloaded from the [repository](https://github.com/helcomsecretariat/SOM) (steps highlighted in red). If you are using the graphical user interface (GUI), instead download the compiled tool from [releases](https://github.com/helcomsecretariat/SOM/releases).
+## 1. Installing Python
 
-![image](images/install_github_1.png)
-![image](images/install_github_2.png)
+Running the SOM tool requires Python version 3.12 or above, which can be downloaded [here](https://www.python.org/downloads/). Follow the installer instructions to set it up. If you are unsure about any options, it is recommended to leave the default settings on.
 
-Once downloaded, unzip the archive into your project directory.
+![image](images/installation/python_download.png)
 
-## Installing requirements
+## 2. Download the model
 
-### Python
+The tool can be downloaded from [here](https://github.com/helcomsecretariat/SOM/releases). Make sure to download the latest release.
 
-Running the SOM tool requires Python version 3.12 or above, which can be downloaded [here](https://www.python.org/downloads/). Follow the installer instructions to set it up. 
+![image](images/installation/som_download.png)
 
-### Node.js
+Once downloaded, unzip the compressed file into your chosen directory. 
 
-To run the script using the GUI from the terminal, Node.js is required, which can be downloaded [here](https://nodejs.org/en). Follow the installer instructions to set it up. Alternatively, download the standalone GUI from [here](https://github.com/helcomsecretariat/SOM/releases) to skip this step.
+1. Right-click on the zip archive and select "Extract All"
+2. Choose your destination folder
+3. Click "Extract"
 
-### Setting up the environment
+    ![image](images/installation/unzip_right_click.png)
 
-Open up a terminal and enter the following:
+    ![image](images/installation/unzip_extract.png)
 
-1. Navigate to your directory
+## 3. Installing requirements
 
-    ```
-    cd "/path/to/SOM"
-    ```
+With the tool extracted, we need to install the required Python dependencies.
 
-2. Create a new python environment (optional, not if using the GUI):
+1. From the extracted files, open the `SOM` directory.
 
-    ```
-    python -m venv .
-    source bin/activate
-    ```
+    ![image](images/installation/extracted.png)
 
-3. Install dependencies:
+2. Copy the path of the directory.
+
+    ![image](images/installation/som_directory_path.png)
+
+3. Open a terminal. This can be done by going to the Windows search field and typing `terminal`. Depending on your system, there might be several options available that will work, such as `Terminal`, `Command Prompt`, `Windows Powershell`.
+
+    ![image](images/installation/search_terminal.png)
+
+4. In the terminal type the command `cd` followed by the copied path enclosed in quotes, and press ENTER.
+
+    ![image](images/installation/terminal_path.png)
+
+5. Next, type the following command into the terminal:
 
     ```
     python -m pip install .
     ```
 
-If Node.js was installed to run the GUI from the terminal, additionally install the required node modules:
+    ![image](images/installation/terminal_pip_install.png)
 
-4. Navigate to UI directory
+6. If done correctly, the terminal should show the following message:
 
-    ```
-    cd "/path/to/SOM/ui"
-    ```
+    ![image](images/installation/terminal_pip_install_successful.png)
 
-5. Install dependencies:
+## 4. Running the tool
 
-    ```
-    npm install
-    ```
+With the requirements installed, the tool can now be run by clicking on the `SOM.exe` file in the directory. 
 
-## Running the tool
+![image](images/installation/run_tool.png)
 
-To run the tool from the terminal:
+![image](images/installation/interface.png)
 
-```
-python "/path/to/SOM/src/main.py"
-```
+For more information, see [Using the tool (GUI)](using-the-gui.md).
 
-To run the UI from the terminal:
-
-```
-cd "/path/to/SOM/ui"
-npm run start
-```
-
-Alternatively, see [Using the tool](using-the-tool.md).

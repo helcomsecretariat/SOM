@@ -1,4 +1,4 @@
-The ```config.toml``` file can be edited in a text editor and follows the [TOML format](https://toml.io/en/). Please note that the options are case sensitive. 
+The ```config.toml``` file in the ```src``` directory can be edited in a text editor and follows the [TOML format](https://toml.io/en/). Please note that the options are case sensitive. 
 
 - ```export_path```: Path of the output excel file
 

@@ -18,40 +18,40 @@ Please note that most column names are case sensitive.
 
 #### ID sheets
 
-![image](images/input_id_sheets.png)
+![image](images/input/input_id_sheets.png)
 
 #### ```sheet:Measure ID```
-![image](images/input_id_sheets_measure.png)
+![image](images/input/input_id_sheets_measure.png)
 
 - Unique identifiers for measures
 
 #### ```sheet:Activity ID```
-![image](images/input_id_sheets_activity.png)
+![image](images/input/input_id_sheets_activity.png)
 
 - Unique identifiers for activities
 
 #### ```sheet:Pressure ID```
-![image](images/input_id_sheets_pressure.png)
+![image](images/input/input_id_sheets_pressure.png)
 
 - Unique identifiers for pressures
 
 #### ```sheet:State ID```
-![image](images/input_id_sheets_state.png)
+![image](images/input/input_id_sheets_state.png)
 
 - Unique identifiers for states
 
 #### ```sheet:Area ID```
-![image](images/input_id_sheets_area.png)
+![image](images/input/input_id_sheets_area.png)
 
 - Unique identifiers for areas
 
 #### ```sheet:Case ID```
-![image](images/input_id_sheets_case.png)
+![image](images/input/input_id_sheets_case.png)
 
 - Unique identifiers for cases
 
 #### ```sheet:ActMeas```
-![image](images/input_actmeas.png)
+![image](images/input/input_actmeas.png)
 
 - Implemented measure cases, all rows are independent, multiple IDs can be joined by a semi-colon.
     - ```column:ID```: Unique case id, linked to ```sheet:Case ID```
@@ -64,7 +64,7 @@ Please note that most column names are case sensitive.
     - ```column:area_id```: Area ID, linked to ```sheet:Area ID```
 
 #### ```sheet:ActPres```
-![image](images/input_actpres.png)
+![image](images/input/input_actpres.png)
 
 - Activity-Pressure links, how much the individual activities contribute to the pressures
     - ```column:Activity```: Activity ID, linked to ```sheet:Activity ID```
@@ -75,14 +75,14 @@ Please note that most column names are case sensitive.
     - ```column:Max#```: Highest potential contribution (%)
 
 #### ```sheet:DEV_scenarios```
-![image](images/input_dev_scenarios.png)
+![image](images/input/input_dev_scenarios.png)
 
 - Activity development scenarios
     - ```column:Activity```: Activity ID, linked to ```sheet:Activity ID```
     - ```column:###```: Subsequent columns are treated as the change / scenarios (fraction)
 
 #### ```sheet:Overlaps```
-![image](images/input_overlaps.png)
+![image](images/input/input_overlaps.png)
 
 - Interaction between separate measures, how joint implementation affects measure efficiency
     - ```column:Overlap```: Overlap ID
@@ -93,7 +93,7 @@ Please note that most column names are case sensitive.
     - ```column:Multiplier```: Multiplier (fraction), how much of the ```column:Overlapped``` measure's effect will be observed if ```column:Overlapping``` is also implemented
 
 #### ```sheet:SubPres```
-![image](images/input_subpres.png)
+![image](images/input/input_subpres.png)
 
 - Links between separate pressures, where *subpressures* make up part of *state pressures*
     - ```column:Reduced pressure```: Subpressure ID, linked to ```sheet:Pressure ID```
@@ -106,7 +106,7 @@ Please note that most column names are case sensitive.
 ```exampleEffect.xslx``` contains survey data on the effects of measures on activity-pressure pairs as surved by expert panels:
 
 #### ```sheet:MTEQ```
-![image](images/input_mteq.png)
+![image](images/input/input_mteq.png)
 
 - General information on the survey questions, each row corresponds to a unique activity-pressure pair, the value 0 (zero) for the Activity, Pressure and State columns is used to denote no value, used for *direct to pressure* / *direct to state* measures
     - ```column:Survey ID```: Survey ID, each unique id corresponds to a specific sheet in ```exampleEffect.xslx```
@@ -117,7 +117,7 @@ Please note that most column names are case sensitive.
     - ```column:Exp#```: Expert columns, details the number of experts that gave each answer, used for weighting
 
 #### ```sheet:Surveys```
-![image](images/input_measeff_survey.png)
+![image](images/input/input_measeff_survey.png)
 
 - Survey sheets detailing the effects of the measures on the activity-pressure pairs in ```sheet:MTEQ```
     - ```column:expert ID```: Expert ID, linked to the corresponding expert columns in ```sheet:MTEQ```
@@ -131,7 +131,7 @@ Please note that most column names are case sensitive.
 ```examplePressureState.xlsx``` contains survey data on pressure contributions to states and total pressure load reduction targets:
 
 #### ```sheet:PSQ```
-![image](images/input_psq.png)
+![image](images/input/input_psq.png)
 
 - General information on the survey questions, each row corresponds to a unique state-area pair
     - ```column:State```: State ID, linked to ```exampleData.xlsx:State ID```
@@ -140,7 +140,7 @@ Please note that most column names are case sensitive.
     - ```column:Exp#```: Expert columns, details the number of experts that gave each answer, used for weighting
 
 #### ```sheet:Surveys```
-![image](images/input_pressstate_survey.png)
+![image](images/input/input_pressstate_survey.png)
 
 - Survey sheets detailing the contributions of individual pressures to states and the total pressure load reduction targets for the state, the targets are for PR (=GES), 10 %, 25 % and 50 % improvement in state
     - ```column:Expert```: Expert ID, linked to the corresponding expert columns in ```sheet:PSQ```, each expert's answers comprise a block of rows corresponding to the state-area pair rows in ```sheet:PSQ```
