@@ -1,6 +1,8 @@
+This page details the use of the Command Line Interface tool, for the Graphical User Interface, see [Using the tool (GUI)](using-the-gui.md)
+
 ## Preparation
 
-Before running the tool, make sure you have all dependencies installed (see [Installation](installation.md)).
+Before running the tool, make sure you have all dependencies installed (see [Installation (developers)](installation-developers.md)).
 
 If you are using the GUI, see the instructions [here instead](using-the-gui.md).
 
@@ -10,9 +12,7 @@ Set the settings in the ```config.toml``` file to your preferences, see [Configu
 
 ## Running the tool
 
-The tool can be executed by running the ```SOM_Launcher.bat``` app from the main directory. 
-
-Alternatively, navigate to the ```src``` directory and run the ```main.py``` directly:
+Run the ```main.py``` from the terminal:
 
 ```
 cd "/path/to/SOM/src"

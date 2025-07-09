@@ -9,7 +9,7 @@ package-dir = {"" = "src"}
 
 [project]
 name = "helcom_protect_baltic_som"
-version = "1.0.0"
+version = "1.1.1"
 description = "A HELCOM Protect Baltic Application"
 readme = "README.md"
 authors = [{ name="Camilo Hernández", email="camilo.hernandez@helcom.fi" }]

@@ -10,9 +10,18 @@ async function updateStartSOM() {
 }
 
 async function updateMakeSOM() {
-  const src  = path.resolve(__dirname, '../src');
-  const dest = path.resolve(__dirname, 'out/application-win32-x64/src');
-  await fse.copy(src, dest, { overwrite: true });
+  // copy python src directory into dist
+  await fse.copy(
+    path.resolve(__dirname, '../src'), 
+    path.resolve(__dirname, 'out/application-win32-x64/src'), 
+    { overwrite: true }
+  );
+  // copy pyproject.toml into dist
+  await fse.copy(
+    path.resolve(__dirname, '../pyproject.toml'), 
+    path.resolve(__dirname, 'out/application-win32-x64/pyproject.toml'), 
+    { overwrite: true }
+  );
 }
 
 module.exports = {

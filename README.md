@@ -10,7 +10,7 @@ The [wiki](https://helcomsecretariat.github.io/SOM/guide/installation) contains 
 
 ## SOM
 
-The scientific foundation of the SOM model framework can be found [here](https://helcom.fi/baltic-sea-action-plan/som/).
+The scientific foundation of the SOM model framework can be found [here](https://helcom.fi/wp-content/uploads/2021/11/Methodology-for-the-sufficiency-of-measures-analysis.pdf).
 
 ### Context
 

@@ -48,8 +48,9 @@ nav:
   - User Guide:
     - Welcome: guide/welcome.md
     - Installation: guide/installation.md
-    - Using the tool: guide/using-the-tool.md
-    - Using the UI: guide/using-the-gui.md
+    - Installation (developers): guide/installation-developers.md
+    - Using the tool (CLI): guide/using-the-tool.md
+    - Using the tool (GUI): guide/using-the-gui.md
     - Configuration: guide/configuration.md
     - File structure: guide/file-structure.md
     - Input data: guide/input-data.md

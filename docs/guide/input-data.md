@@ -26,32 +26,32 @@ When the input data contains probability distributions, they will follow this fo
 ## Data Structure
 
 #### ```sheet:measure```
-![image](images/input_id_sheets_measure_new.png)
+![image](images/input/input_id_sheets_measure_new.png)
 
 - Unique identifiers for measures
 
 #### ```sheet:activity```
-![image](images/input_id_sheets_activity_new.png)
+![image](images/input/input_id_sheets_activity_new.png)
 
 - Unique identifiers for activities
 
 #### ```sheet:pressure```
-![image](images/input_id_sheets_pressure_new.png)
+![image](images/input/input_id_sheets_pressure_new.png)
 
 - Unique identifiers for pressures
 
 #### ```sheet:state```
-![image](images/input_id_sheets_state_new.png)
+![image](images/input/input_id_sheets_state_new.png)
 
 - Unique identifiers for states
 
 #### ```sheet:area```
-![image](images/input_id_sheets_area_new.png)
+![image](images/input/input_id_sheets_area_new.png)
 
 - Unique identifiers for areas
 
 #### ```sheet:cases```
-![image](images/input_cases_new.png)
+![image](images/input/input_cases_new.png)
 
 - Implemented measure cases, all rows are independent
     - ```column:ID```: Unique case id
@@ -64,7 +64,7 @@ When the input data contains probability distributions, they will follow this fo
     - ```column:area_id```: Area ID, linked to ```sheet:Area ID```
 
 #### ```sheet:measure_effects```
-![image](images/input_measure_effects_new.png)
+![image](images/input/input_measure_effects_new.png)
 
 - Activity-Pressure links, how much the individual activities contribute to the pressures
     - ```column:activity```: Activity ID, linked to ```sheet:activity```
@@ -73,7 +73,7 @@ When the input data contains probability distributions, they will follow this fo
     - ```column:contribution```: Measure reduction effect, probability distribution, see [Probability Distributions](#probability-distributions)
 
 #### ```sheet:activity_contributions```
-![image](images/input_activity_contributions_new.png)
+![image](images/input/input_activity_contributions_new.png)
 
 - Measure reduction effects on activity-pressure pairs
     - ```column:measure```: Activity ID, linked to ```sheet:measure```
@@ -83,7 +83,7 @@ When the input data contains probability distributions, they will follow this fo
     - ```column:probability```: Activity contribution, probability distribution, see [Probability Distributions](#probability-distributions)
 
 #### ```sheet:pressure_contributions```
-![image](images/input_pressure_contributions_new.png)
+![image](images/input/input_pressure_contributions_new.png)
 
 - Pressure-State links, how much the individual pressures contribute to the states
     - ```column:state```: State ID, linked to ```sheet:state```
@@ -92,7 +92,7 @@ When the input data contains probability distributions, they will follow this fo
     - ```column:contribution```: Pressure contribution, probability distribution, see [Probability Distributions](#probability-distributions)
 
 #### ```sheet:thresholds```
-![image](images/input_thresholds_new.png)
+![image](images/input/input_thresholds_new.png)
 
 - Environmental target thresholds, how much the individual states need to be reduced to reach the set targets
     - ```column:state```: State ID, linked to ```sheet:state```
@@ -100,7 +100,7 @@ When the input data contains probability distributions, they will follow this fo
     - ```column:PR/10/25/50```: Probability distributions for GES (PR) and 10/25/50 % reduction thresholds, see [Probability Distributions](#probability-distributions)
 
 #### ```sheet:overlaps```
-![image](images/input_overlaps_new.png)
+![image](images/input/input_overlaps_new.png)
 
 - Interaction between separate measures, how joint implementation affects measure efficiency
     - ```column:overlap```: Overlap ID
@@ -111,14 +111,14 @@ When the input data contains probability distributions, they will follow this fo
     - ```column:multiplier```: Multiplier (fraction), how much of the ```column:overlapped``` measure's effect will be observed if ```column:overlapping``` is also implemented
 
 #### ```sheet:development_scenarios```
-![image](images/input_development_scenarios_new.png)
+![image](images/input/input_development_scenarios_new.png)
 
 - Activity development scenarios, how much each activity is expected to change during various scenarios, each value is a multiplier
     - ```column:activity```: Activity ID, linked to ```sheet:activity```
     - ```column:###```: Subsequent columns are treated as the change / scenarios (fraction)
 
 #### ```sheet:subpressures```
-![image](images/input_subpressures_new.png)
+![image](images/input/input_subpressures_new.png)
 
 - Links between separate pressures, where *subpressures* make up part of *state pressures*
     - ```column:reduced pressure```: Subpressure ID, linked to ```sheet:pressure```
