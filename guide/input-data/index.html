@@ -547,12 +547,35 @@
   
   
     <li class="md-nav__item">
+      <a href="../installation-developers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation (developers)
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../using-the-tool/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    Using the tool
+    Using the tool (CLI)
     
   </span>
   
@@ -575,7 +598,7 @@
   
   
   <span class="md-ellipsis">
-    Using the UI
+    Using the tool (GUI)
     
   </span>
   
@@ -1318,32 +1341,32 @@ in the names. </p>
 </ul>
 <h2 id="data-structure">Data Structure</h2>
 <h4 id="sheetmeasure"><code>sheet:measure</code></h4>
-<p><img alt="image" src="../images/input_id_sheets_measure_new.png" /></p>
+<p><img alt="image" src="../images/input/input_id_sheets_measure_new.png" /></p>
 <ul>
 <li>Unique identifiers for measures</li>
 </ul>
 <h4 id="sheetactivity"><code>sheet:activity</code></h4>
-<p><img alt="image" src="../images/input_id_sheets_activity_new.png" /></p>
+<p><img alt="image" src="../images/input/input_id_sheets_activity_new.png" /></p>
 <ul>
 <li>Unique identifiers for activities</li>
 </ul>
 <h4 id="sheetpressure"><code>sheet:pressure</code></h4>
-<p><img alt="image" src="../images/input_id_sheets_pressure_new.png" /></p>
+<p><img alt="image" src="../images/input/input_id_sheets_pressure_new.png" /></p>
 <ul>
 <li>Unique identifiers for pressures</li>
 </ul>
 <h4 id="sheetstate"><code>sheet:state</code></h4>
-<p><img alt="image" src="../images/input_id_sheets_state_new.png" /></p>
+<p><img alt="image" src="../images/input/input_id_sheets_state_new.png" /></p>
 <ul>
 <li>Unique identifiers for states</li>
 </ul>
 <h4 id="sheetarea"><code>sheet:area</code></h4>
-<p><img alt="image" src="../images/input_id_sheets_area_new.png" /></p>
+<p><img alt="image" src="../images/input/input_id_sheets_area_new.png" /></p>
 <ul>
 <li>Unique identifiers for areas</li>
 </ul>
 <h4 id="sheetcases"><code>sheet:cases</code></h4>
-<p><img alt="image" src="../images/input_cases_new.png" /></p>
+<p><img alt="image" src="../images/input/input_cases_new.png" /></p>
 <ul>
 <li>Implemented measure cases, all rows are independent<ul>
 <li><code>column:ID</code>: Unique case id</li>
@@ -1358,7 +1381,7 @@ in the names. </p>
 </li>
 </ul>
 <h4 id="sheetmeasure_effects"><code>sheet:measure_effects</code></h4>
-<p><img alt="image" src="../images/input_measure_effects_new.png" /></p>
+<p><img alt="image" src="../images/input/input_measure_effects_new.png" /></p>
 <ul>
 <li>Activity-Pressure links, how much the individual activities contribute to the pressures<ul>
 <li><code>column:activity</code>: Activity ID, linked to <code>sheet:activity</code></li>
@@ -1369,7 +1392,7 @@ in the names. </p>
 </li>
 </ul>
 <h4 id="sheetactivity_contributions"><code>sheet:activity_contributions</code></h4>
-<p><img alt="image" src="../images/input_activity_contributions_new.png" /></p>
+<p><img alt="image" src="../images/input/input_activity_contributions_new.png" /></p>
 <ul>
 <li>Measure reduction effects on activity-pressure pairs<ul>
 <li><code>column:measure</code>: Activity ID, linked to <code>sheet:measure</code></li>
@@ -1381,7 +1404,7 @@ in the names. </p>
 </li>
 </ul>
 <h4 id="sheetpressure_contributions"><code>sheet:pressure_contributions</code></h4>
-<p><img alt="image" src="../images/input_pressure_contributions_new.png" /></p>
+<p><img alt="image" src="../images/input/input_pressure_contributions_new.png" /></p>
 <ul>
 <li>Pressure-State links, how much the individual pressures contribute to the states<ul>
 <li><code>column:state</code>: State ID, linked to <code>sheet:state</code></li>
@@ -1392,7 +1415,7 @@ in the names. </p>
 </li>
 </ul>
 <h4 id="sheetthresholds"><code>sheet:thresholds</code></h4>
-<p><img alt="image" src="../images/input_thresholds_new.png" /></p>
+<p><img alt="image" src="../images/input/input_thresholds_new.png" /></p>
 <ul>
 <li>Environmental target thresholds, how much the individual states need to be reduced to reach the set targets<ul>
 <li><code>column:state</code>: State ID, linked to <code>sheet:state</code></li>
@@ -1402,7 +1425,7 @@ in the names. </p>
 </li>
 </ul>
 <h4 id="sheetoverlaps"><code>sheet:overlaps</code></h4>
-<p><img alt="image" src="../images/input_overlaps_new.png" /></p>
+<p><img alt="image" src="../images/input/input_overlaps_new.png" /></p>
 <ul>
 <li>Interaction between separate measures, how joint implementation affects measure efficiency<ul>
 <li><code>column:overlap</code>: Overlap ID</li>
@@ -1415,7 +1438,7 @@ in the names. </p>
 </li>
 </ul>
 <h4 id="sheetdevelopment_scenarios"><code>sheet:development_scenarios</code></h4>
-<p><img alt="image" src="../images/input_development_scenarios_new.png" /></p>
+<p><img alt="image" src="../images/input/input_development_scenarios_new.png" /></p>
 <ul>
 <li>Activity development scenarios, how much each activity is expected to change during various scenarios, each value is a multiplier<ul>
 <li><code>column:activity</code>: Activity ID, linked to <code>sheet:activity</code></li>
@@ -1424,7 +1447,7 @@ in the names. </p>
 </li>
 </ul>
 <h4 id="sheetsubpressures"><code>sheet:subpressures</code></h4>
-<p><img alt="image" src="../images/input_subpressures_new.png" /></p>
+<p><img alt="image" src="../images/input/input_subpressures_new.png" /></p>
 <ul>
 <li>Links between separate pressures, where <em>subpressures</em> make up part of <em>state pressures</em><ul>
 <li><code>column:reduced pressure</code>: Subpressure ID, linked to <code>sheet:pressure</code></li>
@@ -1455,7 +1478,7 @@ in the names. </p>
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 26, 2025 14:55:30 UTC">June 26, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 9, 2025 10:07:56 UTC">July 9, 2025</span>
   </span>
 
     

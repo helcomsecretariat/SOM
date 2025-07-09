@@ -11,10 +11,10 @@
       
       
       
-        <link rel="prev" href="../using-the-gui/">
+        <link rel="prev" href="../installation/">
       
       
-        <link rel="next" href="../file-structure/">
+        <link rel="next" href="../using-the-tool/">
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
@@ -22,7 +22,7 @@
     
     
       
-        <title>Configuration - SOM</title>
+        <title>Installation (developers) - SOM</title>
       
     
     
@@ -77,6 +77,11 @@
     <label class="md-overlay" for="__drawer"></label>
     <div data-md-component="skip">
       
+        
+        <a href="#1-installing-python" class="md-skip">
+          Skip to content
+        </a>
+      
     </div>
     <div data-md-component="announce">
       
@@ -107,7 +112,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Configuration
+              Installation (developers)
             
           </span>
         </div>
@@ -539,10 +544,30 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../installation-developers/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    Installation (developers)
+    
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -553,6 +578,69 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-installing-python" class="md-nav__link">
+    <span class="md-ellipsis">
+      1. Installing Python
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-installing-nodejs-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      2. Installing Node.js (optional)
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-download-the-model" class="md-nav__link">
+    <span class="md-ellipsis">
+      3. Download the model
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-setting-up-the-environment" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Setting up the environment
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-running-the-tool" class="md-nav__link">
+    <span class="md-ellipsis">
+      5. Running the tool
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -608,17 +696,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../configuration/" class="md-nav__link">
         
   
   
@@ -629,7 +710,6 @@
   
 
       </a>
-      
     </li>
   
 
@@ -1133,54 +1213,54 @@
   
 
 
-  <h1>Configuration</h1>
+  <h1>Installation (developers)</h1>
 
-<p>The <code>config.toml</code> file in the <code>src</code> directory can be edited in a text editor and follows the <a href="https://toml.io/en/">TOML format</a>. Please note that the options are case sensitive. </p>
-<ul>
+<p>These steps go through the installation of the SOM package for developers on a Windows system. 
+For normal users, see <a href="../installation/">Installation</a>.</p>
+<h2 id="1-installing-python">1. Installing Python</h2>
+<p>Running the SOM tool requires Python version 3.12 or above, which can be downloaded <a href="https://www.python.org/downloads/">here</a>. Follow the installer instructions to set it up. </p>
+<h2 id="2-installing-nodejs-optional">2. Installing Node.js (optional)</h2>
+<p>To run the script using the GUI from the terminal, Node.js is required, which can be downloaded <a href="https://nodejs.org/en">here</a>. Follow the installer instructions to set it up. </p>
+<h2 id="3-download-the-model">3. Download the model</h2>
+<p>The code can be downloaded from the <a href="https://github.com/helcomsecretariat/SOM">repository</a>.</p>
+<p>Once downloaded, unzip the archive into your project directory.</p>
+<h2 id="4-setting-up-the-environment">4. Setting up the environment</h2>
+<p>Open up a terminal and install the python dependencies:</p>
+<ol>
 <li>
-<p><code>export_path</code>: Path of the output excel file</p>
+<p>Navigate to your directory</p>
+<p><code>cd "/path/to/SOM"</code></p>
 </li>
 <li>
-<p><code>use_scenario</code>: Should an activity development scenario be applied? (true/false)</p>
+<p>Create a new python environment (optional):</p>
+<p><code>python -m venv .
+source bin/activate</code></p>
 </li>
 <li>
-<p><code>scenario</code>: Which activity development scenario to use</p>
+<p>Install dependencies:</p>
+<p><code>python -m pip install .</code></p>
+</li>
+</ol>
+<p>To run the GUI from the terminal with Node.js, additionally install the required node modules:</p>
+<ol>
+<li>
+<p>Navigate to UI directory</p>
+<p><code>cd "/path/to/SOM/ui"</code></p>
 </li>
 <li>
-<p><code>use_random_seed</code>: Should a custom seed be used for random values? (true/false)</p>
+<p>Install dependencies:</p>
+<p><code>npm install</code></p>
 </li>
-<li>
-<p><code>random_seed</code>: Custom random seed to use</p>
-</li>
-<li>
-<p><code>simulations</code>: Number of simulations to run</p>
-</li>
-<li>
-<p><code>use_parallel_processing</code>: Should multiprocessing be used for faster calculations? (true/false)</p>
-</li>
-<li>
-<p><code>use_legacy_input_data</code>: Choose between legacy/new input data (true/false), see <a href="../input-data/">Input data</a></p>
-</li>
-<li><code>input_data:path</code>: Path of the new input data excel file</li>
-<li><code>input_data_legacy:general_input</code>: Path to legacy input data general data excel file</li>
-<li><code>input_data_legacy:measure_effect_input</code>: Path to legacy input data measure effects data excel file</li>
-<li><code>input_data_legacy:pressure_state_input</code>: Path to legacy input data pressure-state links and thresholds data excel file</li>
-<li>
-<p><code>input_data_legacy:general_input_sheets</code>: Links to the sheets in <code>input_data_legacy:general_input</code> in case of custom naming</p>
-</li>
-<li>
-<p><code>link_mpas_to_subbasins</code>: Choose to link areas with measures to the areas in the input data using polygon layer overlaps (true/false)</p>
-</li>
-<li><code>layers:subbasin:url</code>: url to subbasin polygon layer</li>
-<li><code>layers:subbasin:path</code>: path to subbasin polygon layer, overrides url</li>
-<li><code>layers:subbasin:id_attr</code>: id attribute field of subbasin polygon layer, must correspond to <code>input_data:area:ID</code> values</li>
-<li><code>layers:mpa:url</code>: url to MPA polygon layer</li>
-<li><code>layers:mpa:path</code>: path to MPA polygon layer, overrides url</li>
-<li><code>layers:mpa:measure_attr</code>: measure attribute field, all measures of the MPA joined together by <code>layers:mpa:measure_delimiter</code></li>
-<li><code>layers:mpa:id_attr</code>: id attribute field of MPA polygon layer</li>
-<li><code>layers:mpa:name_attr</code>: name attribute field of MPA polygon layer</li>
-<li><code>layers:mpa:measure_delimiter</code>: delimiter used to separate measures in <code>layers:mpa:measure_attr</code></li>
-</ul>
+</ol>
+<h2 id="5-running-the-tool">5. Running the tool</h2>
+<p>To run the tool from the terminal:</p>
+<pre><code>python &quot;/path/to/SOM/src/main.py&quot;
+</code></pre>
+<p>To run the UI from the terminal:</p>
+<pre><code>cd &quot;/path/to/SOM/ui&quot;
+npm run start
+</code></pre>
+<p>Alternatively, see <a href="../using-the-tool/">Using the tool (CLI)</a>.</p>
 
 
 

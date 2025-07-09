@@ -14,7 +14,7 @@
         <link rel="prev" href="../welcome/">
       
       
-        <link rel="next" href="../using-the-tool/">
+        <link rel="next" href="../installation-developers/">
       
       
       <link rel="icon" href="../../assets/images/favicon.png">
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#download-the-model" class="md-skip">
+        <a href="#1-installing-python" class="md-skip">
           Skip to content
         </a>
       
@@ -570,60 +570,36 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#download-the-model" class="md-nav__link">
+  <a href="#1-installing-python" class="md-nav__link">
     <span class="md-ellipsis">
-      Download the model
+      1. Installing Python
     </span>
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#installing-requirements" class="md-nav__link">
+  <a href="#2-download-the-model" class="md-nav__link">
     <span class="md-ellipsis">
-      Installing requirements
+      2. Download the model
     </span>
   </a>
-  
-    <nav class="md-nav" aria-label="Installing requirements">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#python" class="md-nav__link">
-    <span class="md-ellipsis">
-      Python
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#nodejs" class="md-nav__link">
-    <span class="md-ellipsis">
-      Node.js
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#setting-up-the-environment" class="md-nav__link">
-    <span class="md-ellipsis">
-      Setting up the environment
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#running-the-tool" class="md-nav__link">
+  <a href="#3-installing-requirements" class="md-nav__link">
     <span class="md-ellipsis">
-      Running the tool
+      3. Installing requirements
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-running-the-tool" class="md-nav__link">
+    <span class="md-ellipsis">
+      4. Running the tool
     </span>
   </a>
   
@@ -645,12 +621,35 @@
   
   
     <li class="md-nav__item">
+      <a href="../installation-developers/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    Installation (developers)
+    
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../using-the-tool/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
-    Using the tool
+    Using the tool (CLI)
     
   </span>
   
@@ -673,7 +672,7 @@
   
   
   <span class="md-ellipsis">
-    Using the UI
+    Using the tool (GUI)
     
   </span>
   
@@ -1207,53 +1206,58 @@
 
   <h1>Installation</h1>
 
-<h2 id="download-the-model">Download the model</h2>
-<p>The code can be downloaded from the <a href="https://github.com/helcomsecretariat/SOM">repository</a> (steps highlighted in red). If you are using the graphical user interface (GUI), instead download the compiled tool from <a href="https://github.com/helcomsecretariat/SOM/releases">releases</a>.</p>
-<p><img alt="image" src="../images/install_github_1.png" />
-<img alt="image" src="../images/install_github_2.png" /></p>
-<p>Once downloaded, unzip the archive into your project directory.</p>
-<h2 id="installing-requirements">Installing requirements</h2>
-<h3 id="python">Python</h3>
-<p>Running the SOM tool requires Python version 3.12 or above, which can be downloaded <a href="https://www.python.org/downloads/">here</a>. Follow the installer instructions to set it up. </p>
-<h3 id="nodejs">Node.js</h3>
-<p>To run the script using the GUI from the terminal, Node.js is required, which can be downloaded <a href="https://nodejs.org/en">here</a>. Follow the installer instructions to set it up. Alternatively, download the standalone GUI from <a href="https://github.com/helcomsecretariat/SOM/releases">here</a> to skip this step.</p>
-<h3 id="setting-up-the-environment">Setting up the environment</h3>
-<p>Open up a terminal and enter the following:</p>
+<p>These steps go through the installation of the SOM package for normal users on a Windows system. 
+For developers, see <a href="../installation-developers/">Installation (developers)</a>.</p>
+<h2 id="1-installing-python">1. Installing Python</h2>
+<p>Running the SOM tool requires Python version 3.12 or above, which can be downloaded <a href="https://www.python.org/downloads/">here</a>. Follow the installer instructions to set it up. If you are unsure about any options, it is recommended to leave the default settings on.</p>
+<p><img alt="image" src="../images/installation/python_download.png" /></p>
+<h2 id="2-download-the-model">2. Download the model</h2>
+<p>The tool can be downloaded from <a href="https://github.com/helcomsecretariat/SOM/releases">here</a>. Make sure to download the latest release.</p>
+<p><img alt="image" src="../images/installation/som_download.png" /></p>
+<p>Once downloaded, unzip the compressed file into your chosen directory. </p>
+<ol>
+<li>Right-click on the zip archive and select "Extract All"</li>
+<li>Choose your destination folder</li>
+<li>
+<p>Click "Extract"</p>
+<p><img alt="image" src="../images/installation/unzip_right_click.png" /></p>
+<p><img alt="image" src="../images/installation/unzip_extract.png" /></p>
+</li>
+</ol>
+<h2 id="3-installing-requirements">3. Installing requirements</h2>
+<p>With the tool extracted, we need to install the required Python dependencies.</p>
 <ol>
 <li>
-<p>Navigate to your directory</p>
-<p><code>cd "/path/to/SOM"</code></p>
+<p>From the extracted files, open the <code>SOM</code> directory.</p>
+<p><img alt="image" src="../images/installation/extracted.png" /></p>
 </li>
 <li>
-<p>Create a new python environment (optional, not if using the GUI):</p>
-<p><code>python -m venv .
-source bin/activate</code></p>
+<p>Copy the path of the directory.</p>
+<p><img alt="image" src="../images/installation/som_directory_path.png" /></p>
 </li>
 <li>
-<p>Install dependencies:</p>
+<p>Open a terminal. This can be done by going to the Windows search field and typing <code>terminal</code>. Depending on your system, there might be several options available that will work, such as <code>Terminal</code>, <code>Command Prompt</code>, <code>Windows Powershell</code>.</p>
+<p><img alt="image" src="../images/installation/search_terminal.png" /></p>
+</li>
+<li>
+<p>In the terminal type the command <code>cd</code> followed by the copied path enclosed in quotes, and press ENTER.</p>
+<p><img alt="image" src="../images/installation/terminal_path.png" /></p>
+</li>
+<li>
+<p>Next, type the following command into the terminal:</p>
 <p><code>python -m pip install .</code></p>
-</li>
-</ol>
-<p>If Node.js was installed to run the GUI from the terminal, additionally install the required node modules:</p>
-<ol>
-<li>
-<p>Navigate to UI directory</p>
-<p><code>cd "/path/to/SOM/ui"</code></p>
+<p><img alt="image" src="../images/installation/terminal_pip_install.png" /></p>
 </li>
 <li>
-<p>Install dependencies:</p>
-<p><code>npm install</code></p>
+<p>If done correctly, the terminal should show the following message:</p>
+<p><img alt="image" src="../images/installation/terminal_pip_install_successful.png" /></p>
 </li>
 </ol>
-<h2 id="running-the-tool">Running the tool</h2>
-<p>To run the tool from the terminal:</p>
-<pre><code>python &quot;/path/to/SOM/src/main.py&quot;
-</code></pre>
-<p>To run the UI from the terminal:</p>
-<pre><code>cd &quot;/path/to/SOM/ui&quot;
-npm run start
-</code></pre>
-<p>Alternatively, see <a href="../using-the-tool/">Using the tool</a>.</p>
+<h2 id="4-running-the-tool">4. Running the tool</h2>
+<p>With the requirements installed, the tool can now be run by clicking on the <code>SOM.exe</code> file in the directory. </p>
+<p><img alt="image" src="../images/installation/run_tool.png" /></p>
+<p><img alt="image" src="../images/installation/interface.png" /></p>
+<p>For more information, see <a href="../using-the-gui/">Using the tool (GUI)</a>.</p>
 
 
 
@@ -1274,7 +1278,7 @@ npm run start
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="June 18, 2025 08:44:24 UTC">June 18, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="July 9, 2025 10:07:56 UTC">July 9, 2025</span>
   </span>
 
     
