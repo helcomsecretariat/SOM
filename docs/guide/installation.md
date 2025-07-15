@@ -3,7 +3,7 @@ For developers, see [Installation (developers)](installation-developers.md).
 
 ## 1. Installing Python
 
-Running the SOM tool requires Python version 3.12 or above, which can be downloaded [here](https://www.python.org/downloads/). Follow the installer instructions to set it up. If you are unsure about any options, it is recommended to leave the default settings on.
+Running the SOM tool requires Python version 3.12 or above, which can be downloaded [here](https://www.python.org/downloads/). Follow the installer instructions to set it up. If you are unsure about any options, it is recommended to leave the default settings on. NOTE! Make sure that Python is set up as an environment variable!
 
 ![image](images/installation/python_download.png)
 
@@ -57,7 +57,7 @@ With the tool extracted, we need to install the required Python dependencies.
 
 ## 4. Running the tool
 
-With the requirements installed, the tool can now be run by clicking on the `SOM.exe` file in the directory. 
+With the requirements installed, the tool can now be run by clicking on the `SOM.exe` file in the directory. NOTE! Your antivirus might claim the file is not signed by a trusted source or similar, this is due to the file not being signed. 
 
 ![image](images/installation/run_tool.png)
 
