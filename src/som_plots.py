@@ -177,61 +177,63 @@ def plot_state_pressure_levels(area, res, data, out_dir, progress, lock):
 
 def plot_thresholds(area, res, data, out_dir, progress, lock):
     """
-    Plots thresholds comparison.
+    Plots thresholds comparisons.
     """
-    # create new directory for the plots
-    area_name = data['area'].loc[data['area']['ID'] == area, 'area'].values[0]
-    out_path = os.path.join(out_dir, f'area_{area}_{area_name}', f'area_{area}_{area_name}_Thresholds.png')
-    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    # create a separate plot for each threshold
+    for threshold in [str(x) for x in res.keys() if str(x)[:len('Thresholds')] == 'Thresholds']:
+        # create new directory for the plots
+        area_name = data['area'].loc[data['area']['ID'] == area, 'area'].values[0]
+        out_path = os.path.join(out_dir, f'area_{area}_{area_name}', f'area_{area}_{area_name}_{threshold}.png')
+        os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
-    # plot settings
-    capsize = 3
-    capthick = 1
-    elinewidth = 1
-    ecolor = 'salmon'
-    label_angle = 60
-    char_limit = 25
-    bar_width = 0.4
-    bar_color_1 = 'turquoise'
-    bar_color_2 = 'seagreen'
-    edge_color = 'black'
+        # plot settings
+        capsize = 3
+        capthick = 1
+        elinewidth = 1
+        ecolor = 'salmon'
+        label_angle = 60
+        char_limit = 25
+        bar_width = 0.4
+        bar_color_1 = 'turquoise'
+        bar_color_2 = 'seagreen'
+        edge_color = 'black'
 
-    fig, ax = plt.subplots(figsize=(16, 12), constrained_layout=True)
+        fig, ax = plt.subplots(figsize=(16, 12), constrained_layout=True)
 
-    # adjust data
-    x_labels = np.array([x[:char_limit]+'...' if len(x) > char_limit else x for x in data['state'].loc[:, 'state'].values])     # limit characters to char_limit
-    x_vals = np.arange(len(x_labels))
-    suffixes = ('_mean', '_error')
-    df = pd.merge(res['TPLRed']['Mean'].loc[:, ['ID', area]], res['TPLRed']['Error'].loc[:, ['ID', area]], on='ID', suffixes=suffixes)
-    y_vals_tpl = df[str(area)+'_mean'] * 100    # convert to %
-    y_err_tpl = df[str(area)+'_error'] * 100    # conver to %
-    df = pd.merge(res['Thresholds']['Mean'].loc[:, ['ID', area]], res['Thresholds']['Error'].loc[:, ['ID', area]], on='ID', suffixes=suffixes)
-    y_vals_ges = df[str(area)+'_mean'] * 100    # convert to %
-    y_err_ges = df[str(area)+'_error'] * 100    # convert to %
+        # adjust data
+        x_labels = np.array([x[:char_limit]+'...' if len(x) > char_limit else x for x in data['state'].loc[:, 'state'].values])     # limit characters to char_limit
+        x_vals = np.arange(len(x_labels))
+        suffixes = ('_mean', '_error')
+        df = pd.merge(res['TPLRed']['Mean'].loc[:, ['ID', area]], res['TPLRed']['Error'].loc[:, ['ID', area]], on='ID', suffixes=suffixes)
+        y_vals_tpl = df[str(area)+'_mean'] * 100    # convert to %
+        y_err_tpl = df[str(area)+'_error'] * 100    # conver to %
+        df = pd.merge(res[threshold]['Mean'].loc[:, ['ID', area]], res[threshold]['Error'].loc[:, ['ID', area]], on='ID', suffixes=suffixes)
+        y_vals_ges = df[str(area)+'_mean'] * 100    # convert to %
+        y_err_ges = df[str(area)+'_error'] * 100    # convert to %
 
-    # create plot
-    label_tpl = 'Reduction with measures'
-    ax.bar(x_vals-bar_width/2, y_vals_tpl, width=bar_width, align='center', color=bar_color_1, label=label_tpl, edgecolor=edge_color)
-    ax.errorbar(x_vals-bar_width/2, y_vals_tpl, yerr=y_err_tpl, linestyle='None', marker='None', capsize=capsize, capthick=capthick, elinewidth=elinewidth, ecolor=ecolor)
-    label_ges = 'Target'
-    ax.bar(x_vals+bar_width/2, y_vals_ges, width=bar_width, align='center', color=bar_color_2, label=label_ges, edgecolor=edge_color)
-    ax.errorbar(x_vals+bar_width/2, y_vals_ges, yerr=y_err_ges, linestyle='None', marker='None', capsize=capsize, capthick=capthick, elinewidth=elinewidth, ecolor=ecolor)
-    ax.set_xlabel('Environmental State')
-    ax.set_ylabel('Reduction (%)')
-    ax.set_title(f'Total Pressure Load Reduction vs. GES Reduction Thresholds\n({area_name})')
-    ax.set_xticks(x_vals, x_labels, rotation=label_angle, ha='right')
-    ax.yaxis.grid(True, linestyle='--', color='lavender')
-    ax.legend()
+        # create plot
+        label_tpl = 'Reduction with measures'
+        ax.bar(x_vals-bar_width/2, y_vals_tpl, width=bar_width, align='center', color=bar_color_1, label=label_tpl, edgecolor=edge_color)
+        ax.errorbar(x_vals-bar_width/2, y_vals_tpl, yerr=y_err_tpl, linestyle='None', marker='None', capsize=capsize, capthick=capthick, elinewidth=elinewidth, ecolor=ecolor)
+        label_ges = 'Target'
+        ax.bar(x_vals+bar_width/2, y_vals_ges, width=bar_width, align='center', color=bar_color_2, label=label_ges, edgecolor=edge_color)
+        ax.errorbar(x_vals+bar_width/2, y_vals_ges, yerr=y_err_ges, linestyle='None', marker='None', capsize=capsize, capthick=capthick, elinewidth=elinewidth, ecolor=ecolor)
+        ax.set_xlabel('Environmental State')
+        ax.set_ylabel('Reduction (%)')
+        ax.set_title(f'Total Pressure Load Reduction vs. {threshold.replace("Thresholds", "")} Reduction Thresholds\n({area_name})')
+        ax.set_xticks(x_vals, x_labels, rotation=label_angle, ha='right')
+        ax.yaxis.grid(True, linestyle='--', color='lavender')
+        ax.legend()
 
-    # adjust axis limits
-    x_lim = [- 0.5, len(x_vals) - 0.5]
-    ax.set_xlim(x_lim)
-    y_lim = [0, 100]
-    ax.set_ylim(y_lim)
+        # adjust axis limits
+        x_lim = [- 0.5, len(x_vals) - 0.5]
+        ax.set_xlim(x_lim)
+        y_lim = [0, 100]
+        ax.set_ylim(y_lim)
 
-    # export
-    plt.savefig(out_path, dpi=200)
-    plt.close(fig)
+        # export
+        plt.savefig(out_path, dpi=200)
+        plt.close(fig)
     
     with lock:
         progress.current += 1
@@ -490,12 +492,14 @@ def filter_results(res: dict[str, pd.DataFrame], selection: dict[str, list]) -> 
         res (dict): filtered results.
     """
     # Pressure, TPL, TPLRed, Thresholds
-    for key, values in [
+    sheets = [
         ('Pressure', selection['pressure']), 
         ('TPL', selection['state']), 
-        ('TPLRed', selection['state']), 
-        ('Thresholds', selection['state'])
-    ]:
+        ('TPLRed', selection['state'])
+    ]
+    for sheet in [str(x) for x in res.keys() if str(x)[:len('Thresholds')] == 'Thresholds']:
+        sheets.append((sheet, selection['state']))
+    for key, values in sheets:
         for r in ['Mean', 'Error']:
             if values != []:
                 if selection['area'] != []:
