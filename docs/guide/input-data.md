@@ -21,7 +21,7 @@ When the input data contains probability distributions, they will follow this fo
 - The distribution is represented as a string
 - The string is enclosed by square brackets [ ]
 - Entries are space-separated
-- Each entry in the distribution is the probability for a random pick to be within that discrete interval within the range [0, 1], where the distance is determined by the total number of entries in the distribution, such that the first and last entries represent 0 % and 100 % and each step in between is 100 / (N - 1).
+- Each entry in the distribution is the probability for a random pick to be within that discrete interval within the range [0, 1], where the distance is determined by the total number of entries in the distribution, such that the first and last entries represent 0 % and 100 % and each step in between is 100 / (N - 1)
 
 ## Data Structure
 
@@ -97,7 +97,7 @@ When the input data contains probability distributions, they will follow this fo
 - Environmental target thresholds, how much the individual states need to be reduced to reach the set targets
     - ```column:state```: State ID, linked to ```sheet:state```
     - ```column:area_id```: Area ID, linked to ```sheet:area```
-    - ```column:PR/10/25/50```: Probability distributions for GES (PR) and 10/25/50 % reduction thresholds, see [Probability Distributions](#probability-distributions)
+    - ```column:###```: Subsequent columns are treated as probability distributions for target reduction thresholds, see [Probability Distributions](#probability-distributions)
 
 #### ```sheet:overlaps```
 ![image](images/input/input_overlaps_new.png)

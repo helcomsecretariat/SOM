@@ -1,4 +1,4 @@
-The results are saved to the excel file specified in `config.toml`. The plots contain svisualizations of these results for an easier analysis. 
+The results are saved to the excel file specified in `config.toml`. The plots contain visualizations of these results for an easier analysis. 
 
 #### `sheet:PressureMean`
 

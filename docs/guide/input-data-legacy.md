@@ -53,7 +53,7 @@ Please note that most column names are case sensitive.
 #### ```sheet:ActMeas```
 ![image](images/input/input_actmeas.png)
 
-- Implemented measure cases, all rows are independent, multiple IDs can be joined by a semi-colon.
+- Implemented measure cases, all rows are independent, multiple IDs can be joined by a semi-colon
     - ```column:ID```: Unique case id, linked to ```sheet:Case ID```
     - ```column:measure```: Measure type ID, linked to ```sheet:Measure ID```
     - ```column:activity```: Relevant Activities, linked to ```sheet:Activity ID```, the value 0 (zero) means all relevant activities affected by the measure
