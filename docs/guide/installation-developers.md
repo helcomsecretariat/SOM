@@ -4,6 +4,7 @@ For normal users, see [Installation](installation.md).
 ## 1. Installing Python
 
 Running the SOM tool requires Python version 3.12 or above, which can be downloaded [here](https://www.python.org/downloads/). Follow the installer instructions to set it up. 
+NOTE! The GUI requires Python to be set up as an environment variable.
 
 ## 2. Installing Node.js (optional)
 

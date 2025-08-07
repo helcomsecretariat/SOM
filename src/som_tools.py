@@ -284,13 +284,14 @@ def process_measure_survey_data(file_name: str) -> pd.DataFrame:
     return survey_df
 
 
-def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataFrame]:
+def process_pressure_survey_data(file_name: str, expert_number: int = 6) -> tuple[pd.DataFrame, pd.DataFrame]:
     """
     This method reads input from the excel file containing data about pressure contributions to states 
     and the changes in state required to reach required thresholds of improvement.
 
     Arguments:
         file_name (str): path of survey excel file.
+        expert_number (int): max number of experts per question
 
     Returns:
         pressure_contributions (DataFrame):
@@ -305,18 +306,8 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
 
             - state: state id.
             - area_id: area id.
-            - PR: reduction in state required to reach GES target.
-            - 10: reduction in state required to reach 10 % improvement.
-            - 25: reduction in state required to reach 25 % improvement.
-            - 50: reduction in state required to reach 50 % improvement.
+            - ###: reduction in state required to reach ### target.
     """
-    #
-    # set parameter values
-    #
-
-    expert_number = 6   # max number of experts per question
-    threshold_cols = ['PR', '10', '25', '50']   # target thresholds (PR=GES)
-
     #
     # read information sheet from input Excel file
     #
@@ -327,8 +318,14 @@ def process_pressure_survey_data(file_name: str) -> tuple[pd.DataFrame, pd.DataF
     psq = data[sheet_names[0]]
 
     pressure_survey_data = {}
+    threshold_cols = None
     for id in range(1, len(sheet_names)):
         pressure_survey_data[id] = data[sheet_names[id]]
+        # identify target threshold columns
+        if threshold_cols == None:
+            threshold_cols = [x for x in data[sheet_names[id]].columns if (len(x) > 3 and x[:3] in ['MIN', 'MAX']) or (len(x) > 2 and x[:2] == 'ML')]
+            threshold_cols = [x[3:] if x[:3] in ['MIN', 'MAX'] else x[2:] for x in threshold_cols]
+            threshold_cols = list(set(threshold_cols))
     
     #
     # preprocess values

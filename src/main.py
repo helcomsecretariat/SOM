@@ -113,7 +113,6 @@ def run(config: dict, skip_sim: bool = False):
         skip_sim (bool): toggle to skip SOM calculations and only process results.
     """
     # create log directory
-    # NOTE! Existing logs are not deleted before new runs, only overwritten
     log_dir = os.path.join(os.path.dirname(os.path.realpath(__file__)), 'log')
     if os.path.exists(log_dir): shutil.rmtree(log_dir)
     os.makedirs(log_dir, exist_ok=True)

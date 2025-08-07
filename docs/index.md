@@ -3,7 +3,7 @@
 [![Build Status](https://github.com/helcomsecretariat/SOM/actions/workflows/ci.yml/badge.svg)](https://github.com/helcomsecretariat/SOM/actions)
 [![GitHub License](https://img.shields.io/github/license/helcomsecretariat/SOM)](https://github.com/helcomsecretariat/SOM/blob/main/LICENCE)
 
-Methodology developed at [HELCOM](https://helcom.fi/baltic-sea-action-plan/som/).
+Framework developed at [HELCOM](https://helcom.fi/baltic-sea-action-plan/som/).
 Tool available on [GitHub](https://github.com/helcomsecretariat/SOM).
 
 ## Commands

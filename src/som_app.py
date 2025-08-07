@@ -47,12 +47,11 @@ def build_input(config: dict) -> dict[str, pd.DataFrame]:
     conversion_sheet = [
         ('measure_effects', 'reduction'), 
         ('activity_contributions', 'contribution'), 
-        ('pressure_contributions', 'contribution'), 
-        ('thresholds', 'PR'), 
-        ('thresholds', '10'), 
-        ('thresholds', '25'), 
-        ('thresholds', '50')
+        ('pressure_contributions', 'contribution')
     ]
+    for col in input_data['thresholds'].columns:
+        if col not in ['state', 'area_id']:
+            conversion_sheet.append(('thresholds', col))
     def str_to_arr(s):
         if type(s) is float: return s
         arr = []
@@ -133,7 +132,7 @@ def build_links(data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
     # thresholds
     #
 
-    threshold_cols = ['PR', '10', '25', '50']   # target thresholds (PR=GES)
+    threshold_cols = [x for x in data['thresholds'].columns if x not in ['state', 'area_id']]   # target thresholds
 
     # get picks from cumulative distribution
     for col in threshold_cols:
@@ -143,7 +142,7 @@ def build_links(data: dict[str, pd.DataFrame]) -> dict[str, pd.DataFrame]:
 
     # verify that there are no duplicate links
     try: assert len(data['thresholds'][data['thresholds'].duplicated(['state', 'area_id'])]) == 0
-    except Exception as e: fail_with_message(f'Duplicate GES targets in input data!', e)
+    except Exception as e: fail_with_message(f'Duplicate targets in input data!', e)
 
     return data
 
@@ -451,8 +450,8 @@ def build_changes(data: dict[str, pd.DataFrame], time_steps: int = 1, warnings: 
         for s_i, s in total_pressure_load_levels.iterrows():
             total_pressure_load_reductions.at[s_i, area] = 1 - total_pressure_load_levels.at[s_i, area]
 
-    # GES thresholds
-    cols = ['PR', '10', '25', '50']
+    # target thresholds
+    cols = [x for x in data['thresholds'].columns if x not in ['state', 'area_id']]
     thresholds = {}
     for col in cols:
         thresholds[col] = pd.DataFrame(data['state']['ID']).reindex(columns=['ID']+areas.tolist())
@@ -482,6 +481,7 @@ def set_id_columns(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame]) 
 
     Arguments:
         res (dict): SOM calculation results.
+        data (dict): SOM input data.
 
     Returns:
         res (dict): updated results.
@@ -491,9 +491,10 @@ def set_id_columns(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame]) 
         'Pressure': 'pressure', 
         'StatePressure': 'pressure', 
         'TPL': 'state', 
-        'TPLRed': 'state', 
-        'Thresholds': 'state', 
+        'TPLRed': 'state'
     }
+    for col in [x for x in data['thresholds'].columns if x not in ['state', 'area_id']]:
+        relations['Thresholds'+str(col)] = 'state'
     def replace_ids(id, k):
         return data[k].loc[data[k]['ID'] == id, k].values[0]
     for key in relations:
@@ -545,13 +546,15 @@ def build_results(sim_res: str, input_data: dict[str, pd.DataFrame]) -> dict[str
     states = input_data['state']['ID']
 
     res = {}
-
-    for key, val, ids in [
+    
+    conversion_sheet = [
         ('Pressure', 'pressure_levels', pressures), 
         ('TPL', 'total_pressure_load_levels', states), 
-        ('TPLRed', 'total_pressure_load_reductions', states), 
-        ('Thresholds', ('thresholds', 'PR'), states)
-    ]:
+        ('TPLRed', 'total_pressure_load_reductions', states)
+    ]
+    for col in [x for x in input_data['thresholds'].columns if x not in ['state', 'area_id']]:
+        conversion_sheet.append(('Thresholds'+str(col), ('thresholds', col), states))
+    for key, val, ids in conversion_sheet:
         res[key] = {
             'Mean': pd.DataFrame(ids).reindex(columns=['ID']+areas.tolist()).fillna(1.0), 
             'Error': pd.DataFrame(ids).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
