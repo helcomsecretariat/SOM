@@ -28,4 +28,4 @@ The status fields will show if the tool is currently running.
 
 ## Results
 
-The results matrices are saved to the excel file set in the ```Results``` field. The individual simulation round results are saved to the ```sim_res``` folder. Plots are saved to the ```output``` folder. 
+The results matrices are saved to the excel file set in the ```Results``` field. The individual simulation round results are saved to the ```sim_res``` folder. Plots are saved to the ```output``` folder. For more details, see [Results](results.md).

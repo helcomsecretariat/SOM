@@ -56,7 +56,7 @@ nav:
     - Input data: guide/input-data.md
     - Input data (legacy): guide/input-data-legacy.md
     - Linking areas: guide/linking-areas.md
-    - Interpreting the results: guide/interpreting-the-results.md
+    - Results: guide/results.md
   - API Reference:
     - main: modules/main.md
     - som_app: modules/som_app.md
