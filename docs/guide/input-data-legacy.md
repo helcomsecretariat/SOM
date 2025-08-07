@@ -182,7 +182,7 @@ Please note that most column names are case sensitive.
 #### ```sheet:Surveys```
 ![image](images/input/input_pressstate_survey.png)
 
-- Survey sheets detailing the contributions of individual pressures to states and the total pressure load reduction targets for the state, the targets are for PR (=GES), 10 %, 25 % and 50 % improvement in state
+- Survey sheets detailing the contributions of individual pressures to states and the total pressure load reduction targets for the state, the example targets are for PR (=GES), 10 %, 25 % and 50 % improvement in state, but any amount of targets may be included as long as they follow the naming scheme seen above
 
 | Column | Type | Description |
 | ------ | ---- | ----------- |
