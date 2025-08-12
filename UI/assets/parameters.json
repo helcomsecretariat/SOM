@@ -75,7 +75,7 @@
     "type": "integer"
   },
   {
-    "name": "Use scenario",
+    "name": "Use development scenario",
     "arg": "--use_scenario",
     "type": "boolean"
   },

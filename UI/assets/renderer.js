@@ -76,7 +76,7 @@ function createInputField(param) {
           if (this.checked) { document.querySelectorAll('.mpas-subbasins').forEach(function (element) { element.style.display = 'flex'; }); }
           else { document.querySelectorAll('.mpas-subbasins').forEach(function (element) { element.style.display = 'none'; }); }
         });
-        input.checked = false; // random seed unchecked by default
+        input.checked = false; // linking unchecked by default
       }
       toggleLabel.appendChild(input);
       toggleLabel.appendChild(slider);
