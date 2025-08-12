@@ -25,8 +25,9 @@ Information on the input data is explained in the [wiki](https://helcomsecretari
 The model links together the various inputs as shown in the diagram below.
 
 ![som-model-flowchart](docs/development/images/SOM_diagram.png)
+![som-model-flowchart](docs/development/images/SOM_tool_flowchart.png)
 
-The figure above details the links between each element of the model. For each case area, a set of simulations are done. For each individual simulation run, these calculations occur:
+The figures above detail the links between each element of the model. For each case area, a set of simulations are done. For each individual simulation run, these calculations occur:
 
 1. An individual random sample is picked from each of the probability distributions representing the measure reductions, activity and pressure contributions, and GES thresholds.
 

@@ -43,7 +43,7 @@ This file acts as the core module of the package, containing the main calculatio
         - Below 100 % is allowed as it is not guaranteed all contributions are known
     3. Pressure level reductions
         1. Measure reductions are modified by coverage and implementation multipliers
-        2. Measure reductions are modififed by overlapping measures
+        2. Measure reductions are modified by overlapping measures
         3. Pressure levels are adjusted by activity contributions multiplied with measure reductions
         4. Activity contributions are adjusted by reductions and normalized
     4. Total pressure load reductions
