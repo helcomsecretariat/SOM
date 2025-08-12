@@ -614,6 +614,11 @@ def export_results_to_excel(res: dict[str, pd.DataFrame], input_data: dict[str, 
         input_data (dict): SOM input data.
         export_path (str): output path for exported results.
     """
+    with pd.ExcelWriter(os.path.join(os.path.dirname(export_path), 'results_raw.xlsx')) as writer:
+        for key in res:
+            if key != 'StatePressure':
+                for r in ['Mean', 'Error']:
+                    res[key][r].to_excel(writer, sheet_name=key+r, index=False)
     with pd.ExcelWriter(export_path) as writer:
         new_res = set_id_columns(res, input_data)
         for key in new_res:
