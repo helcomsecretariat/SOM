@@ -1,5 +1,7 @@
 ## Intro
 
+NOTE! The area linking functionality has been disabled in the GUI for now due to irregularities in the output. It may still be utilized by running the CLI tool independently, however this is not advised.
+
 The tool provides the possibility to link the cases of smaller areas (MPAs) to the activity/pressure contributions of larger areas (subbasins). Although this page calls the smaller areas MPAs and the larger subbasins, the feature should be applicable for any areas that follow these conditions:
 
 - MPAs: Polygon layer. Should have data on the measures implemented.
