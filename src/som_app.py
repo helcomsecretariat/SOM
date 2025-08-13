@@ -500,11 +500,11 @@ def set_id_columns(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame]) 
     for key in relations:
         if key == 'StatePressure':
             for s in data['state']['ID']:
-                for r in ['Mean', 'Error']:
+                for r in ['Mean', 'Error', 'Dist']:
                     res[key][s][r]['ID'] = res[key][s][r]['ID'].apply(lambda x: replace_ids(x, relations[key]))
                     res[key][s][r] = res[key][s][r].rename(columns={col: data['area'].loc[data['area']['ID'] == col, 'area'].values[0] for col in [c for c in res[key][s][r].columns if c != 'ID']})
         else:
-            for r in ['Mean', 'Error']:
+            for r in ['Mean', 'Error', 'Dist']:
                 res[key][r]['ID'] = res[key][r]['ID'].apply(lambda x: replace_ids(x, relations[key]))
                 res[key][r] = res[key][r].rename(columns={col: data['area'].loc[data['area']['ID'] == col, 'area'].values[0] for col in [c for c in res[key][r].columns if c != 'ID']})
     relations = {
@@ -519,7 +519,7 @@ def set_id_columns(res: dict[str, pd.DataFrame], data: dict[str, pd.DataFrame]) 
         'area_id': 'area'
     }
     for key in relations:
-        for r in ['Mean', 'Error']:
+        for r in ['Mean', 'Error', 'Dist']:
             for col in relations[key]:
                 k = conversions[col] if col in conversions else col
                 res[key][r][col] = res[key][r][col].apply(lambda id: data[k].loc[data[k]['ID'] == id, k].values[0] if id != 0 else '-')
@@ -557,7 +557,8 @@ def build_results(sim_res: str, input_data: dict[str, pd.DataFrame]) -> dict[str
     for key, val, ids in conversion_sheet:
         res[key] = {
             'Mean': pd.DataFrame(ids).reindex(columns=['ID']+areas.tolist()).fillna(1.0), 
-            'Error': pd.DataFrame(ids).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
+            'Error': pd.DataFrame(ids).reindex(columns=['ID']+areas.tolist()).fillna(1.0), 
+            'Dist': pd.DataFrame(ids).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
         }
         arr = np.empty(shape=(len(ids.tolist()), len(areas.tolist()), len(files)))
         for i in range(len(files)):
@@ -569,11 +570,14 @@ def build_results(sim_res: str, input_data: dict[str, pd.DataFrame]) -> dict[str
                 arr[:, :, i] = data[val[0]][val[1]].values[:, 1:]
         res[key]['Mean'].iloc[:, 1:] = np.mean(arr, axis=2)
         res[key]['Error'].iloc[:, 1:] = np.std(arr, axis=2, ddof=1) / np.sqrt(arr.shape[2])    # calculate standard error
+        res[key]['Dist'][res[key]['Dist'].columns[1:]] = res[key]['Dist'][res[key]['Dist'].columns[1:]].astype(object)
+        res[key]['Dist'].iloc[:, 1:] = np.apply_along_axis(lambda x: ' '.join(x), 2, arr.astype(str))
     
     res['StatePressure'] = {
         s: {
             'Mean': pd.DataFrame(pressures).reindex(columns=['ID']+areas.tolist()).fillna(1.0), 
-            'Error': pd.DataFrame(pressures).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
+            'Error': pd.DataFrame(pressures).reindex(columns=['ID']+areas.tolist()).fillna(1.0), 
+            'Dist': pd.DataFrame(pressures).reindex(columns=['ID']+areas.tolist()).fillna(1.0)
         } for s in states
     }
     for s in res['StatePressure']:
@@ -584,6 +588,8 @@ def build_results(sim_res: str, input_data: dict[str, pd.DataFrame]) -> dict[str
             arr[:, :, i] = data['state_pressure_levels'][s].values[:, 1:]
         res['StatePressure'][s]['Mean'].iloc[:, 1:] = np.mean(arr, axis=2)
         res['StatePressure'][s]['Error'].iloc[:, 1:] = np.std(arr, axis=2, ddof=1) / np.sqrt(arr.shape[2])
+        res['StatePressure'][s]['Dist'][res['StatePressure'][s]['Dist'].columns[1:]] = res['StatePressure'][s]['Dist'][res['StatePressure'][s]['Dist'].columns[1:]].astype(object)
+        res['StatePressure'][s]['Dist'].iloc[:, 1:] = np.apply_along_axis(lambda x: ' '.join(x), 2, arr.astype(str))
 
     for key, val, col in [
         ('MeasureEffects', 'measure_effects', 'reduction'), 
@@ -592,7 +598,8 @@ def build_results(sim_res: str, input_data: dict[str, pd.DataFrame]) -> dict[str
     ]:
         res[key] = {
             'Mean': pd.DataFrame(input_data[val]), 
-            'Error': pd.DataFrame(input_data[val])
+            'Error': pd.DataFrame(input_data[val]), 
+            'Dist': pd.DataFrame(input_data[val])
         }
         arr = np.empty(shape=([x for x in input_data[val].values.shape]+[len(files)]))
         for i in range(len(files)):
@@ -601,6 +608,7 @@ def build_results(sim_res: str, input_data: dict[str, pd.DataFrame]) -> dict[str
             arr[:, :, i] = data[val].values
         res[key]['Mean'][col] = np.mean(arr[:, -1, :], axis=1)
         res[key]['Error'][col] = np.std(arr[:, -1, :], axis=1, ddof=1) / np.sqrt(arr.shape[2])
+        res[key]['Dist'][col] = [' '.join(map(str, row)) for row in arr[:, data[val].columns.get_loc(col), :]]
 
     return res
 
@@ -614,11 +622,16 @@ def export_results_to_excel(res: dict[str, pd.DataFrame], input_data: dict[str, 
         input_data (dict): SOM input data.
         export_path (str): output path for exported results.
     """
+    with pd.ExcelWriter(os.path.join(os.path.dirname(export_path), 'results_raw.xlsx')) as writer:
+        for key in res:
+            if key != 'StatePressure':
+                for r in ['Mean', 'Error', 'Dist']:
+                    res[key][r].to_excel(writer, sheet_name=key+r, index=False)
     with pd.ExcelWriter(export_path) as writer:
         new_res = set_id_columns(res, input_data)
         for key in new_res:
             if key != 'StatePressure':
-                for r in ['Mean', 'Error']:
+                for r in ['Mean', 'Error', 'Dist']:
                     new_res[key][r].to_excel(writer, sheet_name=key+r, index=False)
 
 
