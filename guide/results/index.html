@@ -795,6 +795,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#sheetpressuredist" class="md-nav__link">
+    <span class="md-ellipsis">
+      sheet:PressureDist
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sheettplmean" class="md-nav__link">
     <span class="md-ellipsis">
       sheet:TPLMean
@@ -807,6 +816,15 @@
   <a href="#sheettplerror" class="md-nav__link">
     <span class="md-ellipsis">
       sheet:TPLError
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sheettpldist" class="md-nav__link">
+    <span class="md-ellipsis">
+      sheet:TPLDist
     </span>
   </a>
   
@@ -831,6 +849,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#sheettplreddist" class="md-nav__link">
+    <span class="md-ellipsis">
+      sheet:TPLRedDist
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sheetthresholdsmean" class="md-nav__link">
     <span class="md-ellipsis">
       sheet:Thresholds###Mean
@@ -843,6 +870,15 @@
   <a href="#sheetthresholdserror" class="md-nav__link">
     <span class="md-ellipsis">
       sheet:Thresholds###Error
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sheetthresholdsdist" class="md-nav__link">
+    <span class="md-ellipsis">
+      sheet:Thresholds###Dist
     </span>
   </a>
   
@@ -867,6 +903,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#sheetmeasureeffectsdist" class="md-nav__link">
+    <span class="md-ellipsis">
+      sheet:MeasureEffectsDist
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sheetactivitycontributionsmean" class="md-nav__link">
     <span class="md-ellipsis">
       sheet:ActivityContributionsMean
@@ -885,6 +930,15 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#sheetactivitycontributionsdist" class="md-nav__link">
+    <span class="md-ellipsis">
+      sheet:ActivityContributionsDist
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#sheetpressurecontributionsmean" class="md-nav__link">
     <span class="md-ellipsis">
       sheet:PressureContributionsMean
@@ -897,6 +951,15 @@
   <a href="#sheetpressurecontributionserror" class="md-nav__link">
     <span class="md-ellipsis">
       sheet:PressureContributionsError
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#sheetpressurecontributionsdist" class="md-nav__link">
+    <span class="md-ellipsis">
+      sheet:PressureContributionsDist
     </span>
   </a>
   
@@ -1296,7 +1359,7 @@
 
   <h1>Results</h1>
 
-<p>The results are saved to the excel file specified in <code>config.toml</code>. The plots contain visualizations of these results for an easier analysis. </p>
+<p>The results are saved to the excel file specified in <code>config.toml</code>. The plots contain visualizations of these results for an easier analysis. An additional file, <code>results_raw.xlsx</code>, is saved with the measure, activity, pressure, state and area IDs instead of names. </p>
 <h4 id="sheetpressuremean"><code>sheet:PressureMean</code></h4>
 <table>
 <thead>
@@ -1338,6 +1401,28 @@
 <td>area_name</td>
 <td>Number</td>
 <td>One column per unique area, standard error to value in <code>sheet:PressureMean</code> for area</td>
+</tr>
+</tbody>
+</table>
+<h4 id="sheetpressuredist"><code>sheet:PressureDist</code></h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ID</td>
+<td>Text</td>
+<td>Pressure ID</td>
+</tr>
+<tr>
+<td>area_name</td>
+<td>Number</td>
+<td>One column per unique area, all individual simulation round pressure levels for area, space separated</td>
 </tr>
 </tbody>
 </table>
@@ -1385,6 +1470,28 @@
 </tr>
 </tbody>
 </table>
+<h4 id="sheettpldist"><code>sheet:TPLDist</code></h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ID</td>
+<td>Text</td>
+<td>State ID</td>
+</tr>
+<tr>
+<td>area_name</td>
+<td>Number</td>
+<td>One column per unique area, all individual simulation round Total Pressure Load levels for area, space separated</td>
+</tr>
+</tbody>
+</table>
 <h4 id="sheettplredmean"><code>sheet:TPLRedMean</code></h4>
 <table>
 <thead>
@@ -1426,6 +1533,28 @@
 <td>area_name</td>
 <td>Number</td>
 <td>One column per unique area, standard error to value in <code>sheet:TPLRedMean</code> for area</td>
+</tr>
+</tbody>
+</table>
+<h4 id="sheettplreddist"><code>sheet:TPLRedDist</code></h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ID</td>
+<td>Text</td>
+<td>State ID</td>
+</tr>
+<tr>
+<td>area_name</td>
+<td>Number</td>
+<td>One column per unique area, all individual simulation round Total Pressure Load reductions for area, space separated</td>
 </tr>
 </tbody>
 </table>
@@ -1472,6 +1601,29 @@
 <td>area_name</td>
 <td>Number</td>
 <td>One column per unique area, standard error to value in <code>sheet:ThresholdsMean</code> for area</td>
+</tr>
+</tbody>
+</table>
+<h4 id="sheetthresholdsdist"><code>sheet:Thresholds###Dist</code></h4>
+<p>One sheet per target threshold ###.</p>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ID</td>
+<td>Text</td>
+<td>State ID</td>
+</tr>
+<tr>
+<td>area_name</td>
+<td>Number</td>
+<td>One column per unique area, all individual simulation round target reductions for area, space separated</td>
 </tr>
 </tbody>
 </table>
@@ -1549,6 +1701,43 @@
 </tr>
 </tbody>
 </table>
+<h4 id="sheetmeasureeffectsdist"><code>sheet:MeasureEffectsDist</code></h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>measure</td>
+<td>Text</td>
+<td>Measure ID</td>
+</tr>
+<tr>
+<td>activity</td>
+<td>Text</td>
+<td>Activity ID</td>
+</tr>
+<tr>
+<td>pressure</td>
+<td>Text</td>
+<td>Pressure ID</td>
+</tr>
+<tr>
+<td>state</td>
+<td>Text</td>
+<td>State ID</td>
+</tr>
+<tr>
+<td>reduction</td>
+<td>Number</td>
+<td>Measure reduction effects from individual simulation rounds, space separated</td>
+</tr>
+</tbody>
+</table>
 <h4 id="sheetactivitycontributionsmean"><code>sheet:ActivityContributionsMean</code></h4>
 <table>
 <thead>
@@ -1610,6 +1799,38 @@
 <td>contribution</td>
 <td>Number</td>
 <td>Activity contribution to pressure standard error (fraction)</td>
+</tr>
+</tbody>
+</table>
+<h4 id="sheetactivitycontributionsdist"><code>sheet:ActivityContributionsDist</code></h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>activity</td>
+<td>Text</td>
+<td>Activity ID</td>
+</tr>
+<tr>
+<td>pressure</td>
+<td>Text</td>
+<td>Pressure ID</td>
+</tr>
+<tr>
+<td>area_id</td>
+<td>Text</td>
+<td>Area ID</td>
+</tr>
+<tr>
+<td>contribution</td>
+<td>Number</td>
+<td>Activity contributions to pressure from individual simulation rounds, space separated</td>
 </tr>
 </tbody>
 </table>
@@ -1677,6 +1898,38 @@
 </tr>
 </tbody>
 </table>
+<h4 id="sheetpressurecontributionsdist"><code>sheet:PressureContributionsDist</code></h4>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th>Type</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>state</td>
+<td>Text</td>
+<td>State ID</td>
+</tr>
+<tr>
+<td>pressure</td>
+<td>Text</td>
+<td>Pressure ID</td>
+</tr>
+<tr>
+<td>area_id</td>
+<td>Text</td>
+<td>Area ID</td>
+</tr>
+<tr>
+<td>contribution</td>
+<td>Number</td>
+<td>Pressure contributions to total pressure load on state from individual simulation rounds, space separated</td>
+</tr>
+</tbody>
+</table>
 
 
 
@@ -1697,7 +1950,7 @@
     <span class="md-icon" title="Last update">
       <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M21 13.1c-.1 0-.3.1-.4.2l-1 1 2.1 2.1 1-1c.2-.2.2-.6 0-.8l-1.3-1.3c-.1-.1-.2-.2-.4-.2m-1.9 1.8-6.1 6V23h2.1l6.1-6.1zM12.5 7v5.2l4 2.4-1 1L11 13V7zM11 21.9c-5.1-.5-9-4.8-9-9.9C2 6.5 6.5 2 12 2c5.3 0 9.6 4.1 10 9.3-.3-.1-.6-.2-1-.2s-.7.1-1 .2C19.6 7.2 16.2 4 12 4c-4.4 0-8 3.6-8 8 0 4.1 3.1 7.5 7.1 7.9l-.1.2z"/></svg>
     </span>
-    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 7, 2025 09:15:21 UTC">August 7, 2025</span>
+    <span class="git-revision-date-localized-plugin git-revision-date-localized-plugin-date" title="August 13, 2025 12:39:51 UTC">August 13, 2025</span>
   </span>
 
     
